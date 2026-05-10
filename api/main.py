@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, field_validator, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
