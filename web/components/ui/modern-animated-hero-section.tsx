@@ -146,6 +146,7 @@ const RainingLetters: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -175,22 +176,40 @@ const RainingLetters: React.FC = () => {
     if (!prompt.trim()) return
     setIsAnalysing(true)
     setResult(null)
+    setApiError(null)
     try {
       const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
       const endpoint = conversationMode
         ? `${base}/analyze-conversation`
         : `${base}/predict`
       const body = conversationMode
-        ? { conversation: prompt.trim() }
+        ? { text: prompt.trim() }
         : { text: prompt.trim() }
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
+      if (!response.ok) {
+        const errText = await response.text()
+        let detail = `Server error ${response.status}`
+        try { detail = JSON.parse(errText)?.detail ?? detail } catch {}
+        setApiError(detail)
+        return
+      }
       const data = await response.json()
+      // Normalize conversation response to match single-message shape
+      if (conversationMode && data.overall_verdict) {
+        data.verdict = data.overall_verdict
+        data.confidence = data.risk_score
+      }
+      if (!data.verdict) {
+        setApiError(data.detail ?? 'Unexpected response from server.')
+        return
+      }
       setResult(data)
     } catch (err) {
+      setApiError('Could not reach the API. The server may be starting up — please try again in 30 seconds.')
       console.error('API error:', err)
     } finally {
       setIsAnalysing(false)
@@ -301,7 +320,7 @@ const RainingLetters: React.FC = () => {
             <div className="flex justify-center mb-2">
               <div className="flex gap-1 bg-black/60 border border-white/10 rounded-full p-1 backdrop-blur-sm">
                 <button
-                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null) }}
+                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
                   className={cn(
                     'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
                     !conversationMode
@@ -313,7 +332,7 @@ const RainingLetters: React.FC = () => {
                   Single Message
                 </button>
                 <button
-                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null) }}
+                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
                   className={cn(
                     'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
                     conversationMode
@@ -417,6 +436,22 @@ const RainingLetters: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* API error banner */}
+            <AnimatePresence>
+              {apiError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400 flex items-start gap-2"
+                  style={{ fontFamily: 'monospace' }}
+                >
+                  <ShieldX className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{apiError}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Results */}
             <AnimatePresence>
@@ -533,7 +568,7 @@ const RainingLetters: React.FC = () => {
 
                   {/* Reset button */}
                   <button
-                    onClick={() => { setResult(null); setPrompt(''); setFileName(null) }}
+                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
                     className="w-full py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/20 transition-all"
                     style={{ fontFamily: 'monospace' }}
                   >
