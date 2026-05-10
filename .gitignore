@@ -1,6 +1,3 @@
-# Secret keys / credentials
-config.py
-
 # Node
 node_modules/
 
@@ -22,9 +19,8 @@ venv/
 .venv/
 env/
 
-# Data & models (large files)
+# Raw training data and outputs (large, not needed to run the API)
 data/
-models/
 outputs/
 
 # OS
