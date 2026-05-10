@@ -1,0 +1,108 @@
+========================================================================
+  ScamRadar+  |  Adversarial Test Suite Report
+  Generated:  2026-05-02 05:22:01
+  Threshold:  0.45  (≥0.60 = SCAM, 0.45–0.60 = SUSPICIOUS)
+========================================================================
+
+OVERALL SUMMARY
+────────────────────────────────────────
+  Total messages tested : 50
+  Full passes (PASS)    : 50  (100.0%)
+  Partial (SUSPICIOUS)  : 0
+  Failures (wrong tier) : 0
+  Soft accuracy         : 100.0%  (PASS + PARTIAL counted)
+  Strict accuracy       : 100.0%  (PASS only)
+
+  Scam messages  (25 total)
+    Correctly flagged (SCAM)     : 25
+    Caught but borderline (SUSP) : 0
+    Missed (LEGIT)               : 0  ← False Negatives
+    False Negative Rate          : 0.0%
+
+  Legit messages (25 total)
+    Correctly cleared (LEGIT)    : 25
+    Borderline (SUSPICIOUS)      : 0
+    Over-flagged (SCAM)          : 0   ← False Positives
+    False Positive Rate          : 0.0%
+
+CATEGORY BREAKDOWN
+────────────────────────────────────────────────────────────────────────
+  Category                     N    PASS  PARTIAL   FAIL   Pass%
+  ────────────────────────────────────────────────────────────
+  Corporate Email              5       5        0      0    100% ██
+  Delivery Scam                2       2        0      0    100% ██
+  Emergency/Grandparent        3       3        0      0    100% ██
+  Investment/Crypto            5       5        0      0    100% ██
+  Job/Money Mule               3       3        0      0    100% ██
+  Membership/Subscription      3       3        0      0    100% ██
+  Messaging Invite             2       2        0      0    100% ██
+  OTP/Verification             3       3        0      0    100% ██
+  Phishing                     5       5        0      0    100% ██
+  Receipt/Order                4       4        0      0    100% ██
+  Romance/Advance Fee          5       5        0      0    100% ██
+  Security Alert               5       5        0      0    100% ██
+  Tech Support                 2       2        0      0    100% ██
+  University/Work              3       3        0      0    100% ██
+
+DETAILED RESULTS
+────────────────────────────────────────────────────────────────────────
+   #  Category               Expected   Got            Conf  Status
+  ──────────────────────────────────────────────────────────────
+   1  Phishing               SCAM       SCAM          98.0%    PASS
+   2  Phishing               SCAM       SCAM          72.0%    PASS
+   3  Phishing               SCAM       SCAM          79.0%    PASS
+   4  Phishing               SCAM       SCAM          98.0%    PASS
+   5  Phishing               SCAM       SCAM          72.0%    PASS
+   6  Investment/Crypto      SCAM       SCAM          98.0%    PASS
+   7  Investment/Crypto      SCAM       SCAM          91.1%    PASS
+   8  Investment/Crypto      SCAM       SCAM          98.0%    PASS
+   9  Investment/Crypto      SCAM       SCAM          80.3%    PASS
+  10  Investment/Crypto      SCAM       SCAM          98.0%    PASS
+  11  Romance/Advance Fee    SCAM       SCAM          98.0%    PASS
+  12  Romance/Advance Fee    SCAM       SCAM          97.8%    PASS
+  13  Romance/Advance Fee    SCAM       SCAM          98.0%    PASS
+  14  Romance/Advance Fee    SCAM       SCAM          98.0%    PASS
+  15  Romance/Advance Fee    SCAM       SCAM          80.3%    PASS
+  16  Emergency/Grandparent  SCAM       SCAM          98.0%    PASS
+  17  Emergency/Grandparent  SCAM       SCAM          93.6%    PASS
+  18  Emergency/Grandparent  SCAM       SCAM          86.8%    PASS
+  19  Job/Money Mule         SCAM       SCAM          98.0%    PASS
+  20  Job/Money Mule         SCAM       SCAM          68.8%    PASS
+  21  Job/Money Mule         SCAM       SCAM          72.0%    PASS
+  22  Delivery Scam          SCAM       SCAM          91.1%    PASS
+  23  Delivery Scam          SCAM       SCAM          98.0%    PASS
+  24  Tech Support           SCAM       SCAM          79.0%    PASS
+  25  Tech Support           SCAM       SCAM          93.6%    PASS
+  26  Corporate Email        LEGIT      LEGIT          6.4%    PASS
+  27  Corporate Email        LEGIT      LEGIT          2.0%    PASS
+  28  Corporate Email        LEGIT      LEGIT          2.0%    PASS
+  29  Corporate Email        LEGIT      LEGIT          2.0%    PASS
+  30  Corporate Email        LEGIT      LEGIT          2.0%    PASS
+  31  Security Alert         LEGIT      LEGIT         35.0%    PASS
+  32  Security Alert         LEGIT      LEGIT          2.0%    PASS
+  33  Security Alert         LEGIT      LEGIT         30.0%    PASS
+  34  Security Alert         LEGIT      LEGIT         35.0%    PASS
+  35  Security Alert         LEGIT      LEGIT         35.0%    PASS
+  36  OTP/Verification       LEGIT      LEGIT         25.0%    PASS
+  37  OTP/Verification       LEGIT      LEGIT         25.0%    PASS
+  38  OTP/Verification       LEGIT      LEGIT         25.0%    PASS
+  39  Membership/Subscription LEGIT      LEGIT         30.0%    PASS
+  40  Membership/Subscription LEGIT      LEGIT         35.0%    PASS
+  41  Membership/Subscription LEGIT      LEGIT          6.4%    PASS
+  42  Messaging Invite       LEGIT      LEGIT         30.0%    PASS
+  43  Messaging Invite       LEGIT      LEGIT          6.4%    PASS
+  44  University/Work        LEGIT      LEGIT          2.0%    PASS
+  45  University/Work        LEGIT      LEGIT          6.4%    PASS
+  46  University/Work        LEGIT      LEGIT          2.0%    PASS
+  47  Receipt/Order          LEGIT      LEGIT          6.4%    PASS
+  48  Receipt/Order          LEGIT      LEGIT          2.0%    PASS
+  49  Receipt/Order          LEGIT      LEGIT          2.0%    PASS
+  50  Receipt/Order          LEGIT      LEGIT         30.0%    PASS
+
+FAILURES AND BORDERLINE CASES
+────────────────────────────────────────────────────────────────────────
+  None — perfect suite score!
+
+========================================================================
+  ScamRadar+ Adversarial Test Suite  |  2026-05-02
+========================================================================
