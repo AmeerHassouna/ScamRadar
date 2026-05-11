@@ -27,7 +27,7 @@ const socialLinks: SocialLink[] = [
   },
   {
     icon: <Globe className="w-5 h-5" />,
-    href: "https://linkedin.com/in/ameer-hassouna",
+    href: "https://www.linkedin.com/in/ameer-hassouna-b50756323/",
     label: "LinkedIn",
   },
   {
