@@ -108,7 +108,7 @@ const ScrambledTitle: React.FC = () => {
         'ScamRadar+',
         'DETECT SCAMS',
         'AI Powered',
-        '99.19% Accuracy',
+        'No Scam Hides',
         'Stay Protected',
         'Analyse Now'
       ]
