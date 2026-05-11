@@ -73,7 +73,7 @@ export const TestimonialSlider = ({ reviews, className }: TestimonialSliderProps
   return (
     <div
       className={cn(
-        "relative w-full min-h-fit md:min-h-[600px] overflow-hidden bg-background text-foreground p-4 sm:p-8 md:p-12",
+        "relative w-full min-h-fit md:min-h-[600px] overflow-hidden bg-background text-foreground p-4 sm:p-8 md:p-12 pb-8",
         className
       )}
     >
@@ -111,7 +111,7 @@ export const TestimonialSlider = ({ reviews, className }: TestimonialSliderProps
         </div>
 
         {/* Center Column: Main Image */}
-        <div className="md:col-span-4 relative h-52 sm:h-72 md:h-80 min-h-0 md:min-h-[500px] order-1 md:order-2">
+        <div className="md:col-span-4 relative h-72 sm:h-72 md:h-80 min-h-0 md:min-h-[500px] order-1 md:order-2">
           <AnimatePresence initial={false} custom={direction}>
             <motion.img
               key={currentIndex}
@@ -145,7 +145,7 @@ export const TestimonialSlider = ({ reviews, className }: TestimonialSliderProps
                   {activeReview.affiliation}
                 </p>
                 <h3 className="text-xl font-semibold mt-1">{activeReview.name}</h3>
-                <blockquote className="mt-4 md:mt-6 text-lg sm:text-2xl md:text-3xl font-medium leading-snug">
+                <blockquote className="mt-4 md:mt-6 text-base sm:text-2xl md:text-3xl font-medium leading-snug">
                   "{activeReview.quote}"
                 </blockquote>
               </motion.div>

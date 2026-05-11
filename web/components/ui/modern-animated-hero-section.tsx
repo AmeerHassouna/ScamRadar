@@ -150,7 +150,6 @@ const RainingLetters: React.FC = () => {
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,13 +256,6 @@ const RainingLetters: React.FC = () => {
   useEffect(() => {
     setCharacters(createCharacters())
   }, [createCharacters])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   useEffect(() => {
     const updateActiveIndices = () => {
@@ -515,7 +507,7 @@ const RainingLetters: React.FC = () => {
                       value={result.verdict === 'LEGIT'
                         ? 100 - result.confidence
                         : result.confidence}
-                      size={isMobile ? 120 : 160}
+                      size={160}
                       strokeWidth={12}
                       gradient={true}
                       glowEffect={true}

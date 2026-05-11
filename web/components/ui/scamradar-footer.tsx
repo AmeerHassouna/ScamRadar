@@ -47,7 +47,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
   return (
     <section className={cn("relative w-full mt-0 overflow-hidden", className)}>
       <footer className="border-t border-white/10 bg-black mt-0 relative">
-        <div className="max-w-7xl flex flex-col justify-between mx-auto min-h-[30rem] sm:min-h-[35rem] md:min-h-[40rem] relative p-4 py-10">
+        <div className="max-w-7xl flex flex-col justify-between mx-auto min-h-0 sm:min-h-[35rem] md:min-h-[40rem] relative p-4 py-10">
 
           {/* Top content */}
           <div className="flex flex-col mb-12 sm:mb-20 md:mb-0 w-full">
@@ -116,7 +116,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-20 md:mt-24 flex flex-col gap-2 md:gap-1 items-center justify-center md:flex-row md:items-center md:justify-between px-4 md:px-0">
+          <div className="mt-10 sm:mt-20 md:mt-24 flex flex-col gap-2 md:gap-1 items-center justify-center md:flex-row md:items-center md:justify-between px-4 md:px-0">
             <p
               className="text-xs text-white/25 text-center md:text-left"
               style={{ fontFamily: "monospace" }}
@@ -143,7 +143,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
 
         {/* Large background watermark text */}
         <div
-          className="bg-gradient-to-b from-white/[0.06] via-white/[0.03] to-transparent bg-clip-text text-transparent leading-none absolute left-1/2 -translate-x-1/2 bottom-40 md:bottom-32 font-extrabold tracking-tighter pointer-events-none select-none text-center px-4"
+          className="bg-gradient-to-b from-white/[0.06] via-white/[0.03] to-transparent bg-clip-text text-transparent leading-none absolute left-1/2 -translate-x-1/2 bottom-28 sm:bottom-40 md:bottom-32 font-extrabold tracking-tighter pointer-events-none select-none text-center px-4"
           style={{
             fontSize: "clamp(1.5rem, 8vw, 6rem)",
             maxWidth: "95vw",
@@ -154,17 +154,17 @@ export function ScamRadarFooter({ className }: FooterProps) {
         </div>
 
         {/* Floating center icon */}
-        <div className="absolute hover:border-green-400/40 duration-300 drop-shadow-[0_0px_24px_rgba(74,222,128,0.15)] bottom-24 md:bottom-20 backdrop-blur-sm rounded-3xl bg-black/80 left-1/2 border-2 border-white/10 flex items-center justify-center p-3 -translate-x-1/2 z-10">
+        <div className="absolute hover:border-green-400/40 duration-300 drop-shadow-[0_0px_24px_rgba(74,222,128,0.15)] bottom-16 sm:bottom-24 md:bottom-20 backdrop-blur-sm rounded-3xl bg-black/80 left-1/2 border-2 border-white/10 flex items-center justify-center p-3 -translate-x-1/2 z-10">
           <div className="w-12 sm:w-16 md:w-24 h-12 sm:h-16 md:h-24 bg-gradient-to-br from-green-500/20 to-green-400/5 border border-green-400/20 rounded-2xl flex items-center justify-center shadow-lg">
             <ShieldCheck className="w-8 sm:w-10 md:w-14 h-8 sm:h-10 md:h-14 text-green-400 drop-shadow-lg" />
           </div>
         </div>
 
         {/* Horizontal rule above icon */}
-        <div className="absolute bottom-32 sm:bottom-34 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent w-full left-1/2 -translate-x-1/2" />
+        <div className="absolute bottom-24 sm:bottom-32 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent w-full left-1/2 -translate-x-1/2" />
 
         {/* Fade-out shadow below rule */}
-        <div className="bg-gradient-to-t from-black via-black/80 to-transparent absolute bottom-28 w-full h-24 blur-[2px]" />
+        <div className="bg-gradient-to-t from-black via-black/80 to-transparent absolute bottom-20 sm:bottom-28 w-full h-24 blur-[2px]" />
       </footer>
     </section>
   );

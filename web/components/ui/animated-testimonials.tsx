@@ -87,8 +87,8 @@ export function AnimatedTestimonials({
           variants={containerVariants}
           className="grid grid-cols-1 gap-8 md:gap-16 w-full md:grid-cols-2 lg:gap-24"
         >
-          {/* Left — heading + dot navigation */}
-          <motion.div variants={itemVariants} className="flex flex-col justify-center">
+          {/* Left — heading + dot navigation (second on mobile, first on desktop) */}
+          <motion.div variants={itemVariants} className="flex flex-col justify-center order-2 md:order-1">
             <div className="space-y-6">
               {badgeText && (
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-400/10 text-green-400 border border-green-400/20" style={{ fontFamily: "monospace" }}>
@@ -128,8 +128,8 @@ export function AnimatedTestimonials({
             </div>
           </motion.div>
 
-          {/* Right — sliding testimonial cards */}
-          <motion.div variants={itemVariants} className="relative h-full mr-0 md:mr-10 min-h-[280px] md:min-h-[400px]">
+          {/* Right — sliding testimonial cards (first on mobile) */}
+          <motion.div variants={itemVariants} className="relative h-full mr-0 md:mr-10 min-h-[300px] md:min-h-[400px] order-1 md:order-2">
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={testimonial.id}
@@ -200,19 +200,19 @@ export function AnimatedTestimonials({
             variants={itemVariants}
             initial="hidden"
             animate={controls}
-            className="mt-24 text-center"
+            className="mt-10 sm:mt-24 text-center"
           >
             <h3
-              className="text-sm font-medium text-white/30 mb-8"
+              className="text-xs sm:text-sm font-medium text-white/30 mb-4 sm:mb-8"
               style={{ fontFamily: "monospace" }}
             >
               {trustedCompaniesTitle}
             </h3>
-            <div className="flex flex-wrap justify-center gap-x-12 gap-y-8">
+            <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-12 gap-y-2 sm:gap-y-8">
               {trustedCompanies.map((company) => (
                 <div
                   key={company}
-                  className="text-2xl font-semibold text-white/20"
+                  className="text-xs sm:text-2xl font-semibold text-white/20 border border-white/8 rounded-full px-3 py-1 sm:border-0 sm:px-0 sm:py-0 sm:rounded-none"
                   style={{ fontFamily: "monospace" }}
                 >
                   {company}

@@ -48,15 +48,15 @@ export default function Home() {
       </section>
 
       {/* Capabilities + Performance — one unified section */}
-      <section id="performance" className="bg-black py-12 px-4">
+      <section id="performance" className="bg-black py-8 sm:py-16 px-4">
         <div className="max-w-7xl mx-auto">
 
-          {/* Shared section header */}
-          <ScrollReveal direction="up" className="text-center mb-10">
+          {/* Section header */}
+          <ScrollReveal direction="up" className="text-center mb-6 sm:mb-10">
             <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3" style={{ fontFamily: 'monospace' }}>
               Capabilities &amp; Performance
             </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2" style={{ fontFamily: 'monospace' }}>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white mb-2" style={{ fontFamily: 'monospace' }}>
               WHAT IT DOES &amp; HOW WELL
             </h2>
             <p className="text-white/40 text-sm max-w-xl mx-auto" style={{ fontFamily: 'monospace' }}>
@@ -68,22 +68,23 @@ export default function Home() {
           <FeatureGrid />
 
           {/* Divider */}
-          <div className="my-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="my-6 sm:my-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-          {/* Stat cards + chart inline */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <ScrollReveal direction="up" delay={0.0}><StatCard title="Model Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
             <ScrollReveal direction="up" delay={0.1}><StatCard title="Precision Score" value={97.47} change={2.47}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
             <ScrollReveal direction="up" delay={0.2}><StatCard title="Recall Score"    value={97.12} change={2.12}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
             <ScrollReveal direction="up" delay={0.3}><StatCard title="F1 Score"        value={97.30} change={13.30} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
           </div>
 
-          <ScrollReveal direction="up" delay={0.1}>
+          {/* Line chart — desktop only (too dense for mobile) */}
+          <ScrollReveal direction="up" delay={0.1} className="hidden sm:block">
             <LineChart8 />
           </ScrollReveal>
 
           <ScrollReveal direction="up" delay={0.2}>
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4 sm:mt-6">
               <Link
                 href="/performance"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-green-400/30 text-green-400 text-xs font-semibold uppercase tracking-widest hover:bg-green-400/10 transition-colors"
