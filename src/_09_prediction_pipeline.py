@@ -4,7 +4,7 @@ Full real-time inference with trusted-domain bonus, SUSPICIOUS tier,
 non-English warning, VT error handling, and confidence capping.
 """
 
-import re, time, pickle, os, sys
+import re, pickle, os, sys
 import numpy as np
 import faiss
 from urllib.parse import urlparse
@@ -206,25 +206,53 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     gsb_attempted  = bool(urls and _gsb_key)
     vt_attempted   = False
 
+    # Import URL cache lazily to avoid circular imports at module load time
+    try:
+        from api.cache import get_url_rep, set_url_rep
+        _url_cache_available = True
+    except ImportError:
+        _url_cache_available = False
+
     for url in urls[:3]:
+        # Serve from cache when available — avoids redundant external API calls
+        if _url_cache_available:
+            cached_rep = get_url_rep(url)
+            if cached_rep is not None:
+                c_gsb, c_threat, c_vtm, c_vts = cached_rep
+                if c_gsb:
+                    gsb_flagged = True
+                    gsb_threat_type = c_threat
+                    vt_malicious += 1
+                else:
+                    vt_malicious += c_vtm
+                    vt_suspicious += c_vts
+                    if c_vtm + c_vts > 0:
+                        vt_attempted = True
+                continue
+
         # GSB first
         flagged, threat = check_url_google_safebrowsing(url, _gsb_key)
         if flagged:
-            gsb_flagged    = True
+            gsb_flagged     = True
             gsb_threat_type = threat
-            vt_malicious  += 1      # treat GSB hit as malicious for downstream rules
-            continue                # skip VT for this URL — already condemned
+            vt_malicious   += 1
+            if _url_cache_available:
+                set_url_rep(url, (True, threat, 0, 0))
+            continue
 
         # VT fallback (only if GSB returned clean)
+        c_vtm = c_vts = 0
         if _vt_key:
             try:
                 m, s, _ = check_url_virustotal(url, _vt_key)
                 vt_malicious  += m
                 vt_suspicious += s
-                vt_attempted = True   # only mark attempted when call succeeds
-                time.sleep(1)
+                vt_attempted   = True
+                c_vtm, c_vts   = m, s
             except Exception:
-                pass  # VT error — falls back to "pattern analysis only"
+                pass
+        if _url_cache_available:
+            set_url_rep(url, (False, None, c_vtm, c_vts))
 
     if urls and not gsb_attempted and not vt_attempted:
         warnings.append("URL reputation checks skipped — no API keys configured.")
