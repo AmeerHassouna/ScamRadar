@@ -22,12 +22,12 @@ interface FooterProps {
 const socialLinks: SocialLink[] = [
   {
     icon: <GitFork className="w-5 h-5" />,
-    href: "https://github.com",
+    href: "https://github.com/AmeerHassouna",
     label: "GitHub",
   },
   {
     icon: <Globe className="w-5 h-5" />,
-    href: "https://linkedin.com",
+    href: "https://linkedin.com/in/ameer-hassouna",
     label: "LinkedIn",
   },
   {
