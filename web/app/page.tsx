@@ -7,6 +7,7 @@ import { AnimatedTestimonials } from '@/components/ui/animated-testimonials'
 import { StatCard } from '@/components/ui/card-10'
 import { ScamRadarFooter } from '@/components/ui/scamradar-footer'
 import { LineChart8 } from '@/components/ui/line-charts-8'
+import { ScrollReveal } from '@/components/ui/scroll-reveal'
 import { ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -51,7 +52,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
 
           {/* Shared section header */}
-          <div className="text-center mb-10">
+          <ScrollReveal direction="up" className="text-center mb-10">
             <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3" style={{ fontFamily: 'monospace' }}>
               Capabilities &amp; Performance
             </p>
@@ -61,7 +62,7 @@ export default function Home() {
             <p className="text-white/40 text-sm max-w-xl mx-auto" style={{ fontFamily: 'monospace' }}>
               Six layers of AI-powered protection, validated on 46,360 real-world messages.
             </p>
-          </div>
+          </ScrollReveal>
 
           {/* Feature cards */}
           <FeatureGrid />
@@ -71,24 +72,28 @@ export default function Home() {
 
           {/* Stat cards + chart inline */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard title="Model Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} />
-            <StatCard title="Precision Score" value={97.47} change={2.47}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} />
-            <StatCard title="Recall Score"    value={97.12} change={2.12}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} />
-            <StatCard title="F1 Score"        value={97.30} change={13.30} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} />
+            <ScrollReveal direction="up" delay={0.0}><StatCard title="Model Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
+            <ScrollReveal direction="up" delay={0.1}><StatCard title="Precision Score" value={97.47} change={2.47}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
+            <ScrollReveal direction="up" delay={0.2}><StatCard title="Recall Score"    value={97.12} change={2.12}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
+            <ScrollReveal direction="up" delay={0.3}><StatCard title="F1 Score"        value={97.30} change={13.30} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
           </div>
 
-          <LineChart8 />
+          <ScrollReveal direction="up" delay={0.1}>
+            <LineChart8 />
+          </ScrollReveal>
 
-          <div className="flex justify-center mt-6">
-            <Link
-              href="/performance"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-green-400/30 text-green-400 text-xs font-semibold uppercase tracking-widest hover:bg-green-400/10 transition-colors"
-              style={{ fontFamily: 'monospace' }}
-            >
-              View full performance report
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+          <ScrollReveal direction="up" delay={0.2}>
+            <div className="flex justify-center mt-6">
+              <Link
+                href="/performance"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-green-400/30 text-green-400 text-xs font-semibold uppercase tracking-widest hover:bg-green-400/10 transition-colors"
+                style={{ fontFamily: 'monospace' }}
+              >
+                View full performance report
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </ScrollReveal>
 
         </div>
       </section>
@@ -139,26 +144,28 @@ export default function Home() {
 
       {/* Team */}
       <section id="team" className="bg-black">
-        <div className="max-w-7xl mx-auto px-4 pt-16 pb-4 text-center">
-          <p
-            className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3"
-            style={{ fontFamily: 'monospace' }}
-          >
-            ScamRadar+ · 2026
-          </p>
-          <h2
-            className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-2"
-            style={{ fontFamily: 'monospace' }}
-          >
-            MEET THE TEAM
-          </h2>
-          <p
-            className="text-white/40 text-sm max-w-xl mx-auto"
-            style={{ fontFamily: 'monospace' }}
-          >
-            Behind ScamRadar+
-          </p>
-        </div>
+        <ScrollReveal direction="up">
+          <div className="max-w-7xl mx-auto px-4 pt-16 pb-4 text-center">
+            <p
+              className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3"
+              style={{ fontFamily: 'monospace' }}
+            >
+              ScamRadar+ · 2026
+            </p>
+            <h2
+              className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-2"
+              style={{ fontFamily: 'monospace' }}
+            >
+              MEET THE TEAM
+            </h2>
+            <p
+              className="text-white/40 text-sm max-w-xl mx-auto"
+              style={{ fontFamily: 'monospace' }}
+            >
+              Behind ScamRadar+
+            </p>
+          </div>
+        </ScrollReveal>
         <TestimonialSlider
           reviews={teamMembers}
           className="bg-black text-white"

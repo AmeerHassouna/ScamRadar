@@ -150,6 +150,7 @@ const RainingLetters: React.FC = () => {
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +259,13 @@ const RainingLetters: React.FC = () => {
   }, [createCharacters])
 
   useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  useEffect(() => {
     const updateActiveIndices = () => {
       const newActiveIndices = new Set<number>()
       const numActive = Math.floor(Math.random() * 3) + 3
@@ -344,7 +352,7 @@ const RainingLetters: React.FC = () => {
                 <button
                   onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
                   className={cn(
-                    'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
+                    'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     !conversationMode
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
@@ -356,7 +364,7 @@ const RainingLetters: React.FC = () => {
                 <button
                   onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
                   className={cn(
-                    'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
+                    'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     conversationMode
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
@@ -400,7 +408,7 @@ const RainingLetters: React.FC = () => {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 transition-all duration-200"
+                    className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 min-h-[44px] transition-all duration-200"
                     style={{ fontFamily: 'monospace' }}
                     title="Upload .txt, .md, .csv, .log, .json"
                   >
@@ -507,7 +515,7 @@ const RainingLetters: React.FC = () => {
                       value={result.verdict === 'LEGIT'
                         ? 100 - result.confidence
                         : result.confidence}
-                      size={160}
+                      size={isMobile ? 120 : 160}
                       strokeWidth={12}
                       gradient={true}
                       glowEffect={true}

@@ -294,7 +294,7 @@ export function RecentThreats() {
               <motion.button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className="relative mx-1 focus:outline-none"
+                className="relative flex items-center justify-center w-11 h-11 focus:outline-none"
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.9 }}
                 aria-label={`Go to threat ${index + 1}`}

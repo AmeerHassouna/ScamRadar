@@ -578,3 +578,25 @@ html:not(.dark) .text-muted-foreground { color: oklch(0.4 0 0); }
 /* Star ratings — keep yellow visible */
 html:not(.dark) .fill-yellow-500 { fill: oklch(0.6 0.18 85); }
 html:not(.dark) .text-yellow-500 { color: oklch(0.6 0.18 85); }
+
+/* ── Mobile-only overrides (max 639px = below sm breakpoint) ──────────────── */
+@media (max-width: 639px) {
+  /* Prevent any horizontal scroll / overflow */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  /* Use dynamic viewport height to avoid mobile browser chrome issues */
+  .min-h-screen { min-height: 100dvh; }
+  .h-screen     { height: 100dvh; }
+
+  /* Hide sidebar minimap — too cramped on small screens */
+  .minimap { display: none !important; }
+
+  /* Prevent parallax full-screen containers from overflowing */
+  .parallax-container,
+  .cosmic-parallax-container { height: 100dvh; }
+
+  .project { height: 100dvh; }
+
+  /* Smooth momentum scrolling on iOS */
+  main, section { -webkit-overflow-scrolling: touch; }
+}

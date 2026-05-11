@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck,
@@ -159,7 +160,15 @@ export function FeatureGrid({ className }: FeatureGridProps) {
   return (
     <div className={cn("grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
       {FEATURES.map((feature, index) => (
-        <FeatureCard key={index} {...feature} />
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: index * 0.08 }}
+        >
+          <FeatureCard {...feature} />
+        </motion.div>
       ))}
     </div>
   );
