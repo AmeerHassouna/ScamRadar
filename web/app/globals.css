@@ -607,6 +607,21 @@ html:not(.dark) .hover\:bg-zinc-800:hover { background-color: oklch(0.84 0 0); }
 /* Placeholder text in light mode */
 html:not(.dark) .placeholder\:text-white\/30::placeholder { color: oklch(0.09 0 0 / 0.35); }
 
+/* Border opacity variants used in hero, charts, and components */
+html:not(.dark) .border-white\/15 { border-color: oklch(0.09 0 0 / 0.15); }
+html:not(.dark) .border-white\/20 { border-color: oklch(0.09 0 0 / 0.22); }
+html:not(.dark) .border-white\/30 { border-color: oklch(0.09 0 0 / 0.32); }
+
+/* Hover border variants in hero inputs/buttons */
+html:not(.dark) .hover\:border-white\/20:hover { border-color: oklch(0.09 0 0 / 0.22); }
+html:not(.dark) .hover\:border-white\/30:hover { border-color: oklch(0.09 0 0 / 0.32); }
+
+/* Text opacity variant used in chart labels */
+html:not(.dark) .text-white\/35 { color: oklch(0.09 0 0 / 0.4); }
+
+/* Inactive pagination dot (bg-white/20 is invisible on light bg) */
+html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
+
 /* ── Mobile-only overrides (max 639px = below sm breakpoint) ──────────────── */
 @media (max-width: 639px) {
   /* Prevent any horizontal scroll / overflow */
