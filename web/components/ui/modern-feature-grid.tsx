@@ -158,18 +158,39 @@ interface FeatureGridProps {
 
 export function FeatureGrid({ className }: FeatureGridProps) {
   return (
-    <div className={cn("grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
-      {FEATURES.map((feature, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: index * 0.08 }}
-        >
-          <FeatureCard {...feature} />
-        </motion.div>
-      ))}
-    </div>
+    <>
+      {/* Mobile: horizontal swipe carousel */}
+      <div className="md:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-3" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        {FEATURES.map((feature, index) => (
+          <motion.div
+            key={index}
+            className="flex-none w-[82%] snap-start"
+            initial={{ opacity: 0, x: 24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-20px" }}
+            transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1], delay: index * 0.06 }}
+          >
+            <FeatureCard {...feature} />
+          </motion.div>
+        ))}
+        {/* Trailing spacer so last card doesn't butt against edge */}
+        <div className="flex-none w-4" aria-hidden="true" />
+      </div>
+
+      {/* Desktop: regular grid */}
+      <div className={cn("hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
+        {FEATURES.map((feature, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: index * 0.08 }}
+          >
+            <FeatureCard {...feature} />
+          </motion.div>
+        ))}
+      </div>
+    </>
   );
 }

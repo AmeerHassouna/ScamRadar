@@ -71,7 +71,7 @@ export default function Home() {
           <div className="my-10 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
           {/* Stat cards + chart inline */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
             <ScrollReveal direction="up" delay={0.0}><StatCard title="Model Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
             <ScrollReveal direction="up" delay={0.1}><StatCard title="Precision Score" value={97.47} change={2.47}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
             <ScrollReveal direction="up" delay={0.2}><StatCard title="Recall Score"    value={97.12} change={2.12}  changeDescription="v1 baseline" icon={<ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />} /></ScrollReveal>
