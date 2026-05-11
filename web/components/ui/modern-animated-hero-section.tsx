@@ -147,6 +147,7 @@ const RainingLetters: React.FC = () => {
   const [isAnalysing, setIsAnalysing] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -177,42 +178,63 @@ const RainingLetters: React.FC = () => {
     setIsAnalysing(true)
     setResult(null)
     setApiError(null)
-    try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-      const endpoint = conversationMode
-        ? `${base}/analyze-conversation`
-        : `${base}/predict`
-      const body = conversationMode
-        ? { text: prompt.trim() }
-        : { text: prompt.trim() }
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      if (!response.ok) {
-        const errText = await response.text()
-        let detail = `Server error ${response.status}`
-        try { detail = JSON.parse(errText)?.detail ?? detail } catch {}
-        setApiError(detail)
+    setRetryCountdown(null)
+
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+    const endpoint = conversationMode ? `${base}/analyze-conversation` : `${base}/predict`
+    const body = { text: prompt.trim() }
+
+    const MAX_RETRIES = 3
+    const RETRY_DELAY = 8000
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (!response.ok) {
+          const errText = await response.text()
+          let detail = `Server error ${response.status}`
+          try { detail = JSON.parse(errText)?.detail ?? detail } catch {}
+          setApiError(detail)
+          setIsAnalysing(false)
+          return
+        }
+        const data = await response.json()
+        if (conversationMode && data.overall_verdict) {
+          data.verdict = data.overall_verdict
+          data.confidence = data.risk_score
+        }
+        if (!data.verdict) {
+          setApiError(data.detail ?? 'Unexpected response from server.')
+          setIsAnalysing(false)
+          return
+        }
+        setRetryCountdown(null)
+        setResult(data)
+        setIsAnalysing(false)
         return
+      } catch (err) {
+        if (attempt < MAX_RETRIES) {
+          // Show countdown and retry
+          let secs = RETRY_DELAY / 1000
+          setRetryCountdown(secs)
+          const tick = setInterval(() => {
+            secs -= 1
+            setRetryCountdown(secs)
+            if (secs <= 0) clearInterval(tick)
+          }, 1000)
+          await new Promise(r => setTimeout(r, RETRY_DELAY))
+          clearInterval(tick)
+          setRetryCountdown(null)
+        } else {
+          setApiError('Could not reach the API after several attempts. Check your internet connection or try again later.')
+          console.error('API error:', err)
+          setIsAnalysing(false)
+        }
       }
-      const data = await response.json()
-      // Normalize conversation response to match single-message shape
-      if (conversationMode && data.overall_verdict) {
-        data.verdict = data.overall_verdict
-        data.confidence = data.risk_score
-      }
-      if (!data.verdict) {
-        setApiError(data.detail ?? 'Unexpected response from server.')
-        return
-      }
-      setResult(data)
-    } catch (err) {
-      setApiError('Could not reach the API. The server may be starting up — please try again in 30 seconds.')
-      console.error('API error:', err)
-    } finally {
-      setIsAnalysing(false)
     }
   }
 
@@ -320,7 +342,7 @@ const RainingLetters: React.FC = () => {
             <div className="flex justify-center mb-2">
               <div className="flex gap-1 bg-black/60 border border-white/10 rounded-full p-1 backdrop-blur-sm">
                 <button
-                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
+                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
                   className={cn(
                     'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
                     !conversationMode
@@ -332,7 +354,7 @@ const RainingLetters: React.FC = () => {
                   Single Message
                 </button>
                 <button
-                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
+                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
                   className={cn(
                     'text-xs px-3 py-1.5 rounded-full transition-all duration-200',
                     conversationMode
@@ -436,6 +458,22 @@ const RainingLetters: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Retry countdown banner */}
+            <AnimatePresence>
+              {retryCountdown !== null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  className="mt-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-400 flex items-center gap-2"
+                  style={{ fontFamily: 'monospace' }}
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 animate-pulse" />
+                  <span>Server is waking up — retrying in {retryCountdown}s…</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* API error banner */}
             <AnimatePresence>
@@ -568,7 +606,7 @@ const RainingLetters: React.FC = () => {
 
                   {/* Reset button */}
                   <button
-                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setApiError(null) }}
+                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
                     className="w-full py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/20 transition-all"
                     style={{ fontFamily: 'monospace' }}
                   >
