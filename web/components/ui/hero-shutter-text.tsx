@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 
@@ -17,6 +17,11 @@ export default function HeroText({
 }: HeroTextProps) {
   const [count, setCount] = useState(0);
   const characters = text.split("");
+
+  useEffect(() => {
+    const id = setInterval(() => setCount((c) => c + 1), 3000)
+    return () => clearInterval(id)
+  }, []);
 
   return (
     <div
