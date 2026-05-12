@@ -431,57 +431,57 @@ export function ScamTruthSection() {
   }, [])
 
   return (
-    <section className="relative bg-black py-16 sm:py-24 px-4 overflow-hidden">
+    <section className="relative bg-black py-16 sm:py-24 px-4" style={{ overflow: "visible" }}>
 
-      {/* ── Atmospheric glows ── z-0, behind everything ───────────────── */}
+      {/* ── Atmospheric glows ── strictly within viewport, high opacity ── */}
 
-      {/* Glow 1 — top-left halo, bridges transition from hero */}
+      {/* Glow 1 — top-left halo: bridges transition from hero */}
       <div
         className="absolute pointer-events-none"
         style={{
           zIndex: 0,
-          top: "-18%",
-          left: "-8%",
-          width: "65%",
-          height: "60%",
-          background:
-            "radial-gradient(ellipse at 30% 40%, rgba(34,197,94,0.11) 0%, rgba(34,197,94,0.04) 42%, transparent 70%)",
-          filter: "blur(90px)",
-        }}
-      />
-
-      {/* Glow 2 — centre-right, mid-scroll depth */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          zIndex: 0,
-          top: "28%",
-          right: "-12%",
-          width: "55%",
+          top: 0,
+          left: "-5%",
+          width: "70%",
           height: "55%",
           background:
-            "radial-gradient(ellipse at 70% 50%, rgba(34,197,94,0.07) 0%, transparent 65%)",
-          filter: "blur(110px)",
+            "radial-gradient(ellipse at 25% 25%, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.10) 40%, transparent 68%)",
+          filter: "blur(55px)",
         }}
       />
 
-      {/* Glow 3 — bottom-centre, bridges out to next section */}
+      {/* Glow 2 — centre-right: lateral depth mid-scroll */}
       <div
         className="absolute pointer-events-none"
         style={{
           zIndex: 0,
-          bottom: "-12%",
-          left: "18%",
-          width: "64%",
-          height: "42%",
+          top: "30%",
+          right: "0%",
+          width: "55%",
+          height: "50%",
           background:
-            "radial-gradient(ellipse at 50% 60%, rgba(34,197,94,0.06) 0%, transparent 68%)",
-          filter: "blur(130px)",
+            "radial-gradient(ellipse at 75% 45%, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0.05) 50%, transparent 70%)",
+          filter: "blur(65px)",
+        }}
+      />
+
+      {/* Glow 3 — bottom-centre: bridges into next section */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          bottom: 0,
+          left: "15%",
+          width: "70%",
+          height: "38%",
+          background:
+            "radial-gradient(ellipse at 50% 80%, rgba(34,197,94,0.15) 0%, transparent 65%)",
+          filter: "blur(70px)",
         }}
       />
 
       {/* ── Content ── z-10, in front of glows ──────────────────────────── */}
-      <div className="max-w-7xl mx-auto relative" style={{ zIndex: 10 }}>
+      <div className="max-w-7xl mx-auto relative" style={{ zIndex: 10, overflow: "hidden" }}>
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* Left — text content */}
