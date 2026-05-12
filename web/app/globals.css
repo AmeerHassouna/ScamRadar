@@ -645,34 +645,42 @@ html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   3D Cube Animation — SmartChoiceSection
+   3D Poem Cube — SmartChoiceSection
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.scam-cube-outer {
+/* Outer — fills the masked zone in SmartChoiceSection */
+.scam-poem {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Centering shell — keeps the 1000×562 canvas centred at all sizes */
+.scam-poem-outer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Fixed-size canvas; JS scales this element down on narrow viewports */
+.scam-poem-content {
+  position: relative;
+  width: 1000px;
+  height: 562px;
+  transform-origin: center center;
+}
+
+/* Full scene (clips bg zoom overflow) */
+.scam-poem-full {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 
-.scam-cube-scaler {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1000px;
-  height: 562px;
-  transform: translate(-50%, -50%);
-  transform-origin: center center;
-}
-
-.scam-cube-scene {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Background image — slow zoom + brightness pulse */
-.scam-cube-bg {
+/* Background — slow zoom + brightness pulse */
+.scam-poem-bg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -680,129 +688,128 @@ html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
   object-fit: cover;
   z-index: 0;
   animation:
-    scam-zoom       28s ease-in-out infinite alternate,
-    scam-brightness 28s ease-in-out infinite alternate;
+    sp-zoom       28s ease-in-out infinite alternate,
+    sp-brightness 28s ease-in-out infinite alternate;
 }
 
-/* Hue overlay — shifts the green matrix image towards brand green */
-.scam-cube-hue {
+/* Hue colour-dodge overlay → brand green tint */
+.scam-poem-hue {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(34, 197, 94, 0.10);
+  background: rgba(34, 197, 94, 0.12);
   mix-blend-mode: color-dodge;
   pointer-events: none;
-  animation: scam-hue 14s ease-in-out infinite;
+  animation: sp-hue 14s ease-in-out infinite;
 }
 
-/* ── Cube stage (perspective wrapper) ─────────────────────── */
-.scam-cube-stage {
+/* ── Main cube: perspective context (no transform-style here) ─ */
+.scam-poem-stage {
   position: absolute;
   top: 44%;
   left: 50%;
   transform: translate(-50%, -50%);
-  transform-style: preserve-3d;
-  perspective: 900px;
   z-index: 5;
+  perspective: 900px;
 }
 
-.scam-cube-box {
+/* Actual 3D box — transform-style lives here, not on parent */
+.scam-poem-cube {
   width: 300px;
   height: 190px;
   position: relative;
   transform-style: preserve-3d;
-  animation: scam-spin 16s linear infinite;
+  animation: sp-rotate 18s linear infinite;
 }
 
-/* ── Reflection stage ─────────────────────────────────────── */
-.scam-cube-reflect-stage {
+/* ── Reflection (below, flipped, faded) ──────────────────────── */
+.scam-poem-reflect {
   position: absolute;
   top: 67%;
   left: 50%;
-  transform: translate(-50%, 0) scaleY(-0.32);
-  transform-style: preserve-3d;
-  perspective: 900px;
+  transform: translate(-50%, 0) scaleY(-0.28);
   z-index: 4;
-  opacity: 0.20;
-  filter: blur(1.5px);
+  perspective: 900px;
+  opacity: 0.16;
+  filter: blur(2px);
 }
 
-.scam-cube-reflect-box {
-  width: 300px;
-  height: 190px;
-  position: relative;
-  transform-style: preserve-3d;
-  animation: scam-spin 16s linear infinite;
-}
-
-/* ── Cube faces ───────────────────────────────────────────── */
-.scam-face {
+/* ── Cube faces ───────────────────────────────────────────────── */
+.scam-poem-face {
   position: absolute;
   width: 300px;
   height: 190px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.50);
-  border: 1px solid rgba(34, 197, 94, 0.30);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(34, 197, 94, 0.28);
 }
 
-.scam-front  { transform: translateZ(150px); }
-.scam-back   { transform: rotateY(180deg) translateZ(150px); }
-.scam-left   { transform: rotateY(-90deg)  translateZ(150px); }
-.scam-right  { transform: rotateY(90deg)   translateZ(150px); }
-.scam-top    {
-  transform: rotateX(90deg)  translateZ(95px);
-  background: rgba(34, 197, 94, 0.14);
-  border-color: rgba(34, 197, 94, 0.55);
+.scam-poem-face.top {
+  transform: rotateX(90deg) translateZ(95px);
+  background: rgba(34, 197, 94, 0.13);
+  border-color: rgba(34, 197, 94, 0.52);
 }
-.scam-bottom {
+.scam-poem-face.bottom {
   transform: rotateX(-90deg) translateZ(95px);
   background: rgba(34, 197, 94, 0.04);
 }
+.scam-poem-face.front { transform: translateZ(150px); }
+.scam-poem-face.back  { transform: rotateY(180deg) translateZ(150px); }
+.scam-poem-face.left  { transform: rotateY(-90deg)  translateZ(150px); }
+.scam-poem-face.right { transform: rotateY(90deg)   translateZ(150px); }
 
-/* ── Scrolling text on text faces ─────────────────────────── */
-.scam-cube-scroll {
+/* ── Scrolling text ───────────────────────────────────────────── */
+.scam-poem-face.text {
   display: flex;
   align-items: center;
-  height: 100%;
+}
+
+.scam-poem-face.text p {
+  margin: 0;
   padding: 0 8px;
   white-space: nowrap;
   font-family: monospace;
   font-size: 10.5px;
+  line-height: 1.4;
   color: rgba(255, 255, 255, 0.70);
-  animation: scam-marquee 36s linear infinite;
+  /* translateX(-50%) on content that is 2× the visual unit → seamless loop */
 }
 
-.scam-cube-scroll.scam-back-anim  { animation-duration: 40s; }
-.scam-cube-scroll.scam-right-anim { animation-duration: 44s; }
+.scam-poem-face.left  p { animation: sp-marquee 36s linear infinite; }
+.scam-poem-face.back  p { animation: sp-marquee 44s linear infinite; }
+.scam-poem-face.right p { animation: sp-marquee 28s linear infinite; }
 
-/* Brand-green highlighted words */
-.scam-hl {
+/* Green highlights inside face text */
+.scam-poem-hl {
   color: #22c55e;
   font-weight: 600;
 }
 
-/* ── Keyframes ────────────────────────────────────────────── */
-@keyframes scam-spin {
-  from { transform: rotateY(0deg); }
-  to   { transform: rotateY(-360deg); }
+/* ── Keyframes ────────────────────────────────────────────────── */
+
+/* Tilt on X so the top face is visible; spin on Y */
+@keyframes sp-rotate {
+  from { transform: rotateX(-14deg) rotateY(0deg); }
+  to   { transform: rotateX(-14deg) rotateY(-360deg); }
 }
 
-@keyframes scam-marquee {
+/* Seamless horizontal marquee — works with doubled text content */
+@keyframes sp-marquee {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
 
-@keyframes scam-zoom {
+@keyframes sp-zoom {
   from { transform: scale(1.0); }
   to   { transform: scale(1.65); }
 }
 
-@keyframes scam-brightness {
-  from { filter: brightness(0.50) contrast(1.25); }
+@keyframes sp-brightness {
+  from { filter: brightness(0.45) contrast(1.30); }
   to   { filter: brightness(0.80) contrast(1.00); }
 }
 
-@keyframes scam-hue {
-  0%, 100% { filter: hue-rotate(0deg);   }
-  50%       { filter: hue-rotate(75deg);  }
+@keyframes sp-hue {
+  0%, 100% { filter: hue-rotate(0deg);  }
+  50%       { filter: hue-rotate(80deg); }
 }
