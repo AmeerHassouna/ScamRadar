@@ -1,5 +1,6 @@
 import RainingLetters from '@/components/ui/modern-animated-hero-section'
 import { ScamTruthSection } from '@/components/ui/scam-truth-section'
+import { SmartChoiceSection } from '@/components/ui/smart-choice-section'
 import { FeatureGrid } from '@/components/ui/modern-feature-grid'
 import { RecentThreats } from '@/components/ui/recent-threats'
 import { FAQSection } from '@/components/ui/faq-section'
@@ -50,6 +51,9 @@ export default function Home() {
 
       {/* Truth / Scam Awareness */}
       <ScamTruthSection />
+
+      {/* Smart Choice CTA */}
+      <SmartChoiceSection />
 
       {/* Capabilities + Performance — one unified section */}
       <section id="performance" className="bg-black py-8 sm:py-16 px-4">
