@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { AlertTriangle, LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
+import { LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
 import HeroText from "@/components/ui/hero-shutter-text"
 
 const features = [
@@ -86,85 +86,6 @@ export function SmartChoiceSection() {
           <HeroText text="PROTECTED" showControls={false} />
         </div>
 
-        {/* Floating badge — verdict (left) */}
-        <motion.div
-          animate={{ y: [0, -7, 0] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute left-[6%] sm:left-[10%] lg:left-[14%] top-[28%] z-20"
-          style={{
-            background: "rgba(0,0,0,0.52)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            borderRadius: "16px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
-            padding: "12px 16px",
-          }}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-            <div>
-              <div
-                className="text-[10px] text-white/45 uppercase tracking-widest"
-                style={{ fontFamily: "monospace" }}
-              >
-                Verdict
-              </div>
-              <div
-                className="text-sm font-bold text-red-400"
-                style={{ fontFamily: "monospace" }}
-              >
-                SCAM · 98.4%
-              </div>
-            </div>
-          </div>
-          <div
-            className="mt-1.5 text-[11px] text-white/40"
-            style={{ fontFamily: "monospace" }}
-          >
-            SMS Phishing · Urgency detected
-          </div>
-        </motion.div>
-
-        {/* Floating badge — URL scan (right) */}
-        <motion.div
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
-          className="absolute right-[6%] sm:right-[10%] lg:right-[14%] top-[42%] sm:top-[38%] z-20"
-          style={{
-            background: "rgba(0,0,0,0.52)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            border: "1px solid rgba(34,197,94,0.18)",
-            borderRadius: "16px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
-            padding: "12px 16px",
-          }}
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-            <div>
-              <div
-                className="text-[10px] text-white/45 uppercase tracking-widest"
-                style={{ fontFamily: "monospace" }}
-              >
-                URL Scan
-              </div>
-              <div
-                className="text-sm font-bold text-yellow-400"
-                style={{ fontFamily: "monospace" }}
-              >
-                phishing-verify.xyz
-              </div>
-            </div>
-          </div>
-          <div
-            className="mt-1.5 text-[11px] text-white/40"
-            style={{ fontFamily: "monospace" }}
-          >
-            Flagged · 47 reports today
-          </div>
-        </motion.div>
       </div>
 
       {/* Feature cards — overlap the bottom fade */}
