@@ -561,6 +561,86 @@ export function ScamTruthSection() {
           </motion.div>
 
         </div>
+
+        {/* Divider */}
+        <div className="my-12 sm:my-16 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+        {/* Security Tools Block — image left, text right */}
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+
+          {/* Image */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="relative rounded-2xl overflow-hidden border border-white/8 h-64 sm:h-72 lg:h-80"
+          >
+            <Image
+              src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=500&fit=crop"
+              alt="Traditional security tools reacting too late"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+            <div className="absolute inset-0 bg-black/55" />
+            <div className="absolute bottom-4 left-4 border border-red-500/30 bg-black/70 rounded-lg px-3 py-2 backdrop-blur-sm">
+              <span
+                className="text-[11px] text-red-400 uppercase tracking-widest font-semibold"
+                style={{ fontFamily: "monospace" }}
+              >
+                Reacting after the damage
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Text */}
+          <div className="space-y-6">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-green-400 text-xs font-semibold uppercase tracking-widest"
+              style={{ fontFamily: "monospace" }}
+            >
+              AND WHAT ABOUT "SECURITY TOOLS"?
+            </motion.p>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight"
+              style={{ fontFamily: "monospace" }}
+            >
+              THEY REACT.<br />
+              <span className="text-red-400">AFTER THE DAMAGE.</span>
+            </motion.h2>
+
+            <ul className="space-y-3">
+              <TruthItem>Only catch threats they've seen before</TruthItem>
+              <TruthItem>Miss manipulation buried in fine print</TruthItem>
+              <TruthItem>Can't read fabricated social proof</TruthItem>
+              <TruthItem>Sound the alarm when the money's already gone</TruthItem>
+            </ul>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="border-l-2 border-red-500/40 pl-4"
+            >
+              <p className="text-white/50 text-sm sm:text-base leading-relaxed" style={{ fontFamily: "monospace" }}>
+                <span className="text-white/80 font-semibold">Malware blockers weren't built for social engineering.</span>{" "}
+                Scammers don't need to break through your defences — they just need you to trust the
+                wrong message at the right moment.
+              </p>
+            </motion.div>
+          </div>
+
+        </div>
       </div>
     </section>
   )
