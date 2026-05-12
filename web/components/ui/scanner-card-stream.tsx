@@ -70,8 +70,6 @@ const ScannerCardStream = ({
     position: 0,
     velocity: initialSpeed,
     direction: direction,
-    isDragging: false,
-    lastMouseX: 0,
     lastTime: performance.now(),
     cardLineWidth: (400 + cardGap) * cards.length,
   });
@@ -249,51 +247,13 @@ const ScannerCardStream = ({
       scannerState.current.isScanning = anyCardIsScanning;
     };
 
-    // ── Input handlers ───────────────────────────────────────────
-    const handleMouseDown = (e: Event) => {
-      cardStreamState.current.isDragging = true;
-      const clientX = (e as TouchEvent).touches
-        ? (e as TouchEvent).touches[0].clientX
-        : (e as MouseEvent).clientX;
-      cardStreamState.current.lastMouseX = clientX;
-    };
-
-    const handleMouseMove = (e: Event) => {
-      if (!cardStreamState.current.isDragging) return;
-      const clientX = (e as TouchEvent).touches
-        ? (e as TouchEvent).touches[0].clientX
-        : (e as MouseEvent).clientX;
-      const delta = clientX - cardStreamState.current.lastMouseX;
-      cardStreamState.current.position += delta;
-      cardStreamState.current.velocity  = Math.min(Math.abs(delta) * 30, 800);
-      if (delta !== 0) cardStreamState.current.direction = delta > 0 ? 1 : -1;
-      cardStreamState.current.lastMouseX = clientX;
-    };
-
-    const handleMouseUp = () => {
-      cardStreamState.current.isDragging = false;
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      cardStreamState.current.velocity  = Math.min(Math.abs(e.deltaY) * 2, 500);
-      cardStreamState.current.direction = e.deltaY > 0 ? -1 : 1;
-    };
-
-    cardLine.addEventListener("mousedown",  handleMouseDown);
-    window.addEventListener("mousemove",    handleMouseMove);
-    window.addEventListener("mouseup",      handleMouseUp);
-    cardLine.addEventListener("touchstart", handleMouseDown, { passive: true });
-    window.addEventListener("touchmove",    handleMouseMove, { passive: true });
-    window.addEventListener("touchend",     handleMouseUp);
-    cardLine.addEventListener("wheel",      handleWheel,     { passive: false });
 
     // ── Animation loop ───────────────────────────────────────────
     const animate = (currentTime: number) => {
       const deltaTime = (currentTime - cardStreamState.current.lastTime) / 1000;
       cardStreamState.current.lastTime = currentTime;
 
-      if (!isPaused && !cardStreamState.current.isDragging) {
+      if (!isPaused) {
         // Lerp back to auto speed after a drag flick
         cardStreamState.current.velocity +=
           (initialSpeed - cardStreamState.current.velocity) * 0.04;
@@ -347,13 +307,6 @@ const ScannerCardStream = ({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      cardLine.removeEventListener("mousedown",  handleMouseDown);
-      window.removeEventListener("mousemove",    handleMouseMove);
-      window.removeEventListener("mouseup",      handleMouseUp);
-      cardLine.removeEventListener("touchstart", handleMouseDown);
-      window.removeEventListener("touchmove",    handleMouseMove);
-      window.removeEventListener("touchend",     handleMouseUp);
-      cardLine.removeEventListener("wheel",      handleWheel);
       renderer.dispose();
       geometry.dispose();
       material.dispose();
@@ -418,7 +371,7 @@ const ScannerCardStream = ({
       <div className="absolute w-full h-[250px] flex items-center overflow-hidden">
         <div
           ref={cardLineRef}
-          className="flex items-center whitespace-nowrap cursor-grab select-none will-change-transform"
+          className="flex items-center whitespace-nowrap select-none will-change-transform"
           style={{ gap: `${cardGap}px` }}
         >
           {cards.map(card => (
