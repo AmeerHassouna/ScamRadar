@@ -485,7 +485,7 @@ export function ScamTruthSection() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* Left — text content */}
-          <div className="order-2 lg:order-1 space-y-8">
+          <div className="order-2 lg:order-1 space-y-5 sm:space-y-8">
             {/* Badge */}
             <motion.p
               initial={{ opacity: 0, y: 10 }}

@@ -70,7 +70,7 @@ export function SmartChoiceSection() {
 
       {/* Full-bleed card stream zone */}
       <div
-        className="relative h-[320px] sm:h-[360px]"
+        className="relative h-[220px] sm:h-[320px]"
         style={{ width: "100vw", left: "50%", transform: "translateX(-50%)" }}
       >
         <div
@@ -87,7 +87,7 @@ export function SmartChoiceSection() {
       </div>
 
       {/* Feature cards — overlap the bottom fade */}
-      <div className="relative z-10 -mt-20 sm:-mt-24 pb-16 md:pb-24">
+      <div className="relative z-10 -mt-10 sm:-mt-20 md:-mt-24 pb-16 md:pb-24">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
             {features.map((f, i) => (

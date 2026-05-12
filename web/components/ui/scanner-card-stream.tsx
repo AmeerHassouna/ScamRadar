@@ -48,85 +48,102 @@ const ScannerCardStream = ({
   friction = 0.95,
   scanEffect = 'scramble',
 }: ScannerCardStreamProps) => {
-  const [speed, setSpeed] = useState(initialSpeed);
-  const [isPaused, setIsPaused] = useState(false);
+  const [speed, setSpeed]         = useState(initialSpeed);
+  const [isPaused, setIsPaused]   = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+
+  // ── Responsive card dimensions ────────────────────────────────
+  const [cardW, setCardW] = useState(400);
+  const [cardH, setCardH] = useState(250);
+  useEffect(() => {
+    const update = () => {
+      const mobile = window.innerWidth < 640;
+      setCardW(mobile ? 270 : 400);
+      setCardH(mobile ? 168 : 250);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const cards = useMemo(() => {
     const totalCards = cardImages.length * repeat;
     return Array.from({ length: totalCards }, (_, i) => ({
       id: i,
       image: cardImages[i % cardImages.length],
-      ascii: generateCode(Math.floor(400 / 6.5), Math.floor(250 / 13)),
+      ascii: generateCode(Math.floor(cardW / 6.5), Math.floor(cardH / 13)),
     }));
-  }, [cardImages, repeat]);
+  }, [cardImages, repeat, cardW, cardH]);
 
-  const cardLineRef = useRef<HTMLDivElement>(null);
+  const cardLineRef      = useRef<HTMLDivElement>(null);
   const particleCanvasRef = useRef<HTMLCanvasElement>(null);
-  const scannerCanvasRef = useRef<HTMLCanvasElement>(null);
-  const originalAscii = useRef(new Map<number, string>());
+  const scannerCanvasRef  = useRef<HTMLCanvasElement>(null);
+  const originalAscii    = useRef(new Map<number, string>());
 
   const cardStreamState = useRef({
-    position: 0,
-    velocity: initialSpeed,
-    direction: direction,
-    lastTime: performance.now(),
+    position:      0,
+    velocity:      initialSpeed,
+    direction:     direction,
+    lastTime:      performance.now(),
     cardLineWidth: (400 + cardGap) * cards.length,
   });
 
   const scannerState = useRef({ isScanning: false });
 
   const toggleAnimation = useCallback(() => setIsPaused(prev => !prev), []);
-
-  const resetPosition = useCallback(() => {
+  const resetPosition   = useCallback(() => {
     if (cardLineRef.current) {
-      cardStreamState.current.position = cardLineRef.current.parentElement?.offsetWidth || 0;
-      cardStreamState.current.velocity = initialSpeed;
+      cardStreamState.current.position  = cardLineRef.current.parentElement?.offsetWidth || 0;
+      cardStreamState.current.velocity  = initialSpeed;
       cardStreamState.current.direction = direction;
       setIsPaused(false);
     }
   }, [initialSpeed, direction]);
-
-  const changeDirection = useCallback(() => {
-    cardStreamState.current.direction *= -1;
-  }, []);
+  const changeDirection = useCallback(() => { cardStreamState.current.direction *= -1; }, []);
 
   useEffect(() => {
-    const cardLine = cardLineRef.current;
+    // Sync card line width whenever card size or count changes
+    cardStreamState.current.lastTime      = performance.now();
+    cardStreamState.current.cardLineWidth = (cardW + cardGap) * cards.length;
+
+    const cardLine      = cardLineRef.current;
     const particleCanvas = particleCanvasRef.current;
-    const scannerCanvas = scannerCanvasRef.current;
+    const scannerCanvas  = scannerCanvasRef.current;
     if (!cardLine || !particleCanvas || !scannerCanvas) return;
 
     cards.forEach(card => originalAscii.current.set(card.id, card.ascii));
     let animationFrameId: number;
 
+    const canvasH = cardH + 50; // scanner particle canvas is slightly taller
+
     // ── Three.js particle system ─────────────────────────────────
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(
-      -window.innerWidth / 2, window.innerWidth / 2, 125, -125, 1, 1000
+      -window.innerWidth / 2, window.innerWidth / 2,
+      cardH / 2, -cardH / 2,
+      1, 1000
     );
     camera.position.z = 100;
 
     const renderer = new THREE.WebGLRenderer({ canvas: particleCanvas, alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, 250);
+    renderer.setSize(window.innerWidth, cardH);
     renderer.setClearColor(0x000000, 0);
 
     const particleCount = 400;
-    const geometry = new THREE.BufferGeometry();
+    const geometry  = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const velocities = new Float32Array(particleCount);
-    const alphas = new Float32Array(particleCount);
+    const alphas    = new Float32Array(particleCount);
 
     const texCanvas = document.createElement("canvas");
-    texCanvas.width = 100;
-    texCanvas.height = 100;
+    texCanvas.width = 100; texCanvas.height = 100;
     const texCtx = texCanvas.getContext("2d")!;
-    const half = 50;
-    const grad = texCtx.createRadialGradient(half, half, 0, half, half, half);
+    const half   = 50;
+    const grad   = texCtx.createRadialGradient(half, half, 0, half, half, half);
     grad.addColorStop(0.025, "#fff");
-    grad.addColorStop(0.1, `hsl(217, 61%, 33%)`);
-    grad.addColorStop(0.25, `hsl(217, 64%, 6%)`);
-    grad.addColorStop(1, "transparent");
+    grad.addColorStop(0.1,   `hsl(217, 61%, 33%)`);
+    grad.addColorStop(0.25,  `hsl(217, 64%, 6%)`);
+    grad.addColorStop(1,     "transparent");
     texCtx.fillStyle = grad;
     texCtx.arc(half, half, half, 0, Math.PI * 2);
     texCtx.fill();
@@ -134,7 +151,7 @@ const ScannerCardStream = ({
 
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3]     = (Math.random() - 0.5) * window.innerWidth * 2;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 250;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * cardH;
       velocities[i]        = Math.random() * 60 + 30;
       alphas[i]            = (Math.random() * 8 + 2) / 10;
     }
@@ -144,8 +161,7 @@ const ScannerCardStream = ({
     const material = new THREE.ShaderMaterial({
       uniforms: { pointTexture: { value: texture } },
       vertexShader: `
-        attribute float alpha;
-        varying float vAlpha;
+        attribute float alpha; varying float vAlpha;
         void main() {
           vAlpha = alpha;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
@@ -153,8 +169,7 @@ const ScannerCardStream = ({
           gl_Position = projectionMatrix * mvPosition;
         }`,
       fragmentShader: `
-        uniform sampler2D pointTexture;
-        varying float vAlpha;
+        uniform sampler2D pointTexture; varying float vAlpha;
         void main() {
           gl_FragColor = vec4(1.0, 1.0, 1.0, vAlpha) * texture2D(pointTexture, gl_PointCoord);
         }`,
@@ -169,17 +184,17 @@ const ScannerCardStream = ({
     // ── 2D scanner-particle canvas ───────────────────────────────
     const ctx = scannerCanvas.getContext('2d')!;
     scannerCanvas.width  = window.innerWidth;
-    scannerCanvas.height = 300;
+    scannerCanvas.height = canvasH;
 
     type ScanParticle = { x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number; decay: number };
     let scannerParticles: ScanParticle[] = [];
-    const baseMaxParticles    = 800;
-    let currentMaxParticles   = baseMaxParticles;
-    const scanTargetMaxParticles = 2500;
+    const baseMaxParticles        = 800;
+    let   currentMaxParticles     = baseMaxParticles;
+    const scanTargetMaxParticles  = 2500;
 
     const createScannerParticle = (): ScanParticle => ({
       x:      window.innerWidth / 2 + (Math.random() - 0.5) * 3,
-      y:      Math.random() * 300,
+      y:      Math.random() * canvasH,
       vx:     Math.random() * 0.8 + 0.2,
       vy:     (Math.random() - 0.5) * 0.3,
       radius: Math.random() * 0.6 + 0.4,
@@ -193,11 +208,11 @@ const ScannerCardStream = ({
     const runScrambleEffect = (element: HTMLElement, cardId: number) => {
       if (element.dataset.scrambling === 'true') return;
       element.dataset.scrambling = 'true';
-      const originalText = originalAscii.current.get(cardId) || '';
-      let scrambleCount = 0;
-      const maxScrambles = 10;
+      const originalText  = originalAscii.current.get(cardId) || '';
+      let   scrambleCount = 0;
+      const maxScrambles  = 10;
       const interval = setInterval(() => {
-        element.textContent = generateCode(Math.floor(400 / 6.5), Math.floor(250 / 13));
+        element.textContent = generateCode(Math.floor(cardW / 6.5), Math.floor(cardH / 13));
         scrambleCount++;
         if (scrambleCount >= maxScrambles) {
           clearInterval(interval);
@@ -213,7 +228,7 @@ const ScannerCardStream = ({
       const scannerWidth = 8;
       const scannerLeft  = scannerX - scannerWidth / 2;
       const scannerRight = scannerX + scannerWidth / 2;
-      let anyCardIsScanning = false;
+      let   anyCardIsScanning = false;
 
       cardLine.querySelectorAll<HTMLElement>(".card-wrapper").forEach((wrapper, index) => {
         const rect       = wrapper.getBoundingClientRect();
@@ -247,14 +262,12 @@ const ScannerCardStream = ({
       scannerState.current.isScanning = anyCardIsScanning;
     };
 
-
     // ── Animation loop ───────────────────────────────────────────
     const animate = (currentTime: number) => {
       const deltaTime = (currentTime - cardStreamState.current.lastTime) / 1000;
       cardStreamState.current.lastTime = currentTime;
 
       if (!isPaused) {
-        // Lerp back to auto speed after a drag flick
         cardStreamState.current.velocity +=
           (initialSpeed - cardStreamState.current.velocity) * 0.04;
         cardStreamState.current.position +=
@@ -282,7 +295,7 @@ const ScannerCardStream = ({
       renderer.render(scene, camera);
 
       // 2D scanner particles
-      ctx.clearRect(0, 0, window.innerWidth, 300);
+      ctx.clearRect(0, 0, window.innerWidth, canvasH);
       const targetCount = scannerState.current.isScanning ? scanTargetMaxParticles : baseMaxParticles;
       currentMaxParticles += (targetCount - currentMaxParticles) * 0.05;
       while (scannerParticles.length < currentMaxParticles) scannerParticles.push(createScannerParticle());
@@ -312,11 +325,10 @@ const ScannerCardStream = ({
       material.dispose();
       texture.dispose();
     };
-  }, [isPaused, cards, cardGap, friction, scanEffect]);
+  }, [isPaused, cards, cardGap, friction, scanEffect, cardW, cardH]);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      {/* Keyframes injected once */}
       <style>{`
         @keyframes glitch {
           0%, 16%, 50%, 100% { opacity: 1; }
@@ -324,42 +336,40 @@ const ScannerCardStream = ({
           49%                { opacity: 0.8; }
         }
         .scs-glitch { animation: glitch 0.1s infinite linear alternate-reverse; }
-        @keyframes scanPulse {
-          0%   { opacity: 0.75; }
-          100% { opacity: 1; }
-        }
+        @keyframes scanPulse { 0% { opacity: 0.75; } 100% { opacity: 1; } }
         .scs-scan-pulse { animation: scanPulse 1.5s infinite alternate ease-in-out; }
       `}</style>
 
       {showControls && (
         <div className="absolute top-4 right-4 z-30 flex gap-2">
-          <button onClick={toggleAnimation}   className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">{isPaused ? 'Resume' : 'Pause'}</button>
-          <button onClick={changeDirection}   className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">Flip</button>
-          <button onClick={resetPosition}     className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">Reset</button>
+          <button onClick={toggleAnimation} className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">{isPaused ? 'Resume' : 'Pause'}</button>
+          <button onClick={changeDirection}  className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">Flip</button>
+          <button onClick={resetPosition}    className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">Reset</button>
         </div>
       )}
       {showSpeed && (
         <div className="absolute top-4 left-4 z-30 text-xs text-white/50 font-mono">{speed} px/s</div>
       )}
 
-      {/* Three.js particle layer */}
+      {/* Three.js particle layer — centred vertically */}
       <canvas
         ref={particleCanvasRef}
         className="absolute top-1/2 left-0 -translate-y-1/2 pointer-events-none"
-        style={{ width: "100vw", height: "250px", zIndex: 0 }}
+        style={{ width: "100vw", height: cardH, zIndex: 0 }}
       />
 
       {/* 2D scanner-particle layer */}
       <canvas
         ref={scannerCanvasRef}
         className="absolute top-1/2 left-0 -translate-y-1/2 pointer-events-none"
-        style={{ width: "100vw", height: "300px", zIndex: 10 }}
+        style={{ width: "100vw", height: cardH + 50, zIndex: 10 }}
       />
 
       {/* Vertical scanner line */}
       <div
-        className={`scs-scan-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-[280px] rounded-full pointer-events-none transition-opacity duration-300`}
+        className="scs-scan-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 rounded-full pointer-events-none transition-opacity duration-300"
         style={{
+          height: cardH + 20,
           zIndex: 20,
           background: "linear-gradient(to bottom, transparent, #8b5cf6, transparent)",
           boxShadow: "0 0 10px #a78bfa, 0 0 20px #a78bfa, 0 0 30px #8b5cf6, 0 0 50px #6366f1",
@@ -367,37 +377,33 @@ const ScannerCardStream = ({
         }}
       />
 
-      {/* Card stream */}
-      <div className="absolute w-full h-[250px] flex items-center overflow-hidden">
+      {/* Card stream — centred vertically inside the zone */}
+      <div className="absolute inset-0 flex items-center overflow-hidden">
         <div
           ref={cardLineRef}
           className="flex items-center whitespace-nowrap select-none will-change-transform"
           style={{ gap: `${cardGap}px` }}
         >
           {cards.map(card => (
-            <div key={card.id} className="card-wrapper relative shrink-0" style={{ width: 400, height: 250 }}>
+            <div key={card.id} className="card-wrapper relative shrink-0" style={{ width: cardW, height: cardH }}>
+
               {/* Image face — visible left of scanner */}
               <div
                 className="card-normal absolute inset-0 rounded-[15px] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4)]"
-                style={{
-                  zIndex: 2,
-                  clipPath: "inset(0 0 0 var(--clip-right, 0%))",
-                }}
+                style={{ zIndex: 2, clipPath: "inset(0 0 0 var(--clip-right, 0%))" }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
                   alt=""
-                  className="w-full h-full object-cover rounded-[15px] brightness-110 contrast-110 hover:brightness-125 hover:contrast-125 transition-all duration-300"
+                  className="w-full h-full object-cover rounded-[15px] brightness-110 contrast-110 transition-all duration-300"
                 />
               </div>
+
               {/* ASCII face — visible right of scanner */}
               <div
                 className="card-ascii absolute inset-0 rounded-[15px] overflow-hidden"
-                style={{
-                  zIndex: 1,
-                  clipPath: "inset(0 calc(100% - var(--clip-left, 0%)) 0 0)",
-                }}
+                style={{ zIndex: 1, clipPath: "inset(0 calc(100% - var(--clip-left, 0%)) 0 0)" }}
               >
                 <pre
                   className="scs-glitch absolute inset-0 m-0 p-0 overflow-hidden whitespace-pre text-left align-top box-border font-mono"

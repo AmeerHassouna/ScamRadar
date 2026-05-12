@@ -376,7 +376,7 @@ const RainingLetters: React.FC = () => {
       <div className={cn(
         "absolute left-1/2 -translate-x-1/2 z-20 w-full px-4",
         result
-          ? "top-[4vh] sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[92vh] pb-6"
+          ? "top-[68px] sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[calc(100dvh-68px)] sm:max-h-[92vh] pb-10 sm:pb-6"
           : "top-1/2 -translate-y-1/2"
       )}>
         <div className="flex flex-col items-center gap-3 sm:gap-6 max-w-2xl mx-auto">
@@ -481,7 +481,10 @@ const RainingLetters: React.FC = () => {
 
             {/* Quick example pills */}
             {!result && (
-              <div className="flex flex-wrap gap-2 mt-3 justify-center">
+              <div
+                className="flex gap-2 mt-3 overflow-x-auto sm:flex-wrap sm:justify-center pb-1"
+                style={{ scrollbarWidth: "none" } as React.CSSProperties}
+              >
                 {quickExamples.map((ex) => (
                   <Button
                     key={ex.label}
