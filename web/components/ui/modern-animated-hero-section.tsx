@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import SendButton from "@/components/ui/send-button"
 import { Gauge } from "@/components/ui/gauge-1"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { Toast } from "@/components/ui/toast"
+import type { ToastMessage } from "@/components/ui/toast"
 
 const safeNum = (v: unknown, fallback = 0): number => {
   const n = Number(v)
@@ -16,6 +18,19 @@ const safeNum = (v: unknown, fallback = 0): number => {
 }
 
 const KNOWN_VERDICTS = new Set(["SCAM", "SUSPICIOUS", "LEGIT"])
+
+// Pydantic 422 errors return detail as an array of objects — extract a readable string
+const detailToString = (detail: unknown): string => {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0]
+    if (first && typeof first === 'object' && 'msg' in first) return String((first as Record<string, unknown>).msg)
+  }
+  return 'Unexpected response from server.'
+}
+
+let _toastId = 0
+const nextId = () => String(++_toastId)
 
 interface Character {
   char: string
@@ -154,11 +169,18 @@ const RainingLetters: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
   const [result, setResult] = useState<any>(null)
-  const [apiError, setApiError] = useState<string | null>(null)
-  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const addToast = useCallback((message: string, type: ToastMessage['type'] = 'error', duration = 5000) => {
+    setToasts(prev => [...prev, { id: nextId(), message, type, duration }])
+  }, [])
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -185,8 +207,7 @@ const RainingLetters: React.FC = () => {
     if (!prompt.trim()) return
     setIsAnalysing(true)
     setResult(null)
-    setApiError(null)
-    setRetryCountdown(null)
+    setToasts([])
 
     const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
     const endpoint = conversationMode ? `${base}/analyze-conversation` : `${base}/predict`
@@ -204,9 +225,14 @@ const RainingLetters: React.FC = () => {
         })
         if (!response.ok) {
           const errText = await response.text()
-          let detail = `Server error ${response.status}`
-          try { detail = JSON.parse(errText)?.detail ?? detail } catch {}
-          setApiError(detail)
+          let parsed: unknown
+          try { parsed = JSON.parse(errText) } catch { parsed = null }
+          const detail = detailToString(
+            parsed && typeof parsed === 'object' && 'detail' in parsed
+              ? (parsed as Record<string, unknown>).detail
+              : errText || `Server error ${response.status}`
+          )
+          addToast(detail, 'error')
           setIsAnalysing(false)
           return
         }
@@ -216,23 +242,25 @@ const RainingLetters: React.FC = () => {
         if (conversationMode && data.overall_verdict) {
           data.verdict = data.overall_verdict
           data.confidence = safeNum(data.risk_score, 0)
-          // Conversation endpoint doesn't return per-message tone scores — default to 0
           data.tone_urgency  = data.tone_urgency  ?? 0
           data.tone_fear     = data.tone_fear     ?? 0
           data.tone_reward   = data.tone_reward   ?? 0
           data.tone_threat   = data.tone_threat   ?? 0
         }
 
-        // TOO_SHORT or missing verdict → friendly error, not a crash
+        // TOO_SHORT or missing verdict → friendly toast, not a crash
         if (!data.verdict || data.verdict === 'TOO_SHORT') {
-          setApiError(data.verdict === 'TOO_SHORT'
-            ? 'Message is too short to analyse — please provide more context.'
-            : (data.detail ?? 'Unexpected response from server.'))
+          addToast(
+            data.verdict === 'TOO_SHORT'
+              ? 'Message is too short — add more context and try again.'
+              : detailToString(data.detail),
+            'error'
+          )
           setIsAnalysing(false)
           return
         }
 
-        // Unknown verdict (API change / future label) — normalise to LEGIT as safe fallback
+        // Unknown verdict → normalise to LEGIT as safe fallback
         if (!KNOWN_VERDICTS.has(data.verdict)) {
           data.verdict = 'LEGIT'
         }
@@ -240,25 +268,16 @@ const RainingLetters: React.FC = () => {
         // Ensure confidence is always a finite number 0–100
         data.confidence = Math.min(100, Math.max(0, safeNum(data.confidence, 0)))
 
-        setRetryCountdown(null)
         setResult(data)
         setIsAnalysing(false)
         return
       } catch (err) {
         if (attempt < MAX_RETRIES) {
-          // Show countdown and retry
-          let secs = RETRY_DELAY / 1000
-          setRetryCountdown(secs)
-          const tick = setInterval(() => {
-            secs -= 1
-            setRetryCountdown(secs)
-            if (secs <= 0) clearInterval(tick)
-          }, 1000)
+          const secs = RETRY_DELAY / 1000
+          addToast(`Server is waking up — retrying in ${secs}s…`, 'warning', RETRY_DELAY)
           await new Promise(r => setTimeout(r, RETRY_DELAY))
-          clearInterval(tick)
-          setRetryCountdown(null)
         } else {
-          setApiError('Could not reach the API after several attempts. Check your internet connection or try again later.')
+          addToast('Could not reach the API. Check your connection and try again.', 'error')
           console.error('API error:', err)
           setIsAnalysing(false)
         }
@@ -370,7 +389,7 @@ const RainingLetters: React.FC = () => {
             <div className="flex justify-center mb-2">
               <div className="flex gap-1 bg-black/60 border border-white/10 rounded-full p-1 backdrop-blur-sm">
                 <button
-                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
+                  onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
                   className={cn(
                     'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     !conversationMode
@@ -382,7 +401,7 @@ const RainingLetters: React.FC = () => {
                   Single Message
                 </button>
                 <button
-                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
+                  onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
                   className={cn(
                     'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     conversationMode
@@ -487,37 +506,6 @@ const RainingLetters: React.FC = () => {
               </div>
             )}
 
-            {/* Retry countdown banner */}
-            <AnimatePresence>
-              {retryCountdown !== null && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mt-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-400 flex items-center gap-2"
-                  style={{ fontFamily: 'monospace' }}
-                >
-                  <AlertCircle className="w-4 h-4 shrink-0 animate-pulse" />
-                  <span>Server is waking up — retrying in {retryCountdown}s…</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* API error banner */}
-            <AnimatePresence>
-              {apiError && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400 flex items-start gap-2"
-                  style={{ fontFamily: 'monospace' }}
-                >
-                  <ShieldX className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{apiError}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Results */}
             <AnimatePresence>
@@ -635,7 +623,7 @@ const RainingLetters: React.FC = () => {
 
                   {/* Reset button */}
                   <button
-                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setApiError(null); setRetryCountdown(null) }}
+                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
                     className="w-full py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/20 transition-all"
                     style={{ fontFamily: 'monospace' }}
                   >
@@ -652,6 +640,7 @@ const RainingLetters: React.FC = () => {
       </div>
 
 <style dangerouslySetInnerHTML={{ __html: `.dud { color: #0f0; opacity: 0.7; }` }} />
+      <Toast toasts={toasts} dismiss={dismissToast} />
     </div>
   )
 }
