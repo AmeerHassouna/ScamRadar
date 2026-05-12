@@ -1,45 +1,42 @@
 "use client"
 import React from "react"
-import { ShieldX } from "lucide-react"
+
+interface Props extends React.PropsWithChildren<{
+  /** Rendered instead of children when an error is caught. null = render nothing. */
+  fallback?: React.ReactNode
+  /** Called after an error is caught — use this to show a toast / reset state. */
+  onError?: (message: string) => void
+}>{}
 
 interface State {
   hasError: boolean
-  message: string
 }
 
-export class ErrorBoundary extends React.Component<React.PropsWithChildren<{ fallback?: React.ReactNode }>, State> {
-  constructor(props: React.PropsWithChildren<{ fallback?: React.ReactNode }>) {
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, message: "" }
+    this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, message: error.message ?? "Unknown error" }
+  static getDerivedStateFromError(): State {
+    return { hasError: true }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ScamRadar ErrorBoundary]", error, info.componentStack)
+    if (this.props.onError) {
+      // Defer so we're not calling parent setState during React's commit phase
+      const msg = error?.message ?? "Unexpected render error"
+      setTimeout(() => this.props.onError!(msg), 0)
+    }
   }
 
-  reset = () => this.setState({ hasError: false, message: "" })
+  reset = () => this.setState({ hasError: false })
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback
-
-      return (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center" style={{ fontFamily: "monospace" }}>
-          <ShieldX className="w-10 h-10 text-red-400" />
-          <p className="text-sm text-red-400 font-semibold">Something went wrong rendering this section.</p>
-          <p className="text-xs text-white/30 max-w-xs">{this.state.message}</p>
-          <button
-            onClick={this.reset}
-            className="mt-2 text-xs text-white/40 hover:text-white/70 border border-white/10 hover:border-white/20 rounded-lg px-4 py-2 transition-all"
-          >
-            Try again
-          </button>
-        </div>
-      )
+      // fallback=null → render nothing (parent will handle UI via onError callback)
+      return this.props.fallback ?? null
     }
     return this.props.children
   }

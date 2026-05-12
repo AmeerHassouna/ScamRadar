@@ -517,7 +517,10 @@ const RainingLetters: React.FC = () => {
                   className="mt-3 rounded-2xl bg-black/80 border border-white/10 backdrop-blur-md p-4"
                   style={{ fontFamily: 'monospace' }}
                 >
-                <ErrorBoundary>
+                <ErrorBoundary onError={() => {
+                    setResult(null)
+                    addToast('Could not display the result. Please try again.', 'error')
+                  }}>
                   {/* Gauge centered at top */}
                   <div className="flex flex-col items-center mb-4">
                     <Gauge
@@ -589,7 +592,7 @@ const RainingLetters: React.FC = () => {
                   </div>
 
                   {/* Why flagged */}
-                  {result.why_flagged && (
+                  {typeof result.why_flagged === 'string' && result.why_flagged && (
                     <div className="bg-white/5 rounded-lg p-2 mb-3">
                       <div className="text-xs text-white/40 mb-1">Why flagged?</div>
                       <div className="text-xs text-white/60">{result.why_flagged}</div>
