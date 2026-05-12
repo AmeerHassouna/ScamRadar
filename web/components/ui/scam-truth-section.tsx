@@ -614,7 +614,7 @@ export function ScamTruthSection() {
         <div className="my-12 sm:my-16" />
 
         {/* Security Tools Block — image left, text right */}
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
           {/* Image */}
           <motion.div
@@ -622,7 +622,7 @@ export function ScamTruthSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-72 lg:h-80"
+            className="relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-80 lg:h-auto lg:aspect-[4/3]"
           >
             <Image
               src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=500&fit=crop"

@@ -498,16 +498,6 @@ const RainingLetters: React.FC = () => {
               </div>
             )}
 
-            {/* Hover slat button */}
-            {!result && (
-              <div className="flex justify-center mt-2">
-                <HoverSlatButton
-                  initialText="ANALYSE TEXT"
-                  hoverText="DETECT SCAMS"
-                  onClick={() => textareaRef.current?.focus()}
-                />
-              </div>
-            )}
 
 
             {/* Results */}
