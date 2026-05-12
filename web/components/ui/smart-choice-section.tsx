@@ -75,7 +75,7 @@ export function SmartChoiceSection() {
         {/* Background image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=2400&h=900&fit=crop"
+          src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=2400&h=900&fit=crop"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover"
