@@ -643,3 +643,166 @@ html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
   /* Smooth momentum scrolling on iOS */
   main, section { -webkit-overflow-scrolling: touch; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3D Cube Animation — SmartChoiceSection
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.scam-cube-outer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scam-cube-scaler {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1000px;
+  height: 562px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+
+.scam-cube-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Background image — slow zoom + brightness pulse */
+.scam-cube-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  animation:
+    scam-zoom       28s ease-in-out infinite alternate,
+    scam-brightness 28s ease-in-out infinite alternate;
+}
+
+/* Hue overlay — shifts the green matrix image towards brand green */
+.scam-cube-hue {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(34, 197, 94, 0.10);
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  animation: scam-hue 14s ease-in-out infinite;
+}
+
+/* ── Cube stage (perspective wrapper) ─────────────────────── */
+.scam-cube-stage {
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  perspective: 900px;
+  z-index: 5;
+}
+
+.scam-cube-box {
+  width: 300px;
+  height: 190px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: scam-spin 16s linear infinite;
+}
+
+/* ── Reflection stage ─────────────────────────────────────── */
+.scam-cube-reflect-stage {
+  position: absolute;
+  top: 67%;
+  left: 50%;
+  transform: translate(-50%, 0) scaleY(-0.32);
+  transform-style: preserve-3d;
+  perspective: 900px;
+  z-index: 4;
+  opacity: 0.20;
+  filter: blur(1.5px);
+}
+
+.scam-cube-reflect-box {
+  width: 300px;
+  height: 190px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: scam-spin 16s linear infinite;
+}
+
+/* ── Cube faces ───────────────────────────────────────────── */
+.scam-face {
+  position: absolute;
+  width: 300px;
+  height: 190px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.50);
+  border: 1px solid rgba(34, 197, 94, 0.30);
+}
+
+.scam-front  { transform: translateZ(150px); }
+.scam-back   { transform: rotateY(180deg) translateZ(150px); }
+.scam-left   { transform: rotateY(-90deg)  translateZ(150px); }
+.scam-right  { transform: rotateY(90deg)   translateZ(150px); }
+.scam-top    {
+  transform: rotateX(90deg)  translateZ(95px);
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.55);
+}
+.scam-bottom {
+  transform: rotateX(-90deg) translateZ(95px);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+/* ── Scrolling text on text faces ─────────────────────────── */
+.scam-cube-scroll {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 8px;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.70);
+  animation: scam-marquee 36s linear infinite;
+}
+
+.scam-cube-scroll.scam-back-anim  { animation-duration: 40s; }
+.scam-cube-scroll.scam-right-anim { animation-duration: 44s; }
+
+/* Brand-green highlighted words */
+.scam-hl {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* ── Keyframes ────────────────────────────────────────────── */
+@keyframes scam-spin {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(-360deg); }
+}
+
+@keyframes scam-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes scam-zoom {
+  from { transform: scale(1.0); }
+  to   { transform: scale(1.65); }
+}
+
+@keyframes scam-brightness {
+  from { filter: brightness(0.50) contrast(1.25); }
+  to   { filter: brightness(0.80) contrast(1.00); }
+}
+
+@keyframes scam-hue {
+  0%, 100% { filter: hue-rotate(0deg);   }
+  50%       { filter: hue-rotate(75deg);  }
+}
