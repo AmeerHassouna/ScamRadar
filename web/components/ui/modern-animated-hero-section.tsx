@@ -11,6 +11,7 @@ import { Gauge } from "@/components/ui/gauge-1"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toast } from "@/components/ui/toast"
 import type { ToastMessage } from "@/components/ui/toast"
+import HoverSlatButton from "@/components/ui/hover-button"
 
 const safeNum = (v: unknown, fallback = 0): number => {
   const n = Number(v)
@@ -173,6 +174,7 @@ const RainingLetters: React.FC = () => {
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'error', duration = 5000) => {
     setToasts(prev => [...prev, { id: nextId(), message, type, duration }])
@@ -420,6 +422,7 @@ const RainingLetters: React.FC = () => {
               prompt.trim() ? 'drop-shadow-[0_0_12px_rgba(0,255,0,0.3)]' : ''
             )}>
               <textarea
+                ref={textareaRef}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
@@ -495,20 +498,14 @@ const RainingLetters: React.FC = () => {
               </div>
             )}
 
-            {/* Social proof pill */}
+            {/* Hover slat button */}
             {!result && (
               <div className="flex justify-center mt-2">
-                <div className="flex items-center rounded-full border border-white/10 bg-black/60 p-1 shadow shadow-black/5 backdrop-blur-sm">
-                  <div className="flex -space-x-1.5">
-                    <img className="rounded-full ring-1 ring-black/60" src="https://randomuser.me/api/portraits/women/44.jpg" width={20} height={20} alt="User 1" />
-                    <img className="rounded-full ring-1 ring-black/60" src="https://randomuser.me/api/portraits/men/32.jpg"   width={20} height={20} alt="User 2" />
-                    <img className="rounded-full ring-1 ring-black/60" src="https://randomuser.me/api/portraits/men/46.jpg"   width={20} height={20} alt="User 3" />
-                    <img className="rounded-full ring-1 ring-black/60" src="https://randomuser.me/api/portraits/women/68.jpg" width={20} height={20} alt="User 4" />
-                  </div>
-                  <p className="px-2 text-xs text-white/40" style={{ fontFamily: 'monospace' }}>
-                    Trained on <strong className="font-medium text-white/80">45,851</strong> real-world messages.
-                  </p>
-                </div>
+                <HoverSlatButton
+                  initialText="ANALYSE TEXT"
+                  hoverText="DETECT SCAMS"
+                  onClick={() => textareaRef.current?.focus()}
+                />
               </div>
             )}
 
