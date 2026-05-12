@@ -1,31 +1,25 @@
 "use client"
 
-import { BrainCircuit, Clock, Link2, ShieldCheck } from "lucide-react"
+import { LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
 
 const features = [
   {
-    icon: <ShieldCheck className="size-4 text-green-400" />,
-    title: "97.39% Accuracy",
+    icon: <MessagesSquare className="size-4 text-green-400" />,
+    title: "Full Thread Analysis",
     description:
-      "Calibrated Logistic Regression trained on 45,851 real messages across SMS, email, URL, and Reddit channels.",
+      "Paste an entire conversation, not just one message. ScamRadar+ reads context across multiple turns to catch slow-burn social engineering that single-message tools miss entirely.",
   },
   {
-    icon: <BrainCircuit className="size-4 text-green-400" />,
-    title: "Semantic Matching",
+    icon: <ShieldAlert className="size-4 text-green-400" />,
+    title: "Evasion-Resistant",
     description:
-      "FAISS nearest-neighbour search surfaces the closest known scam pattern — context, not just a verdict label.",
+      "Trained against l33t-speak, Unicode substitution, and character-level rewrites — the exact tricks scammers use to slip past keyword filters and naive classifiers.",
   },
   {
-    icon: <Link2 className="size-4 text-green-400" />,
-    title: "URL Scanning",
+    icon: <LayoutGrid className="size-4 text-green-400" />,
+    title: "17 Attack Types",
     description:
-      "Every link in the message is checked in real time against phishing databases and heuristic pattern rules.",
-  },
-  {
-    icon: <Clock className="size-4 text-green-400" />,
-    title: "Under 200 ms",
-    description:
-      "Full verdict — confidence score, scam type, flagged URLs, and tone signals — returned in a single API call.",
+      "Pig-butchering to OTP theft, romance scams to fake job offers — classified across every major scam category, not reduced to a blunt spam-vs-not-spam binary.",
   },
 ]
 
@@ -88,7 +82,7 @@ export function SmartChoiceSection() {
         </div>
 
         {/* 4-column feature grid */}
-        <div className="relative mx-auto grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-8 lg:grid-cols-4">
+        <div className="relative mx-auto grid grid-cols-1 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-8">
           {features.map((f, i) => (
             <div key={i} className="space-y-3">
               <div className="flex items-center gap-2">
