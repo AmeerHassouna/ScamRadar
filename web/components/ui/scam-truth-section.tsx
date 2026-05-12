@@ -619,10 +619,26 @@ export function ScamTruthSection() {
             </motion.h2>
 
             <ul className="space-y-3">
-              <TruthItem>Only catch threats they've seen before</TruthItem>
-              <TruthItem>Miss manipulation buried in fine print</TruthItem>
-              <TruthItem>Can't read fabricated social proof</TruthItem>
-              <TruthItem>Sound the alarm when the money's already gone</TruthItem>
+              {[
+                "Scan code signatures — not the language designed to deceive you",
+                "No concept of urgency manipulation or psychological pressure",
+                "Can't match messages against semantic patterns from known scam campaigns",
+                "Flag a link as malicious only after it's already claimed victims",
+              ].map((text, i) => (
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, x: -16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.08 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="mt-[7px] flex-shrink-0 w-1.5 h-1.5 rounded-full bg-white/20" />
+                  <span className="text-white/50 text-sm sm:text-base" style={{ fontFamily: "monospace" }}>
+                    {text}
+                  </span>
+                </motion.li>
+              ))}
             </ul>
 
             <motion.div
