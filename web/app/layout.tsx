@@ -4,6 +4,7 @@ import "./globals.css";
 import { AnimatedNavFramer } from "@/components/ui/navigation-menu";
 import { Providers } from "@/components/ui/providers";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +34,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background">
         <Providers>
-          <ScrollToTop />
-          <AnimatedNavFramer />
-          {children}
+          <ErrorBoundary>
+            <ScrollToTop />
+            <AnimatedNavFramer />
+            {children}
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>

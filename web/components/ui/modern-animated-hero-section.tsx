@@ -8,6 +8,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import SendButton from "@/components/ui/send-button"
 import { Gauge } from "@/components/ui/gauge-1"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+
+const safeNum = (v: unknown, fallback = 0): number => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : fallback
+}
+
+const KNOWN_VERDICTS = new Set(["SCAM", "SUSPICIOUS", "LEGIT"])
 
 interface Character {
   char: string
@@ -203,15 +211,35 @@ const RainingLetters: React.FC = () => {
           return
         }
         const data = await response.json()
+
+        // Normalise conversation response shape to match single-message shape
         if (conversationMode && data.overall_verdict) {
           data.verdict = data.overall_verdict
-          data.confidence = data.risk_score
+          data.confidence = safeNum(data.risk_score, 0)
+          // Conversation endpoint doesn't return per-message tone scores — default to 0
+          data.tone_urgency  = data.tone_urgency  ?? 0
+          data.tone_fear     = data.tone_fear     ?? 0
+          data.tone_reward   = data.tone_reward   ?? 0
+          data.tone_threat   = data.tone_threat   ?? 0
         }
-        if (!data.verdict) {
-          setApiError(data.detail ?? 'Unexpected response from server.')
+
+        // TOO_SHORT or missing verdict → friendly error, not a crash
+        if (!data.verdict || data.verdict === 'TOO_SHORT') {
+          setApiError(data.verdict === 'TOO_SHORT'
+            ? 'Message is too short to analyse — please provide more context.'
+            : (data.detail ?? 'Unexpected response from server.'))
           setIsAnalysing(false)
           return
         }
+
+        // Unknown verdict (API change / future label) — normalise to LEGIT as safe fallback
+        if (!KNOWN_VERDICTS.has(data.verdict)) {
+          data.verdict = 'LEGIT'
+        }
+
+        // Ensure confidence is always a finite number 0–100
+        data.confidence = Math.min(100, Math.max(0, safeNum(data.confidence, 0)))
+
         setRetryCountdown(null)
         setResult(data)
         setIsAnalysing(false)
@@ -501,12 +529,13 @@ const RainingLetters: React.FC = () => {
                   className="mt-3 rounded-2xl bg-black/80 border border-white/10 backdrop-blur-md p-4"
                   style={{ fontFamily: 'monospace' }}
                 >
+                <ErrorBoundary>
                   {/* Gauge centered at top */}
                   <div className="flex flex-col items-center mb-4">
                     <Gauge
                       value={result.verdict === 'LEGIT'
-                        ? 100 - result.confidence
-                        : result.confidence}
+                        ? 100 - safeNum(result.confidence)
+                        : safeNum(result.confidence)}
                       size={160}
                       strokeWidth={12}
                       gradient={true}
@@ -539,10 +568,10 @@ const RainingLetters: React.FC = () => {
                     </div>
                     <div className="text-white/40 text-xs mt-1">
                       {result.verdict === 'LEGIT'
-                        ? `${(100 - result.confidence).toFixed(1)}% confidence it is legitimate`
-                        : `${result.confidence}% confidence it is a scam`}
+                        ? `${(100 - safeNum(result.confidence)).toFixed(1)}% confidence it is legitimate`
+                        : `${safeNum(result.confidence).toFixed(1)}% confidence it is a scam`}
                     </div>
-                    {result.scam_type && (
+                    {result.scam_type && typeof result.scam_type === 'string' && (
                       <span className="mt-2 px-3 py-1 rounded-full text-xs border border-white/10 text-white/40">
                         {result.scam_type.replace(/_/g, ' ')}
                       </span>
@@ -552,10 +581,10 @@ const RainingLetters: React.FC = () => {
                   {/* Tone bars */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                     {[
-                      { label: 'Urgency', value: result.tone_urgency, color: 'bg-red-500' },
-                      { label: 'Fear', value: result.tone_fear, color: 'bg-orange-500' },
-                      { label: 'Reward', value: result.tone_reward, color: 'bg-yellow-500' },
-                      { label: 'Threat', value: result.tone_threat, color: 'bg-red-700' },
+                      { label: 'Urgency', value: safeNum(result.tone_urgency), color: 'bg-red-500' },
+                      { label: 'Fear',    value: safeNum(result.tone_fear),    color: 'bg-orange-500' },
+                      { label: 'Reward',  value: safeNum(result.tone_reward),  color: 'bg-yellow-500' },
+                      { label: 'Threat',  value: safeNum(result.tone_threat),  color: 'bg-red-700' },
                     ].map((tone) => (
                       <div key={tone.label} className="bg-white/5 rounded-lg p-2">
                         <div className="flex justify-between text-xs text-white/40 mb-1">
@@ -580,7 +609,7 @@ const RainingLetters: React.FC = () => {
                   )}
 
                   {/* Google Safe Browsing URL check */}
-                  {result.gsb_attempted && result.urls_found?.length > 0 && (
+                  {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
                     <div className="bg-white/5 rounded-lg p-2 mb-3">
                       <div className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
                         <LinkIcon className="w-3 h-3" />
@@ -612,6 +641,7 @@ const RainingLetters: React.FC = () => {
                   >
                     Analyse another message
                   </button>
+                </ErrorBoundary>
                 </motion.div>
               )}
             </AnimatePresence>
