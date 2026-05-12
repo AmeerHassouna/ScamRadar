@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { AlertTriangle, LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
-import { CubeAnimation } from "@/components/ui/cube-animation"
+import HeroText from "@/components/ui/hero-shutter-text"
 
 const features = [
   {
@@ -83,7 +83,7 @@ export function SmartChoiceSection() {
               "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)",
           }}
         >
-          <CubeAnimation />
+          <HeroText text="PROTECTED" showControls={false} />
         </div>
 
         {/* Floating badge — verdict (left) */}
