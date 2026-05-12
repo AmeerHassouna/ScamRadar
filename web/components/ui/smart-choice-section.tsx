@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
-import HeroText from "@/components/ui/hero-shutter-text"
+import { ScannerCardStream } from "@/components/ui/scanner-card-stream"
 
 const features = [
   {
@@ -68,24 +68,22 @@ export function SmartChoiceSection() {
         </div>
       </div>
 
-      {/* Full-bleed image zone — outer div holds badges, inner div holds masked image */}
+      {/* Full-bleed card stream zone */}
       <div
-        className="relative h-[340px] sm:h-[440px] md:h-[520px]"
+        className="relative h-[320px] sm:h-[360px]"
         style={{ width: "100vw", left: "50%", transform: "translateX(-50%)" }}
       >
-        {/* ── Image layer with CSS mask fade ────────────────────────────── */}
         <div
           className="absolute inset-0"
           style={{
             maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
             WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
           }}
         >
-          <HeroText text="PROTECTED" showControls={false} />
+          <ScannerCardStream />
         </div>
-
       </div>
 
       {/* Feature cards — overlap the bottom fade */}
