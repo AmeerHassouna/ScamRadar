@@ -431,8 +431,57 @@ export function ScamTruthSection() {
   }, [])
 
   return (
-    <section className="bg-black py-16 sm:py-24 px-4 overflow-hidden">
-      <div className="max-w-7xl mx-auto">
+    <section className="relative bg-black py-16 sm:py-24 px-4 overflow-hidden">
+
+      {/* ── Atmospheric glows ── z-0, behind everything ───────────────── */}
+
+      {/* Glow 1 — top-left halo, bridges transition from hero */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          top: "-18%",
+          left: "-8%",
+          width: "65%",
+          height: "60%",
+          background:
+            "radial-gradient(ellipse at 30% 40%, rgba(34,197,94,0.11) 0%, rgba(34,197,94,0.04) 42%, transparent 70%)",
+          filter: "blur(90px)",
+        }}
+      />
+
+      {/* Glow 2 — centre-right, mid-scroll depth */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          top: "28%",
+          right: "-12%",
+          width: "55%",
+          height: "55%",
+          background:
+            "radial-gradient(ellipse at 70% 50%, rgba(34,197,94,0.07) 0%, transparent 65%)",
+          filter: "blur(110px)",
+        }}
+      />
+
+      {/* Glow 3 — bottom-centre, bridges out to next section */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          bottom: "-12%",
+          left: "18%",
+          width: "64%",
+          height: "42%",
+          background:
+            "radial-gradient(ellipse at 50% 60%, rgba(34,197,94,0.06) 0%, transparent 68%)",
+          filter: "blur(130px)",
+        }}
+      />
+
+      {/* ── Content ── z-10, in front of glows ──────────────────────────── */}
+      <div className="max-w-7xl mx-auto relative" style={{ zIndex: 10 }}>
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* Left — text content */}
@@ -495,7 +544,7 @@ export function ScamTruthSection() {
           >
             <div
               ref={containerRef}
-              className="relative w-full h-80 sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/8"
+              className="relative w-full h-80 sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm"
               style={{
                 background:
                   "radial-gradient(circle at 30% 20%, rgba(239,68,68,0.06), transparent 60%), radial-gradient(circle at 70% 80%, rgba(34,197,94,0.04), transparent 60%), #000",
@@ -574,7 +623,7 @@ export function ScamTruthSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="relative rounded-2xl overflow-hidden border border-white/8 h-64 sm:h-72 lg:h-80"
+            className="relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-72 lg:h-80"
           >
             <Image
               src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=500&fit=crop"
