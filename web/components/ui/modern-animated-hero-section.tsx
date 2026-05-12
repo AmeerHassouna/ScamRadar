@@ -274,7 +274,7 @@ const RainingLetters: React.FC = () => {
       } catch (err) {
         if (attempt < MAX_RETRIES) {
           const secs = RETRY_DELAY / 1000
-          addToast(`Server is waking up — retrying in ${secs}s…`, 'warning', RETRY_DELAY)
+          addToast(`API is waking up (free-tier cold start — up to 60 s). Retrying in ${secs}s…`, 'warning', RETRY_DELAY)
           await new Promise(r => setTimeout(r, RETRY_DELAY))
         } else {
           addToast('Could not reach the API. Check your connection and try again.', 'error')
@@ -441,7 +441,7 @@ const RainingLetters: React.FC = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".txt,.md,.csv,.log,.json"
+                    accept=".txt,.log,.csv"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -464,10 +464,16 @@ const RainingLetters: React.FC = () => {
               <div className="absolute bottom-3 right-3">
                 <SendButton
                   onClick={handleAnalyse}
-                  disabled={!prompt.trim()}
+                  disabled={!prompt.trim() || prompt.trim().length < 20}
                   loading={isAnalysing}
                 />
               </div>
+              {/* Character counter — shown when approaching / below minimum */}
+              {prompt.length > 0 && prompt.trim().length < 20 && (
+                <div className="absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none" style={{ fontFamily: 'monospace' }}>
+                  {prompt.trim().length}/20 min
+                </div>
+              )}
             </div>
 
             {/* Quick example pills */}
@@ -500,7 +506,7 @@ const RainingLetters: React.FC = () => {
                     <img className="rounded-full ring-1 ring-black/60" src="https://randomuser.me/api/portraits/women/68.jpg" width={20} height={20} alt="User 4" />
                   </div>
                   <p className="px-2 text-xs text-white/40" style={{ fontFamily: 'monospace' }}>
-                    Trusted by <strong className="font-medium text-white/80">60K+</strong> users protected.
+                    Trained on <strong className="font-medium text-white/80">45,851</strong> real-world messages.
                   </p>
                 </div>
               </div>
@@ -562,12 +568,19 @@ const RainingLetters: React.FC = () => {
                         ? `${(100 - safeNum(result.confidence)).toFixed(1)}% confidence it is legitimate`
                         : `${safeNum(result.confidence).toFixed(1)}% confidence it is a scam`}
                     </div>
-                    {result.scam_type && typeof result.scam_type === 'string' && (
+                    {result.verdict !== 'LEGIT' && result.scam_type && typeof result.scam_type === 'string' && (
                       <span className="mt-2 px-3 py-1 rounded-full text-xs border border-white/10 text-white/40">
                         {result.scam_type.replace(/_/g, ' ')}
                       </span>
                     )}
                   </div>
+
+                  {/* False-positive note for borderline verdicts */}
+                  {result.verdict !== 'LEGIT' && safeNum(result.confidence) < 90 && (
+                    <p className="text-[10px] text-white/25 text-center mb-3 px-2 leading-relaxed" style={{ fontFamily: 'monospace' }}>
+                      Scores below 90% warrant human review. Legitimate security alerts from known services may occasionally be flagged.
+                    </p>
+                  )}
 
                   {/* Tone bars */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">

@@ -16,7 +16,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
   ({ title, value, change, changeDescription, icon, className, ...props }, ref) => {
     const isPositive = change >= 0;
 
-    const motionValue = useSpring(0, {
+    const motionValue = useSpring(value, {
       damping: 100,
       stiffness: 100,
     });

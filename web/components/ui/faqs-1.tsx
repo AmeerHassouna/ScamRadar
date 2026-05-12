@@ -40,8 +40,8 @@ export function FaqsSection() {
             </Accordion>
             <p className="text-white/40">
                 Can't find what you're looking for?{' '}
-                <a href="mailto:support@scamradar.ai" className="text-green-400 hover:underline">
-                    Contact our support team
+                <a href="mailto:amerrhassouna@gmail.com" className="text-green-400 hover:underline">
+                    Contact us
                 </a>
             </p>
         </div>
@@ -53,42 +53,54 @@ const questions = [
         id: 'item-1',
         title: 'How accurate is ScamRadar+?',
         content:
-            'Our Calibrated Logistic Regression model achieves 97.39% accuracy, trained on 46,360 real-world scam and legitimate messages across SMS, email, WhatsApp, and social media.',
+            'Our Calibrated Logistic Regression model achieves 97.39% accuracy, 97.47% precision, and 97.12% recall on a held-out test set of 9,272 messages drawn from the full 45,851-message corpus across SMS, email, URL, and Reddit channels.',
     },
     {
         id: 'item-2',
         title: 'What types of scams can it detect?',
         content:
-            'SMS phishing, email phishing, WhatsApp scams, crypto fraud, fake delivery alerts, advance-fee fraud, romance scams, pig-butchering, and social engineering attacks — 17 scam categories in total.',
+            'SMS phishing, email phishing, WhatsApp scams, crypto fraud, fake delivery alerts, advance-fee fraud, romance scams, pig-butchering, investment scams, job offer scams, OTP theft, impersonation, and social engineering attacks — 17 scam categories in total.',
     },
     {
         id: 'item-3',
         title: 'How fast is the analysis?',
         content:
-            'The full verdict — confidence score, label, flagged URLs, and similar scam patterns — is returned in under 200 ms via a single FastAPI endpoint.',
+            'The full verdict — confidence score, label, flagged URLs, and tone signals — is returned in under 200 ms for cached results. First-time requests on a warm server take around 300–500 ms. Note: the API runs on Render\'s free tier and may take up to 60 seconds to wake after a period of inactivity.',
     },
     {
         id: 'item-4',
         title: 'What is vector pattern matching?',
         content:
-            'We use FAISS nearest-neighbour search to surface the closest known scam patterns from our training corpus, giving you full context on why a message was flagged.',
+            'We use FAISS nearest-neighbour search on Sentence Transformer embeddings to surface the closest known scam patterns from our training corpus, giving real context on why a message was flagged rather than just a binary label.',
     },
     {
         id: 'item-5',
+        title: 'Can it produce false positives?',
+        content:
+            'Yes — no model is perfect. Legitimate security alerts from services like Google, Apple, or banks can occasionally be flagged because they use urgency language and link patterns similar to phishing. Always use the confidence score alongside the verdict. Scores below 85% warrant human review.',
+    },
+    {
+        id: 'item-6',
+        title: 'Does it work in languages other than English?',
+        content:
+            'The model was trained exclusively on English-language messages and performs best on English text. Detection quality for Arabic, Hebrew, French, or other languages is significantly lower and results should not be relied upon for non-English input.',
+    },
+    {
+        id: 'item-7',
         title: 'Does it work on any platform?',
         content:
             'Yes — ScamRadar+ works on any plain-text input: SMS, email, WhatsApp, Telegram, or any custom integration through our API. No channel-specific retraining required.',
     },
     {
-        id: 'item-6',
+        id: 'item-8',
         title: 'Is there a developer API?',
         content:
-            'Yes. Our FastAPI endpoint accepts plain text and returns a full analysis including confidence score, verdict, flagged URLs, and the top similar scam patterns from our corpus.',
+            'Yes. The FastAPI endpoint at scamradar-api-l2vv.onrender.com accepts plain text and returns a full analysis including confidence score, verdict, flagged URLs, tone scores, and scam type. Rate limit: 30 requests/minute on /predict, 20/minute on conversation endpoints.',
     },
     {
-        id: 'item-7',
-        title: 'What does the risk score mean?',
+        id: 'item-9',
+        title: 'What does the confidence score mean?',
         content:
-            'A 0–100 confidence score that reflects how certain the model is. Higher scores indicate stronger scam signals. You can set your own threshold for your use case.',
+            'A 0–100 score reflecting how certain the model is. For SCAM verdicts it represents scam confidence; for LEGIT verdicts it is inverted (100 − score = legitimacy confidence). Scores above 85 are high-confidence; 50–85 warrant a closer look.',
     },
 ];

@@ -106,41 +106,41 @@ export default function Home() {
 
       {/* Testimonials */}
       <AnimatedTestimonials
-        badgeText="What users say"
-        title="Trusted by security-conscious users"
-        subtitle="Real feedback from people who use ScamRadar+ to protect themselves and their teams from scams every day."
+        badgeText="From the team"
+        title="Built with purpose"
+        subtitle="ScamRadar+ is a BSc final year project at Emek Yezreel College, built to make AI-powered scam detection accessible to everyone."
         autoRotateInterval={6000}
         testimonials={[
           {
             id: 1,
-            name: "Lior Ben-David",
-            role: "IT Security Lead",
-            company: "FinTech IL",
-            content: "We integrated ScamRadar+ into our customer support pipeline. It flags suspicious messages before they reach agents and has already blocked several social engineering attempts. The API response time is impressively fast.",
+            name: "Ameer Hassouna",
+            role: "Lead Developer & ML Engineer",
+            company: "Emek Yezreel College",
+            content: "Building ScamRadar+ taught me that scam detection requires more than NLP alone. Combining TF-IDF patterns, semantic embeddings, and real-time URL scanning creates coverage no single technique achieves — 97.39% accuracy across four channels proves it.",
             rating: 5,
-            avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+            avatar: "https://res.cloudinary.com/donzqvn9k/image/upload/v1777760337/IMG_1385_g9tfo0.jpg",
           },
           {
             id: 2,
-            name: "Noa Shapiro",
-            role: "Cybersecurity Researcher",
-            company: "Tel Aviv University",
-            content: "The FAISS similarity search is a clever addition — seeing which known scam a message resembles gives analysts real context, not just a binary label. The 97% accuracy on the test set holds up in practice.",
+            name: "Moatasem Khalifeh",
+            role: "Data Scientist & Backend Engineer",
+            company: "Emek Yezreel College",
+            content: "The FAISS vector proximity search was the real breakthrough. Surfacing the closest known scam pattern alongside the verdict gives context instead of just a binary label. The adversarial robustness against l33t-speak evasion was the hardest part to get right.",
             rating: 5,
-            avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+            avatar: "https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic",
           },
           {
             id: 3,
-            name: "Daniel Katz",
-            role: "Product Manager",
-            company: "SafeComm",
-            content: "We evaluated three scam-detection APIs before choosing ScamRadar+. The combination of ML scoring, vector pattern matching, and live URL scanning in a single call made it the obvious choice for our product.",
+            name: "Hanan Lev",
+            role: "Project Supervisor",
+            company: "Emek Yezreel College",
+            content: "This project demonstrates a thorough application of the CRISP-DM methodology — from data collection through adversarial testing. The results on the 45,851-message corpus validate the multi-layer approach and show genuine research depth.",
             rating: 5,
-            avatar: "https://randomuser.me/api/portraits/men/46.jpg",
+            avatar: "https://res.cloudinary.com/donzqvn9k/image/upload/v1777813890/Screenshot_2026-05-03_at_16.11.23_tmdyib.png",
           },
         ]}
-        trustedCompanies={["Security Engineers", "Fraud Analysts", "Academic Researchers", "Development Teams", "Risk & Compliance"]}
-        trustedCompaniesTitle="Trusted by people who can't afford to be wrong"
+        trustedCompanies={["SMS Phishing", "Email Fraud", "Crypto Scams", "Social Engineering", "URL Scanning"]}
+        trustedCompaniesTitle="Detection coverage across scam categories"
       />
 
       {/* Team */}
