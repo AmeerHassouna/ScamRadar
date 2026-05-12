@@ -611,8 +611,7 @@ export function ScamTruthSection() {
 
         </div>
 
-        {/* Divider */}
-        <div className="my-12 sm:my-16 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="my-12 sm:my-16" />
 
         {/* Security Tools Block — image left, text right */}
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
