@@ -74,8 +74,6 @@ const ScannerCardStream = ({
     lastMouseX: 0,
     lastTime: performance.now(),
     cardLineWidth: (400 + cardGap) * cards.length,
-    friction: friction,
-    minVelocity: 30,
   });
 
   const scannerState = useRef({ isScanning: false });
@@ -296,12 +294,11 @@ const ScannerCardStream = ({
       cardStreamState.current.lastTime = currentTime;
 
       if (!isPaused && !cardStreamState.current.isDragging) {
-        if (cardStreamState.current.velocity > cardStreamState.current.minVelocity) {
-          cardStreamState.current.velocity *= cardStreamState.current.friction;
-        }
+        // Lerp back to auto speed after a drag flick
+        cardStreamState.current.velocity +=
+          (initialSpeed - cardStreamState.current.velocity) * 0.04;
         cardStreamState.current.position +=
           cardStreamState.current.velocity * cardStreamState.current.direction * deltaTime;
-        setSpeed(Math.round(cardStreamState.current.velocity));
       }
 
       const { position, cardLineWidth } = cardStreamState.current;
