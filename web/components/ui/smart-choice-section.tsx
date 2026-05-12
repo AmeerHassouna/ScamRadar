@@ -67,29 +67,39 @@ export function SmartChoiceSection() {
         </div>
       </div>
 
-      {/* Full-bleed image zone */}
+      {/* Full-bleed image zone — outer div holds badges, inner div holds masked image */}
       <div
         className="relative h-[340px] sm:h-[440px] md:h-[520px]"
         style={{ width: "100vw", left: "50%", transform: "translateX(-50%)" }}
       >
-        {/* Background image */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto,w_2400,e_tint:30:22c55e,e_contrast:30,e_brightness:-15/v1778620823/Screenshot_2026-05-13_at_0.20.10_h31dnu.png"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-        />
-
-        {/* Dual-directional fade mask */}
+        {/* ── Image layer with CSS mask fade ────────────────────────────── */}
         <div
-          className="absolute inset-0 pointer-events-none z-10"
+          className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(to bottom, #000 0%, transparent 28%, transparent 68%, #000 100%)",
+            maskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)",
           }}
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto,w_2400,e_saturation:-50,e_tint:60:22c55e,e_contrast:40,e_brightness:-20/v1778620823/Screenshot_2026-05-13_at_0.20.10_h31dnu.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+
+          {/* Green diagonal wash — reinforces brand colour */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(34,197,94,0.18) 0%, rgba(0,0,0,0) 55%, rgba(34,197,94,0.10) 100%)",
+            }}
+          />
+        </div>
 
         {/* Floating badge — verdict (left) */}
         <motion.div
