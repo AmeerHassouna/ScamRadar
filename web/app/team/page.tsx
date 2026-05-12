@@ -7,7 +7,7 @@ export default function TeamPage() {
       alt: 'Ameer Hassouna',
     },
     {
-      src: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1777759403/IMG_3303_psc1dd.jpg',
+      src: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic',
       alt: 'Moatasem Khalifeh',
     },
     {

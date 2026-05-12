@@ -25,8 +25,8 @@ const teamMembers = [
     name: 'Moatasem Khalifeh',
     affiliation: 'Data Scientist & Backend Engineer',
     quote: 'Handled data preparation, feature engineering, and model evaluation. Turned 46,360 raw messages into a 97.39% accurate detection system.',
-    imageSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1777759403/IMG_3303_psc1dd.jpg',
-    thumbnailSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1777759403/IMG_3303_psc1dd.jpg',
+    imageSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic',
+    thumbnailSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic',
   },
   {
     id: 3,
