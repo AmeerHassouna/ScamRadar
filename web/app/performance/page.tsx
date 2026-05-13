@@ -44,7 +44,7 @@ const rocData = [
 ];
 const randomLine = [{ fpr: 0, tpr: 0 }, { fpr: 1, tpr: 1 }];
 
-// Confusion matrix (test set: 9 272 samples; threshold = 0.47)
+// Confusion matrix (test set: 9,272 samples; threshold = 0.47)
 // Accuracy 97.39%, Precision 97.47%, Recall 97.12%
 const CM = { tp: 4356, fn: 129, fp: 112, tn: 4675 };
 
@@ -371,7 +371,7 @@ export default function PerformancePage() {
           <SectionHeader
             label="Model Metrics · v5 Production"
             title="PERFORMANCE"
-            sub="Calibrated Logistic Regression · 46 360 messages · 8 026 features · threshold = 0.47"
+            sub="Calibrated Logistic Regression · 46,360 messages · 8,026 features · threshold = 0.47"
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard title="Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline"
@@ -540,7 +540,7 @@ export default function PerformancePage() {
             </ChartCard>
 
             {/* Confusion Matrix */}
-            <ChartCard title="Confusion Matrix" sub="Predictions on held-out test set (9 272 messages)">
+            <ChartCard title="Confusion Matrix" sub="Predictions on held-out test set (9,272 messages)">
               <ConfusionMatrix />
             </ChartCard>
           </div>
@@ -617,7 +617,7 @@ export default function PerformancePage() {
             </ChartCard>
 
             {/* Dataset Composition */}
-            <ChartCard title="Training Dataset Composition" sub="46 360 messages across 8 data sources — scam vs legit split">
+            <ChartCard title="Training Dataset Composition" sub="46,360 messages across 8 data sources — scam vs legit split">
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={datasetData} margin={{ top: 0, right: 20, left: -5, bottom: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={GRID} />

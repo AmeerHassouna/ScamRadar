@@ -422,7 +422,7 @@ const pipelineItems: AccordionData[] = [
     id: 4,
     step: '04',
     title: 'AI Vector Search',
-    description: 'FAISS retrieves the k=10 closest known scam vectors across 8 026 TF-IDF and character n-gram dimensions, surfacing the nearest campaign match for explainability.',
+    description: 'FAISS retrieves the k=10 closest known scam vectors across 8,026 TF-IDF and character n-gram dimensions, surfacing the nearest campaign match for explainability.',
     imageUrl: 'https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&h=600&fit=crop',
     icon: Cpu,
   },
