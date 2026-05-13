@@ -37,8 +37,8 @@ const Blog7 = ({
   posts = [],
 }: Blog7Props) => {
   return (
-    <section className="py-20 sm:py-28 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col items-center gap-14">
+    <section className="py-12 sm:py-20 lg:py-28 px-4">
+      <div className="max-w-7xl mx-auto flex flex-col items-center gap-10 sm:gap-14">
 
         {/* Header */}
         <div className="text-center max-w-2xl">
@@ -68,12 +68,28 @@ const Blog7 = ({
           </a>
         </div>
 
-        {/* Cards */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 w-full">
+        {/* Cards
+            Mobile  : horizontal snap carousel — swipe to browse, no ugly stack
+            Tablet+ : 2-column grid
+            Desktop : 3-column grid                                              */}
+        <div
+          className="flex flex-row sm:grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 w-full
+                     overflow-x-auto sm:overflow-x-visible
+                     snap-x snap-mandatory sm:snap-none
+                     pb-3 sm:pb-0
+                     -mx-4 px-4 sm:mx-0 sm:px-0"
+          style={{ scrollbarWidth: "none" } as React.CSSProperties}
+        >
           {posts.map((post) => (
             <Card
               key={post.id}
-              className="grid grid-rows-[auto_auto_1fr_auto] bg-zinc-900/60 border-white/8 hover:border-green-400/20 transition-all duration-300 overflow-hidden group"
+              /* On mobile: fixed carousel width so one card + peek of next is visible.
+                 On sm+: standard grid flow. */
+              className="flex-shrink-0 snap-start w-[82vw] sm:w-auto
+                         grid grid-rows-[auto_auto_1fr_auto]
+                         bg-zinc-900/60 border-white/8
+                         hover:border-green-400/20 transition-all duration-300
+                         overflow-hidden group"
               style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
             >
               {/* Thumbnail */}
@@ -82,12 +98,11 @@ const Blog7 = ({
                   src={post.image}
                   alt={post.title}
                   fill
+                  loading="lazy"
                   className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  sizes="(max-width: 640px) 82vw, (max-width: 1024px) 50vw, 33vw"
                 />
-                {/* Dark overlay */}
                 <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
-                {/* Label badge */}
                 <div className="absolute top-3 left-3">
                   <span
                     className="text-[10px] font-bold uppercase tracking-widest text-green-400 border border-green-400/40 bg-black/70 rounded px-2 py-0.5 backdrop-blur-sm"
@@ -123,7 +138,7 @@ const Blog7 = ({
                   href={post.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-green-400 text-[11px] font-semibold uppercase tracking-widest hover:text-green-300 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-green-400 text-[11px] font-semibold uppercase tracking-widest hover:text-green-300 transition-colors min-h-[44px]"
                   style={MONO}
                 >
                   Read more
@@ -133,6 +148,11 @@ const Blog7 = ({
             </Card>
           ))}
         </div>
+
+        {/* Swipe hint — mobile only */}
+        <p className="sm:hidden text-white/20 text-[10px] tracking-widest uppercase -mt-6" style={MONO}>
+          ← swipe to browse →
+        </p>
 
       </div>
     </section>
