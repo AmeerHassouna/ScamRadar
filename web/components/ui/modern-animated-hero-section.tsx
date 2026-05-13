@@ -33,12 +33,6 @@ const detailToString = (detail: unknown): string => {
 let _toastId = 0
 const nextId = () => String(++_toastId)
 
-interface Character {
-  char: string
-  x: number
-  y: number
-  speed: number
-}
 
 class TextScramble {
   el: HTMLElement
@@ -162,9 +156,118 @@ const ScrambledTitle: React.FC = () => {
   )
 }
 
+// ─── Canvas-based raining characters ──────────────────────────────────────────
+// Replaces the previous React-state approach (300 spans × 60fps re-renders).
+// The canvas draws all characters directly — zero React re-renders after mount.
+
+const RAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+
+function RainingCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    // alpha:false → opaque canvas → faster GPU compositing
+    const ctx = canvas.getContext('2d', { alpha: false })!
+    const FONT = 26          // px — matches original ~1.8rem
+
+    let W = 0, H = 0
+
+    type P = { char: string; x: number; y: number; speedPx: number; active: boolean }
+    let particles: P[] = []
+
+    const mkP = (randomY = true): P => ({
+      char: RAIN_CHARS[Math.floor(Math.random() * RAIN_CHARS.length)],
+      x: Math.random() * W,
+      y: randomY ? Math.random() * H : -FONT,
+      speedPx: 18 + Math.random() * 32,  // px / second
+      active: false,
+    })
+
+    const setup = () => {
+      W = window.innerWidth
+      H = window.innerHeight
+      canvas.width  = W
+      canvas.height = H
+      const count = W < 640 ? 110 : 240
+      particles = Array.from({ length: count }, () => mkP(true))
+    }
+
+    setup()
+    window.addEventListener('resize', setup)
+
+    let lastTime = 0
+    let lastFlicker = 0
+    let visible = true
+    let rafId: number
+
+    const observer = new IntersectionObserver(([e]) => { visible = e.isIntersecting }, { threshold: 0 })
+    observer.observe(canvas)
+    const onVis = () => { visible = document.visibilityState === 'visible' }
+    document.addEventListener('visibilitychange', onVis)
+
+    const draw = (now: number) => {
+      rafId = requestAnimationFrame(draw)
+      if (!visible) { lastTime = now; return }
+
+      const dt = Math.min((now - lastTime) / 1000, 0.05)
+      lastTime = now
+
+      // Randomly flip a few chars to active every ~50ms
+      if (now - lastFlicker > 50) {
+        for (const p of particles) p.active = false
+        const n = 3 + Math.floor(Math.random() * 4)
+        for (let i = 0; i < n; i++)
+          particles[Math.floor(Math.random() * particles.length)].active = true
+        lastFlicker = now
+      }
+
+      // Fill black (opaque canvas — no transparency needed)
+      ctx.fillStyle = '#000'
+      ctx.fillRect(0, 0, W, H)
+
+      // Batch 1: inactive chars
+      ctx.font = `${FONT}px monospace`
+      ctx.fillStyle = '#475569'
+      ctx.globalAlpha = 0.40
+      for (const p of particles) {
+        if (p.active) continue
+        p.y += p.speedPx * dt
+        if (p.y > H + FONT) { p.y = -FONT; p.x = Math.random() * W; p.char = RAIN_CHARS[Math.floor(Math.random() * RAIN_CHARS.length)] }
+        ctx.fillText(p.char, p.x, p.y)
+      }
+
+      // Batch 2: active chars (bright green, slightly larger)
+      ctx.font = `bold ${FONT + 4}px monospace`
+      ctx.fillStyle = '#00ff00'
+      ctx.globalAlpha = 1
+      for (const p of particles) {
+        if (!p.active) continue
+        p.y += p.speedPx * dt
+        if (p.y > H + FONT) { p.y = -FONT; p.x = Math.random() * W; p.char = RAIN_CHARS[Math.floor(Math.random() * RAIN_CHARS.length)] }
+        ctx.fillText(p.char, p.x, p.y)
+      }
+
+      ctx.globalAlpha = 1
+    }
+
+    rafId = requestAnimationFrame(draw)
+    return () => {
+      cancelAnimationFrame(rafId)
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('resize', setup)
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />
+}
+
+// ─── Main hero component ───────────────────────────────────────────────────────
+
 const RainingLetters: React.FC = () => {
-  const [characters, setCharacters] = useState<Character[]>([])
-  const [activeIndices, setActiveIndices] = useState<Set<number>>(new Set())
 
   // Detect input state
   const [prompt, setPrompt] = useState('')
@@ -287,90 +390,11 @@ const RainingLetters: React.FC = () => {
     }
   }
 
-  const createCharacters = useCallback(() => {
-    const allChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
-    const charCount = typeof window !== 'undefined' && window.innerWidth < 640 ? 150 : 300
-    const newCharacters: Character[] = []
-    for (let i = 0; i < charCount; i++) {
-      newCharacters.push({
-        char: allChars[Math.floor(Math.random() * allChars.length)],
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        speed: 0.1 + Math.random() * 0.3,
-      })
-    }
-    return newCharacters
-  }, [])
-
-  useEffect(() => {
-    setCharacters(createCharacters())
-  }, [createCharacters])
-
-  useEffect(() => {
-    const updateActiveIndices = () => {
-      const newActiveIndices = new Set<number>()
-      const numActive = Math.floor(Math.random() * 3) + 3
-      for (let i = 0; i < numActive; i++) {
-        newActiveIndices.add(Math.floor(Math.random() * characters.length))
-      }
-      setActiveIndices(newActiveIndices)
-    }
-
-    const flickerInterval = setInterval(updateActiveIndices, 50)
-    return () => clearInterval(flickerInterval)
-  }, [characters.length])
-
-  useEffect(() => {
-    let animationFrameId: number
-
-    const updatePositions = () => {
-      setCharacters(prevChars =>
-        prevChars.map(char => ({
-          ...char,
-          y: char.y + char.speed,
-          ...(char.y >= 100 && {
-            y: -5,
-            x: Math.random() * 100,
-            char: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"[
-              Math.floor(Math.random() * "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?".length)
-            ],
-          }),
-        }))
-      )
-      animationFrameId = requestAnimationFrame(updatePositions)
-    }
-
-    animationFrameId = requestAnimationFrame(updatePositions)
-    return () => cancelAnimationFrame(animationFrameId)
-  }, [])
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
-      {/* Raining Characters */}
-      {characters.map((char, index) => (
-        <span
-          key={index}
-          className={`absolute text-xs transition-colors duration-100 ${
-            activeIndices.has(index)
-              ? "text-[#00ff00] text-base scale-125 z-10 font-bold animate-pulse"
-              : "text-slate-600 font-light"
-          }`}
-          style={{
-            left: `${char.x}%`,
-            top: `${char.y}%`,
-            transform: `translate(-50%, -50%) ${activeIndices.has(index) ? 'scale(1.25)' : 'scale(1)'}`,
-            textShadow: activeIndices.has(index)
-              ? '0 0 8px rgba(255,255,255,0.8), 0 0 12px rgba(255,255,255,0.4)'
-              : 'none',
-            opacity: activeIndices.has(index) ? 1 : 0.4,
-            transition: 'color 0.1s, transform 0.1s, text-shadow 0.1s',
-            willChange: 'transform, top',
-            fontSize: '1.8rem'
-          }}
-        >
-          {char.char}
-        </span>
-      ))}
+      {/* Canvas-based raining characters — replaces 300 spans × 60fps React re-renders */}
+      <RainingCanvas />
 
       {/* Centered overlay — title + input */}
       <div className={cn(

@@ -391,12 +391,13 @@ export function ScamTruthSection() {
   const [currentMeta, setCurrentMeta] = useState<ScamMetadata | null>(null)
   const [keyIndex, setKeyIndex] = useState(0)
   const [keyAnimating, setKeyAnimating] = useState(true)
-  const [bgInstances] = useState(() =>
-    Array.from({ length: 7 }, (_, i) => ({
+  const [bgInstances] = useState(() => {
+    const count = typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 4
+    return Array.from({ length: count }, (_, i) => ({
       id: `bg-${i}`,
       scam: backgroundScams[i % backgroundScams.length],
     }))
-  )
+  })
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null

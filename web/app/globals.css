@@ -624,6 +624,14 @@ html:not(.dark) .text-white\/35 { color: oklch(0.09 0 0 / 0.4); }
 /* Inactive pagination dot (bg-white/20 is invisible on light bg) */
 html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
 
+/* ── Below-fold paint deferral ────────────────────────────────────────────── */
+/* Tells the browser to skip layout/paint for far-below-fold sections until   */
+/* they're near the viewport. contain-intrinsic-size prevents scroll-bar jump. */
+.section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 700px;
+}
+
 /* ── Mobile-only overrides (max 639px = below sm breakpoint) ──────────────── */
 @media (max-width: 639px) {
   /* Prevent any horizontal scroll / overflow */

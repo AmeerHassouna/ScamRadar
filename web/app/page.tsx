@@ -63,7 +63,7 @@ export default function Home() {
       </section>
 
       {/* Latest Threat Intelligence */}
-      <section id="threats" className="relative bg-black" style={{ overflow: "visible" }}>
+      <section id="threats" className="relative bg-black section-deferred" style={{ overflow: "visible" }}>
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "5%", width: "45%", height: "45%", background: "radial-gradient(ellipse at 25% 25%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "30%", right: "-5%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 80% 50%, rgba(34,197,94,0.12) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "20%", width: "60%", height: "38%", background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.16) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Team */}
-      <section id="team" className="relative bg-black" style={{ overflow: "visible" }}>
+      <section id="team" className="relative bg-black section-deferred" style={{ overflow: "visible" }}>
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-6%", right: "5%", width: "50%", height: "45%", background: "radial-gradient(ellipse at 75% 20%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "40%", left: "-5%", width: "45%", height: "50%", background: "radial-gradient(ellipse at 15% 55%, rgba(34,197,94,0.11) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-5%", left: "25%", width: "50%", height: "35%", background: "radial-gradient(ellipse at 50% 85%, rgba(34,197,94,0.13) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
@@ -99,7 +99,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <FAQSection />
+      <div className="section-deferred"><FAQSection /></div>
 
       {/* Footer */}
       <ScamRadarFooter />
