@@ -39,7 +39,7 @@ const socialLinks: SocialLink[] = [
 
 const navLinks: FooterLink[] = [
   { label: "Home", href: "/#home" },
-  { label: "Performance", href: "/#performance" },
+  { label: "How It Works", href: "/#how-it-works" },
   { label: "Team", href: "/#team" },
 ];
 
