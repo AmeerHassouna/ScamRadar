@@ -115,9 +115,14 @@ export function AnimatedTestimonials({
     <section
       ref={sectionRef}
       id="testimonials"
-      className={`overflow-hidden bg-black ${className || ""}`}
+      className={`relative bg-black ${className || ""}`}
+      style={{ overflow: "visible" }}
     >
-      <div className="px-4 md:px-6 max-w-7xl mx-auto">
+      {/* Atmospheric glows */}
+      <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "-5%", width: "55%", height: "50%", background: "radial-gradient(ellipse at 20% 20%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)" }} />
+      <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "30%", right: "-5%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 85% 50%, rgba(34,197,94,0.11) 0%, transparent 65%)", filter: "blur(70px)" }} />
+      <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "20%", width: "60%", height: "38%", background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)" }} />
+      <div className="relative px-4 md:px-6 max-w-7xl mx-auto" style={{ zIndex: 10 }}>
 
         {/* ── MOBILE LAYOUT (below md) ─────────────────────────────────────── */}
         <motion.div

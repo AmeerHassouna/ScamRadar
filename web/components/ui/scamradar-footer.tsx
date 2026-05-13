@@ -45,8 +45,10 @@ const navLinks: FooterLink[] = [
 
 export function ScamRadarFooter({ className }: FooterProps) {
   return (
-    <section className={cn("relative w-full mt-0 overflow-hidden", className)}>
-      <footer className="border-t border-white/10 bg-black mt-0 relative">
+    <section className={cn("relative w-full mt-0", className)} style={{ overflow: "visible" }}>
+      {/* Atmospheric trace glow — fades out gracefully at the bottom of the page */}
+      <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "10%", width: "80%", height: "40%", background: "radial-gradient(ellipse at 50% 20%, rgba(34,197,94,0.10) 0%, transparent 65%)", filter: "blur(70px)" }} />
+      <footer className="border-t border-white/10 bg-black mt-0 relative" style={{ zIndex: 10 }}>
         <div className="max-w-7xl flex flex-col justify-between mx-auto min-h-0 sm:min-h-[35rem] md:min-h-[40rem] relative p-4 py-10">
 
           {/* Top content */}

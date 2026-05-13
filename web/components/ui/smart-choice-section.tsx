@@ -27,10 +27,48 @@ const features = [
 
 export function SmartChoiceSection() {
   return (
-    <section className="bg-black overflow-hidden">
+    <section className="relative bg-black" style={{ overflow: "visible" }}>
+
+      {/* Atmospheric glows */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          top: "-10%",
+          right: "0%",
+          width: "60%",
+          height: "55%",
+          background: "radial-gradient(ellipse at 80% 20%, rgba(34,197,94,0.20) 0%, rgba(34,197,94,0.06) 45%, transparent 68%)",
+          filter: "blur(60px)",
+        }}
+      />
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          top: "25%",
+          left: "-5%",
+          width: "50%",
+          height: "50%",
+          background: "radial-gradient(ellipse at 20% 50%, rgba(74,222,128,0.12) 0%, rgba(34,197,94,0.04) 50%, transparent 70%)",
+          filter: "blur(65px)",
+        }}
+      />
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 0,
+          bottom: "-8%",
+          left: "20%",
+          width: "60%",
+          height: "40%",
+          background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.18) 0%, transparent 65%)",
+          filter: "blur(70px)",
+        }}
+      />
 
       {/* Header — contained */}
-      <div className="pt-16 md:pt-24 pb-10 sm:pb-12">
+      <div className="relative z-10 pt-16 md:pt-24 pb-10 sm:pb-12">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -68,21 +106,23 @@ export function SmartChoiceSection() {
         </div>
       </div>
 
-      {/* Full-bleed card stream zone */}
-      <div
-        className="relative h-[220px] sm:h-[320px]"
-        style={{ width: "100vw", left: "50%", transform: "translateX(-50%)" }}
-      >
+      {/* Full-bleed card stream zone — isolated overflow so no horizontal scroll */}
+      <div className="relative z-10" style={{ overflow: "hidden" }}>
         <div
-          className="absolute inset-0"
-          style={{
-            maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
-          }}
+          className="relative h-[220px] sm:h-[320px]"
+          style={{ width: "100vw", left: "50%", transform: "translateX(-50%)" }}
         >
-          <ScannerCardStream />
+          <div
+            className="absolute inset-0"
+            style={{
+              maskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%)",
+            }}
+          >
+            <ScannerCardStream />
+          </div>
         </div>
       </div>
 
