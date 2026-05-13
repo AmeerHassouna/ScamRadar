@@ -1,7 +1,7 @@
 import RainingLetters from '@/components/ui/modern-animated-hero-section'
 import { ScamTruthSection } from '@/components/ui/scam-truth-section'
 import { SmartChoiceSection } from '@/components/ui/smart-choice-section'
-import { RecentThreats } from '@/components/ui/recent-threats'
+import { ScamThreatsBlog } from '@/components/ui/scam-threats-blog'
 import { FAQSection } from '@/components/ui/faq-section'
 import { TestimonialSlider } from '@/components/ui/testimonial-slider-1'
 import { AnimatedTestimonials } from '@/components/ui/animated-testimonials'
@@ -64,13 +64,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Latest Threats */}
-      <section id="threats" className="relative" style={{ overflow: "visible" }}>
+      {/* Latest Threat Intelligence */}
+      <section id="threats" className="relative bg-black" style={{ overflow: "visible" }}>
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "5%", width: "45%", height: "45%", background: "radial-gradient(ellipse at 25% 25%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "30%", right: "-5%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 80% 50%, rgba(34,197,94,0.12) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "20%", width: "60%", height: "38%", background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.16) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="relative" style={{ zIndex: 10 }}>
-          <RecentThreats />
+          <ScamThreatsBlog />
         </div>
       </section>
 
