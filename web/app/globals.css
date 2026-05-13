@@ -823,3 +823,32 @@ html:not(.dark) .bg-white\/20 { background-color: oklch(0.09 0 0 / 0.15); }
   0%, 100% { filter: hue-rotate(0deg);  }
   50%       { filter: hue-rotate(80deg); }
 }
+
+/* ── Accessibility Widget ──────────────────────────────────────── */
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.a11y-highlight-links a {
+  outline: 2px solid #4ade80 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(74, 222, 128, 0.12) !important;
+  border-radius: 3px !important;
+  text-decoration: underline !important;
+}
+
+html.a11y-text-spacing p,
+html.a11y-text-spacing span,
+html.a11y-text-spacing li,
+html.a11y-text-spacing a,
+html.a11y-text-spacing label {
+  letter-spacing: 0.1em !important;
+  word-spacing: 0.14em !important;
+  line-height: 1.8 !important;
+}

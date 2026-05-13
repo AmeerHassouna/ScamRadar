@@ -4,7 +4,8 @@ import "./globals.css";
 import { AnimatedNavFramer } from "@/components/ui/scroll-navigation-menu";
 import { Providers } from "@/components/ui/providers";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { AccessibilityWidget } from "@/components/ui/accessibility-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
             <ScrollToTop />
             <AnimatedNavFramer />
             {children}
+            <AccessibilityWidget />
           </ErrorBoundary>
         </Providers>
       </body>
