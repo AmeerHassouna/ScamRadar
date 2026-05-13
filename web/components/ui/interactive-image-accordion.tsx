@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { ShieldCheck, Cpu, Globe, ScanSearch, Zap, MessageSquare, ArrowUpRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const MONO: React.CSSProperties = { fontFamily: 'monospace' }
 
@@ -25,7 +26,7 @@ interface AccordionItemProps {
   onClick: () => void
 }
 
-// ─── Shared panel component ────────────────────────────────────────────────────
+// ─── Desktop panel component ───────────────────────────────────────────────────
 
 function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemProps) {
   const Icon = item.icon
@@ -119,8 +120,59 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
   )
 }
 
+// ─── Mobile step card — crossfades between steps ───────────────────────────────
+
+function MobileStepCard({ item }: { item: AccordionData }) {
+  const Icon = item.icon
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22, ease: 'easeInOut' }}
+      className="relative w-full rounded-2xl overflow-hidden"
+      style={{
+        height: '300px',
+        border: '1px solid rgba(34,197,94,0.25)',
+        boxShadow: '0 0 28px rgba(34,197,94,0.10), 0 4px 20px rgba(0,0,0,0.5)',
+      }}
+    >
+      <Image
+        src={item.imageUrl}
+        alt={item.title}
+        fill
+        className="object-cover"
+        sizes="100vw"
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.20) 100%)' }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(34,197,94,0.10) 0%, transparent 60%)' }}
+      />
+      <div className="absolute inset-0 flex flex-col justify-end p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold text-green-400 border border-green-400/40 rounded px-1.5 py-0.5" style={MONO}>
+            {item.step}
+          </span>
+          <div className="w-6 h-6 rounded-full bg-green-400/15 border border-green-400/30 flex items-center justify-center">
+            <Icon className="w-3.5 h-3.5 text-green-400" />
+          </div>
+        </div>
+        <h3 className="text-white text-lg font-black leading-tight mb-2" style={MONO}>
+          {item.title}
+        </h3>
+        <p className="text-white/60 text-xs leading-relaxed" style={MONO}>
+          {item.description}
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Landing page: "How It Works" ─────────────────────────────────────────────
-// Shows the user-facing journey: paste → analyse → scan → match → verdict
 
 const landingItems: AccordionData[] = [
   {
@@ -169,9 +221,9 @@ export function LandingHowItWorks() {
   const [activeIndex, setActiveIndex] = useState(4)
 
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-16">
+    <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-16">
 
-      {/* Left — text */}
+      {/* Left — text + pills + CTA */}
       <div className="w-full lg:w-2/5 flex-shrink-0 text-center lg:text-left">
         <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-4" style={MONO}>
           How It Works
@@ -186,14 +238,14 @@ export function LandingHowItWorks() {
           verdict in under a second.
         </p>
 
-        {/* Step pills */}
+        {/* Step pills — 44px min height for touch */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start mb-8">
           {landingItems.map((item, i) => (
             <button
               key={item.id}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={() => setActiveIndex(i)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300"
+              className="flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold transition-all duration-300 min-h-[44px]"
               style={{
                 ...MONO,
                 background: activeIndex === i ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
@@ -210,7 +262,7 @@ export function LandingHowItWorks() {
         {/* CTA */}
         <Link
           href="/performance"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-green-400/30 text-green-400 text-xs font-semibold uppercase tracking-widest hover:bg-green-400/10 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-full border border-green-400/30 text-green-400 text-xs font-semibold uppercase tracking-widest hover:bg-green-400/10 transition-colors"
           style={MONO}
         >
           View full performance report
@@ -218,8 +270,17 @@ export function LandingHowItWorks() {
         </Link>
       </div>
 
-      {/* Right — accordion */}
-      <div className="w-full lg:flex-1 overflow-x-auto">
+      {/* Right — step visual */}
+
+      {/* Mobile card view: phones < 640px — crossfades on step change */}
+      <div className="sm:hidden w-full">
+        <AnimatePresence mode="wait">
+          <MobileStepCard key={activeIndex} item={landingItems[activeIndex]} />
+        </AnimatePresence>
+      </div>
+
+      {/* Tablet + desktop: horizontal scrollable accordion */}
+      <div className="hidden sm:block w-full lg:flex-1 overflow-x-auto">
         <div className="flex flex-row items-stretch gap-3 p-1 min-w-max mx-auto lg:mx-0">
           {landingItems.map((item, index) => (
             <AccordionItem
@@ -285,7 +346,7 @@ export function HowItWorksAccordion() {
   const [activeIndex, setActiveIndex] = useState(4)
 
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-16">
+    <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-16">
 
       {/* Left — text */}
       <div className="w-full lg:w-2/5 flex-shrink-0 text-center lg:text-left">
@@ -302,13 +363,14 @@ export function HowItWorksAccordion() {
           Logistic Regression model issues its final confidence-weighted verdict.
         </p>
 
+        {/* Step pills — 44px min height for touch */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
           {pipelineItems.map((item, i) => (
             <button
               key={item.id}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={() => setActiveIndex(i)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300"
+              className="flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold transition-all duration-300 min-h-[44px]"
               style={{
                 ...MONO,
                 background: activeIndex === i ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
@@ -323,8 +385,17 @@ export function HowItWorksAccordion() {
         </div>
       </div>
 
-      {/* Right — accordion */}
-      <div className="w-full lg:flex-1 overflow-x-auto">
+      {/* Right — step visual */}
+
+      {/* Mobile card view */}
+      <div className="sm:hidden w-full">
+        <AnimatePresence mode="wait">
+          <MobileStepCard key={activeIndex} item={pipelineItems[activeIndex]} />
+        </AnimatePresence>
+      </div>
+
+      {/* Tablet + desktop: horizontal scrollable accordion */}
+      <div className="hidden sm:block w-full lg:flex-1 overflow-x-auto">
         <div className="flex flex-row items-stretch gap-3 p-1 min-w-max mx-auto lg:mx-0">
           {pipelineItems.map((item, index) => (
             <AccordionItem

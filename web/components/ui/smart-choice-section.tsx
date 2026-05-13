@@ -84,7 +84,7 @@ export function SmartChoiceSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.08 }}
-            className="text-4xl font-black text-white lg:text-5xl leading-tight"
+            className="text-3xl sm:text-4xl font-black text-white lg:text-5xl leading-tight"
             style={{ fontFamily: "monospace" }}
           >
             PROTECTION THAT
