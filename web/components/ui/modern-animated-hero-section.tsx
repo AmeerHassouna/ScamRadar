@@ -148,7 +148,7 @@ const ScrambledTitle: React.FC = () => {
   return (
     <h1
       ref={elementRef}
-      className="text-white text-4xl sm:text-5xl md:text-6xl font-bold tracking-wider justify-center"
+      className="text-white text-3xl sm:text-5xl md:text-6xl font-bold tracking-wider justify-center"
       style={{ fontFamily: 'monospace' }}
     >
       SCAMRADAR+
@@ -191,7 +191,7 @@ function RainingCanvas() {
       H = window.innerHeight
       canvas.width  = W
       canvas.height = H
-      const count = W < 640 ? 110 : 240
+      const count = W < 640 ? 70 : 240
       particles = Array.from({ length: count }, () => mkP(true))
     }
 
@@ -392,18 +392,18 @@ const RainingLetters: React.FC = () => {
 
 
   return (
-    <div className="relative w-full min-h-screen bg-black overflow-hidden">
+    <div className="relative w-full min-h-[100dvh] bg-black overflow-hidden">
       {/* Canvas-based raining characters — replaces 300 spans × 60fps React re-renders */}
       <RainingCanvas />
 
       {/* Centered overlay — title + input */}
       <div className={cn(
-        "absolute left-1/2 -translate-x-1/2 z-20 w-full px-4",
+        "absolute z-20 w-full px-4",
         result
-          ? "top-[68px] sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[calc(100dvh-68px)] sm:max-h-[92vh] pb-10 sm:pb-6"
-          : "top-1/2 -translate-y-1/2"
+          ? "left-1/2 -translate-x-1/2 top-[68px] sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[calc(100dvh-68px)] sm:max-h-[92vh] pb-10 sm:pb-6"
+          : "inset-0 flex flex-col items-center justify-center"
       )}>
-        <div className="flex flex-col items-center gap-3 sm:gap-6 max-w-2xl mx-auto">
+        <div className="flex flex-col items-center gap-3 sm:gap-6 max-w-2xl mx-auto w-full">
 
           {/* Scrambled title */}
           <ScrambledTitle />

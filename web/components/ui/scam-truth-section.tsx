@@ -486,7 +486,7 @@ export function ScamTruthSection() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* Left — text content */}
-          <div className="order-2 lg:order-1 space-y-5 sm:space-y-8">
+          <div className="order-1 lg:order-1 space-y-5 sm:space-y-8">
             {/* Badge */}
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -541,7 +541,7 @@ export function ScamTruthSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="order-1 lg:order-2"
+            className="order-2 lg:order-2"
           >
             <div
               ref={containerRef}
@@ -623,7 +623,7 @@ export function ScamTruthSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-80 lg:h-auto lg:aspect-[4/3]"
+            className="order-2 lg:order-1 relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-80 lg:h-auto lg:aspect-[4/3]"
           >
             <Image
               src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=500&fit=crop"
@@ -644,7 +644,7 @@ export function ScamTruthSection() {
           </motion.div>
 
           {/* Text */}
-          <div className="space-y-6">
+          <div className="order-1 lg:order-2 space-y-6">
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
