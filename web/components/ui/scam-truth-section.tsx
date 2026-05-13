@@ -392,7 +392,7 @@ export function ScamTruthSection() {
   const [keyIndex, setKeyIndex] = useState(0)
   const [keyAnimating, setKeyAnimating] = useState(true)
   const [bgInstances] = useState(() =>
-    Array.from({ length: 15 }, (_, i) => ({
+    Array.from({ length: 7 }, (_, i) => ({
       id: `bg-${i}`,
       scam: backgroundScams[i % backgroundScams.length],
     }))

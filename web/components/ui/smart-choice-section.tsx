@@ -39,7 +39,7 @@ export function SmartChoiceSection() {
           width: "60%",
           height: "55%",
           background: "radial-gradient(ellipse at 80% 20%, rgba(34,197,94,0.20) 0%, rgba(34,197,94,0.06) 45%, transparent 68%)",
-          filter: "blur(60px)",
+          filter: "blur(60px)", willChange: "transform", transform: "translateZ(0)",
         }}
       />
       <div
@@ -51,7 +51,7 @@ export function SmartChoiceSection() {
           width: "50%",
           height: "50%",
           background: "radial-gradient(ellipse at 20% 50%, rgba(74,222,128,0.12) 0%, rgba(34,197,94,0.04) 50%, transparent 70%)",
-          filter: "blur(65px)",
+          filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)",
         }}
       />
       <div
@@ -63,7 +63,7 @@ export function SmartChoiceSection() {
           width: "60%",
           height: "40%",
           background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.18) 0%, transparent 65%)",
-          filter: "blur(70px)",
+          filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)",
         }}
       />
 

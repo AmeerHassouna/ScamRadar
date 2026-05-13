@@ -58,9 +58,9 @@ export default function Home() {
       {/* Capabilities + Performance — one unified section */}
       <section id="performance" className="relative bg-black py-8 sm:py-16 px-4" style={{ overflow: "visible" }}>
         {/* Atmospheric glows */}
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-5%", right: "-5%", width: "55%", height: "50%", background: "radial-gradient(ellipse at 85% 15%, rgba(34,197,94,0.16) 0%, rgba(34,197,94,0.05) 45%, transparent 68%)", filter: "blur(65px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "35%", left: "-8%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 15% 50%, rgba(74,222,128,0.20) 0%, rgba(34,197,94,0.06) 50%, transparent 70%)", filter: "blur(60px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "25%", width: "55%", height: "38%", background: "radial-gradient(ellipse at 50% 85%, rgba(34,197,94,0.15) 0%, transparent 65%)", filter: "blur(70px)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-5%", right: "-5%", width: "55%", height: "50%", background: "radial-gradient(ellipse at 85% 15%, rgba(34,197,94,0.16) 0%, rgba(34,197,94,0.05) 45%, transparent 68%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "35%", left: "-8%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 15% 50%, rgba(74,222,128,0.20) 0%, rgba(34,197,94,0.06) 50%, transparent 70%)", filter: "blur(60px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "25%", width: "55%", height: "38%", background: "radial-gradient(ellipse at 50% 85%, rgba(34,197,94,0.15) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="max-w-7xl mx-auto relative" style={{ zIndex: 10 }}>
 
           {/* Section header */}
@@ -113,9 +113,9 @@ export default function Home() {
 
       {/* Latest Threats */}
       <section id="threats" className="relative" style={{ overflow: "visible" }}>
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "5%", width: "45%", height: "45%", background: "radial-gradient(ellipse at 25% 25%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "30%", right: "-5%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 80% 50%, rgba(34,197,94,0.12) 0%, transparent 65%)", filter: "blur(70px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "20%", width: "60%", height: "38%", background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.16) 0%, transparent 65%)", filter: "blur(65px)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-8%", left: "5%", width: "45%", height: "45%", background: "radial-gradient(ellipse at 25% 25%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "30%", right: "-5%", width: "50%", height: "50%", background: "radial-gradient(ellipse at 80% 50%, rgba(34,197,94,0.12) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-6%", left: "20%", width: "60%", height: "38%", background: "radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.16) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="relative" style={{ zIndex: 10 }}>
           <RecentThreats />
         </div>
@@ -162,9 +162,9 @@ export default function Home() {
 
       {/* Team */}
       <section id="team" className="relative bg-black" style={{ overflow: "visible" }}>
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-6%", right: "5%", width: "50%", height: "45%", background: "radial-gradient(ellipse at 75% 20%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "40%", left: "-5%", width: "45%", height: "50%", background: "radial-gradient(ellipse at 15% 55%, rgba(34,197,94,0.11) 0%, transparent 65%)", filter: "blur(70px)" }} />
-        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-5%", left: "25%", width: "50%", height: "35%", background: "radial-gradient(ellipse at 50% 85%, rgba(34,197,94,0.13) 0%, transparent 65%)", filter: "blur(70px)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "-6%", right: "5%", width: "50%", height: "45%", background: "radial-gradient(ellipse at 75% 20%, rgba(34,197,94,0.14) 0%, transparent 65%)", filter: "blur(65px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, top: "40%", left: "-5%", width: "45%", height: "50%", background: "radial-gradient(ellipse at 15% 55%, rgba(34,197,94,0.11) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
+        <div className="absolute pointer-events-none" style={{ zIndex: 0, bottom: "-5%", left: "25%", width: "50%", height: "35%", background: "radial-gradient(ellipse at 50% 85%, rgba(34,197,94,0.13) 0%, transparent 65%)", filter: "blur(70px)", willChange: "transform", transform: "translateZ(0)" }} />
         <div className="relative" style={{ zIndex: 10 }}>
           <ScrollReveal direction="up">
             <div className="max-w-7xl mx-auto px-4 pt-16 pb-4 text-center">

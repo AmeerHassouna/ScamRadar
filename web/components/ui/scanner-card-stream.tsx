@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import * as THREE from 'three';
 
 const defaultCardImages = [
   "https://cdn.prod.website-files.com/68789c86c8bc802d61932544/689f20b55e654d1341fb06f8_4.1.png",
@@ -11,16 +10,15 @@ const defaultCardImages = [
   "https://cdn.prod.website-files.com/68789c86c8bc802d61932544/689f20b5bea2f1b07392d936_4.png",
 ];
 
-const ASCII_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789(){}[]<>;:,._-+=!@#$%^&*|\\/\"'`~?";
+const ASCII_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789{}[]<>;._-+=!@#$%^&*";
 
 const generateCode = (width: number, height: number): string => {
-  let text = "";
-  for (let i = 0; i < width * height; i++) {
-    text += ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
-  }
   let out = "";
   for (let i = 0; i < height; i++) {
-    out += text.substring(i * width, (i + 1) * width) + "\n";
+    for (let j = 0; j < width; j++) {
+      out += ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
+    }
+    out += "\n";
   }
   return out;
 };
@@ -43,16 +41,13 @@ const ScannerCardStream = ({
   initialSpeed = 150,
   direction = -1,
   cardImages = defaultCardImages,
-  repeat = 6,
+  repeat = 5,          // reduced from 6
   cardGap = 60,
-  friction = 0.95,
   scanEffect = 'scramble',
 }: ScannerCardStreamProps) => {
-  const [speed, setSpeed]         = useState(initialSpeed);
-  const [isPaused, setIsPaused]   = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
-  // ── Responsive card dimensions ────────────────────────────────
+  // Responsive card dimensions
   const [cardW, setCardW] = useState(400);
   const [cardH, setCardH] = useState(250);
   useEffect(() => {
@@ -75,10 +70,13 @@ const ScannerCardStream = ({
     }));
   }, [cardImages, repeat, cardW, cardH]);
 
-  const cardLineRef      = useRef<HTMLDivElement>(null);
-  const particleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cardLineRef       = useRef<HTMLDivElement>(null);
   const scannerCanvasRef  = useRef<HTMLCanvasElement>(null);
-  const originalAscii    = useRef(new Map<number, string>());
+  const scannerLineRef    = useRef<HTMLDivElement>(null);
+  const originalAscii     = useRef(new Map<number, string>());
+  // Cache of card wrapper DOM nodes — populated once after first render
+  const cardNodesRef      = useRef<{ wrapper: HTMLElement; normal: HTMLElement; ascii: HTMLElement; asciiPre: HTMLElement }[]>([]);
+  const isVisibleRef      = useRef(true);
 
   const cardStreamState = useRef({
     position:      0,
@@ -86,11 +84,12 @@ const ScannerCardStream = ({
     direction:     direction,
     lastTime:      performance.now(),
     cardLineWidth: (400 + cardGap) * cards.length,
+    isScanning:    false,
+    viewportW:     typeof window !== 'undefined' ? window.innerWidth : 1024,
   });
 
-  const scannerState = useRef({ isScanning: false });
-
   const toggleAnimation = useCallback(() => setIsPaused(prev => !prev), []);
+  const changeDirection = useCallback(() => { cardStreamState.current.direction *= -1; }, []);
   const resetPosition   = useCallback(() => {
     if (cardLineRef.current) {
       cardStreamState.current.position  = cardLineRef.current.parentElement?.offsetWidth || 0;
@@ -99,101 +98,63 @@ const ScannerCardStream = ({
       setIsPaused(false);
     }
   }, [initialSpeed, direction]);
-  const changeDirection = useCallback(() => { cardStreamState.current.direction *= -1; }, []);
+
+  // Pause when tab/component is off-screen
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    if (cardLineRef.current?.parentElement) observer.observe(cardLineRef.current.parentElement);
+    const onVisibility = () => { isVisibleRef.current = document.visibilityState === 'visible'; };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
-    // Sync card line width whenever card size or count changes
     cardStreamState.current.lastTime      = performance.now();
     cardStreamState.current.cardLineWidth = (cardW + cardGap) * cards.length;
+    cardStreamState.current.viewportW     = window.innerWidth;
 
-    const cardLine      = cardLineRef.current;
-    const particleCanvas = particleCanvasRef.current;
-    const scannerCanvas  = scannerCanvasRef.current;
-    if (!cardLine || !particleCanvas || !scannerCanvas) return;
+    const cardLine     = cardLineRef.current;
+    const scannerCanvas = scannerCanvasRef.current;
+    if (!cardLine || !scannerCanvas) return;
 
     cards.forEach(card => originalAscii.current.set(card.id, card.ascii));
-    let animationFrameId: number;
 
-    const canvasH = cardH + 50; // scanner particle canvas is slightly taller
+    // Cache DOM nodes once — avoids querySelectorAll on every frame
+    const populateNodeCache = () => {
+      cardNodesRef.current = [];
+      cardLine.querySelectorAll<HTMLElement>('.card-wrapper').forEach((wrapper, index) => {
+        const normal   = wrapper.querySelector<HTMLElement>('.card-normal')!;
+        const ascii    = wrapper.querySelector<HTMLElement>('.card-ascii')!;
+        const asciiPre = ascii.querySelector<HTMLElement>('pre')!;
+        if (normal && ascii && asciiPre) {
+          cardNodesRef.current.push({ wrapper, normal, ascii, asciiPre });
+          asciiPre.dataset.cardIndex = String(index);
+        }
+      });
+    };
+    // Give React one tick to render the cards before caching
+    const cacheTimer = setTimeout(populateNodeCache, 50);
 
-    // ── Three.js particle system ─────────────────────────────────
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(
-      -window.innerWidth / 2, window.innerWidth / 2,
-      cardH / 2, -cardH / 2,
-      1, 1000
-    );
-    camera.position.z = 100;
-
-    const renderer = new THREE.WebGLRenderer({ canvas: particleCanvas, alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, cardH);
-    renderer.setClearColor(0x000000, 0);
-
-    const particleCount = 400;
-    const geometry  = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const velocities = new Float32Array(particleCount);
-    const alphas    = new Float32Array(particleCount);
-
-    const texCanvas = document.createElement("canvas");
-    texCanvas.width = 100; texCanvas.height = 100;
-    const texCtx = texCanvas.getContext("2d")!;
-    const half   = 50;
-    const grad   = texCtx.createRadialGradient(half, half, 0, half, half, half);
-    grad.addColorStop(0.025, "#fff");
-    grad.addColorStop(0.1,   `hsl(217, 61%, 33%)`);
-    grad.addColorStop(0.25,  `hsl(217, 64%, 6%)`);
-    grad.addColorStop(1,     "transparent");
-    texCtx.fillStyle = grad;
-    texCtx.arc(half, half, half, 0, Math.PI * 2);
-    texCtx.fill();
-    const texture = new THREE.CanvasTexture(texCanvas);
-
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3]     = (Math.random() - 0.5) * window.innerWidth * 2;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * cardH;
-      velocities[i]        = Math.random() * 60 + 30;
-      alphas[i]            = (Math.random() * 8 + 2) / 10;
-    }
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("alpha",    new THREE.BufferAttribute(alphas, 1));
-
-    const material = new THREE.ShaderMaterial({
-      uniforms: { pointTexture: { value: texture } },
-      vertexShader: `
-        attribute float alpha; varying float vAlpha;
-        void main() {
-          vAlpha = alpha;
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = 15.0;
-          gl_Position = projectionMatrix * mvPosition;
-        }`,
-      fragmentShader: `
-        uniform sampler2D pointTexture; varying float vAlpha;
-        void main() {
-          gl_FragColor = vec4(1.0, 1.0, 1.0, vAlpha) * texture2D(pointTexture, gl_PointCoord);
-        }`,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      vertexColors: false,
-    });
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-
-    // ── 2D scanner-particle canvas ───────────────────────────────
-    const ctx = scannerCanvas.getContext('2d')!;
+    // 2D scanner particle canvas — reduced counts
+    const canvasH = cardH + 50;
+    const ctx     = scannerCanvas.getContext('2d')!;
     scannerCanvas.width  = window.innerWidth;
     scannerCanvas.height = canvasH;
 
     type ScanParticle = { x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number; decay: number };
+    const BASE_PARTICLES = 60;   // was 800
+    const SCAN_PARTICLES = 140;  // was 2500
     let scannerParticles: ScanParticle[] = [];
-    const baseMaxParticles        = 800;
-    let   currentMaxParticles     = baseMaxParticles;
-    const scanTargetMaxParticles  = 2500;
+    let currentMaxParticles = BASE_PARTICLES;
 
-    const createScannerParticle = (): ScanParticle => ({
-      x:      window.innerWidth / 2 + (Math.random() - 0.5) * 3,
+    const createParticle = (): ScanParticle => ({
+      x:      cardStreamState.current.viewportW / 2 + (Math.random() - 0.5) * 3,
       y:      Math.random() * canvasH,
       vx:     Math.random() * 0.8 + 0.2,
       vy:     (Math.random() - 0.5) * 0.3,
@@ -202,116 +163,115 @@ const ScannerCardStream = ({
       life:   1.0,
       decay:  Math.random() * 0.02 + 0.005,
     });
-    for (let i = 0; i < baseMaxParticles; i++) scannerParticles.push(createScannerParticle());
+    for (let i = 0; i < BASE_PARTICLES; i++) scannerParticles.push(createParticle());
 
-    // ── Scramble effect ──────────────────────────────────────────
-    const runScrambleEffect = (element: HTMLElement, cardId: number) => {
-      if (element.dataset.scrambling === 'true') return;
-      element.dataset.scrambling = 'true';
-      const originalText  = originalAscii.current.get(cardId) || '';
-      let   scrambleCount = 0;
-      const maxScrambles  = 10;
-      const interval = setInterval(() => {
-        element.textContent = generateCode(Math.floor(cardW / 6.5), Math.floor(cardH / 13));
-        scrambleCount++;
-        if (scrambleCount >= maxScrambles) {
-          clearInterval(interval);
-          element.textContent = originalText;
-          delete element.dataset.scrambling;
+    // Scramble effect
+    const runScramble = (pre: HTMLElement, cardId: number) => {
+      if (pre.dataset.scrambling === 'true') return;
+      pre.dataset.scrambling = 'true';
+      const original  = originalAscii.current.get(cardId) || '';
+      let   count     = 0;
+      const MAX       = 8; // was 10
+      const id = setInterval(() => {
+        pre.textContent = generateCode(Math.floor(cardW / 6.5), Math.floor(cardH / 13));
+        if (++count >= MAX) {
+          clearInterval(id);
+          pre.textContent = original;
+          delete pre.dataset.scrambling;
         }
-      }, 30);
+      }, 40); // was 30ms — slightly slower, less CPU
     };
 
-    // ── Card clip-path updates ───────────────────────────────────
-    const updateCardEffects = () => {
-      const scannerX     = window.innerWidth / 2;
-      const scannerWidth = 8;
-      const scannerLeft  = scannerX - scannerWidth / 2;
-      const scannerRight = scannerX + scannerWidth / 2;
-      let   anyCardIsScanning = false;
+    // Card clip-path updates — uses cached nodes, no DOM query per frame
+    const updateCards = () => {
+      const vw          = cardStreamState.current.viewportW;
+      const scannerX    = vw / 2;
+      const halfW       = 4;
+      const scanLeft    = scannerX - halfW;
+      const scanRight   = scannerX + halfW;
+      let   anyScanning = false;
 
-      cardLine.querySelectorAll<HTMLElement>(".card-wrapper").forEach((wrapper, index) => {
-        const rect       = wrapper.getBoundingClientRect();
-        const normalCard = wrapper.querySelector<HTMLElement>(".card-normal")!;
-        const asciiCard  = wrapper.querySelector<HTMLElement>(".card-ascii")!;
-        const asciiContent = asciiCard.querySelector<HTMLElement>('pre')!;
+      for (const { wrapper, normal, ascii, asciiPre } of cardNodesRef.current) {
+        const rect = wrapper.getBoundingClientRect();
 
-        if (rect.left < scannerRight && rect.right > scannerLeft) {
-          anyCardIsScanning = true;
+        if (rect.left < scanRight && rect.right > scanLeft) {
+          anyScanning = true;
           if (scanEffect === 'scramble' && wrapper.dataset.scanned !== 'true') {
-            runScrambleEffect(asciiContent, index);
+            const idx = parseInt(asciiPre.dataset.cardIndex || '0', 10);
+            runScramble(asciiPre, idx);
           }
           wrapper.dataset.scanned = 'true';
-          const intersectLeft  = Math.max(scannerLeft - rect.left, 0);
-          const intersectRight = Math.min(scannerRight - rect.left, rect.width);
-          normalCard.style.setProperty("--clip-right", `${(intersectLeft  / rect.width) * 100}%`);
-          asciiCard.style.setProperty("--clip-left",  `${(intersectRight / rect.width) * 100}%`);
+          const il = Math.max(scanLeft - rect.left, 0);
+          const ir = Math.min(scanRight - rect.left, rect.width);
+          normal.style.setProperty('--clip-right', `${(il / rect.width) * 100}%`);
+          ascii.style.setProperty('--clip-left',   `${(ir / rect.width) * 100}%`);
         } else {
           delete wrapper.dataset.scanned;
-          if (rect.right < scannerLeft) {
-            normalCard.style.setProperty("--clip-right", "100%");
-            asciiCard.style.setProperty("--clip-left",  "100%");
+          if (rect.right < scanLeft) {
+            normal.style.setProperty('--clip-right', '100%');
+            ascii.style.setProperty('--clip-left',   '100%');
           } else {
-            normalCard.style.setProperty("--clip-right", "0%");
-            asciiCard.style.setProperty("--clip-left",  "0%");
+            normal.style.setProperty('--clip-right', '0%');
+            ascii.style.setProperty('--clip-left',   '0%');
           }
         }
-      });
+      }
 
-      setIsScanning(anyCardIsScanning);
-      scannerState.current.isScanning = anyCardIsScanning;
+      // Directly update scanner line DOM — no React state, no re-render
+      if (scannerLineRef.current) {
+        scannerLineRef.current.style.opacity = anyScanning ? '1' : '0';
+      }
+      cardStreamState.current.isScanning = anyScanning;
     };
 
-    // ── Animation loop ───────────────────────────────────────────
+    let animationFrameId: number;
+
     const animate = (currentTime: number) => {
-      const deltaTime = (currentTime - cardStreamState.current.lastTime) / 1000;
+      // Skip frame if off-screen/tab hidden
+      if (!isVisibleRef.current) {
+        cardStreamState.current.lastTime = currentTime;
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+
+      const dt = Math.min((currentTime - cardStreamState.current.lastTime) / 1000, 0.05);
       cardStreamState.current.lastTime = currentTime;
 
       if (!isPaused) {
         cardStreamState.current.velocity +=
           (initialSpeed - cardStreamState.current.velocity) * 0.04;
         cardStreamState.current.position +=
-          cardStreamState.current.velocity * cardStreamState.current.direction * deltaTime;
+          cardStreamState.current.velocity * cardStreamState.current.direction * dt;
       }
 
       const { position, cardLineWidth } = cardStreamState.current;
-      const containerWidth = cardLine.parentElement?.offsetWidth || 0;
-      if (position < -cardLineWidth) cardStreamState.current.position = containerWidth;
-      else if (position > containerWidth) cardStreamState.current.position = -cardLineWidth;
+      const containerW = cardLine.parentElement?.offsetWidth || 0;
+      if (position < -cardLineWidth) cardStreamState.current.position = containerW;
+      else if (position > containerW) cardStreamState.current.position = -cardLineWidth;
       cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
 
-      updateCardEffects();
+      if (cardNodesRef.current.length > 0) updateCards();
 
-      // Three.js particles
-      const time = currentTime * 0.001;
-      for (let i = 0; i < particleCount; i++) {
-        positions[i * 3] += velocities[i] * 0.016;
-        if (positions[i * 3] > window.innerWidth / 2 + 100) positions[i * 3] = -window.innerWidth / 2 - 100;
-        positions[i * 3 + 1] += Math.sin(time + i * 0.1) * 0.5;
-        alphas[i] = Math.max(0.1, Math.min(1, alphas[i] + (Math.random() - 0.5) * 0.05));
-      }
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.alpha.needsUpdate    = true;
-      renderer.render(scene, camera);
+      // 2D particles
+      const vw = cardStreamState.current.viewportW;
+      ctx.clearRect(0, 0, vw, canvasH);
+      const target = cardStreamState.current.isScanning ? SCAN_PARTICLES : BASE_PARTICLES;
+      currentMaxParticles += (target - currentMaxParticles) * 0.08;
+      while (scannerParticles.length < currentMaxParticles) scannerParticles.push(createParticle());
+      if (scannerParticles.length > currentMaxParticles + 10)
+        scannerParticles.length = Math.floor(currentMaxParticles);
 
-      // 2D scanner particles
-      ctx.clearRect(0, 0, window.innerWidth, canvasH);
-      const targetCount = scannerState.current.isScanning ? scanTargetMaxParticles : baseMaxParticles;
-      currentMaxParticles += (targetCount - currentMaxParticles) * 0.05;
-      while (scannerParticles.length < currentMaxParticles) scannerParticles.push(createScannerParticle());
-      while (scannerParticles.length > currentMaxParticles) scannerParticles.pop();
-
-      scannerParticles.forEach(p => {
+      ctx.fillStyle = 'white';
+      for (const p of scannerParticles) {
         p.x    += p.vx;
         p.y    += p.vy;
         p.life -= p.decay;
-        if (p.life <= 0 || p.x > window.innerWidth) Object.assign(p, createScannerParticle());
+        if (p.life <= 0 || p.x > vw) Object.assign(p, createParticle());
         ctx.globalAlpha = p.alpha * p.life;
-        ctx.fillStyle   = "white";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
 
       animationFrameId = requestAnimationFrame(animate);
     };
@@ -319,23 +279,14 @@ const ScannerCardStream = ({
     animationFrameId = requestAnimationFrame(animate);
 
     return () => {
+      clearTimeout(cacheTimer);
       cancelAnimationFrame(animationFrameId);
-      renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-      texture.dispose();
     };
-  }, [isPaused, cards, cardGap, friction, scanEffect, cardW, cardH]);
+  }, [isPaused, cards, cardGap, scanEffect, cardW, cardH, initialSpeed]);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       <style>{`
-        @keyframes glitch {
-          0%, 16%, 50%, 100% { opacity: 1; }
-          15%, 99%           { opacity: 0.9; }
-          49%                { opacity: 0.8; }
-        }
-        .scs-glitch { animation: glitch 0.1s infinite linear alternate-reverse; }
         @keyframes scanPulse { 0% { opacity: 0.75; } 100% { opacity: 1; } }
         .scs-scan-pulse { animation: scanPulse 1.5s infinite alternate ease-in-out; }
       `}</style>
@@ -348,71 +299,78 @@ const ScannerCardStream = ({
         </div>
       )}
       {showSpeed && (
-        <div className="absolute top-4 left-4 z-30 text-xs text-white/50 font-mono">{speed} px/s</div>
+        <div className="absolute top-4 left-4 z-30 text-xs text-white/50 font-mono">{initialSpeed} px/s</div>
       )}
 
-      {/* Three.js particle layer — centred vertically */}
-      <canvas
-        ref={particleCanvasRef}
-        className="absolute top-1/2 left-0 -translate-y-1/2 pointer-events-none"
-        style={{ width: "100vw", height: cardH, zIndex: 0 }}
+      {/* Ambient gradient centre glow — replaces heavy Three.js WebGL particle system */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        style={{
+          width: '60%',
+          height: '100%',
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          zIndex: 0,
+        }}
       />
 
       {/* 2D scanner-particle layer */}
       <canvas
         ref={scannerCanvasRef}
         className="absolute top-1/2 left-0 -translate-y-1/2 pointer-events-none"
-        style={{ width: "100vw", height: cardH + 50, zIndex: 10 }}
+        style={{ width: '100vw', height: cardH + 50, zIndex: 10, willChange: 'contents' }}
       />
 
-      {/* Vertical scanner line */}
+      {/* Vertical scanner line — opacity controlled directly via ref, no React state */}
       <div
-        className="scs-scan-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 rounded-full pointer-events-none transition-opacity duration-300"
+        ref={scannerLineRef}
+        className="scs-scan-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 rounded-full pointer-events-none"
         style={{
           height: cardH + 20,
           zIndex: 20,
-          background: "linear-gradient(to bottom, transparent, #8b5cf6, transparent)",
-          boxShadow: "0 0 10px #a78bfa, 0 0 20px #a78bfa, 0 0 30px #8b5cf6, 0 0 50px #6366f1",
-          opacity: isScanning ? 1 : 0,
+          background: 'linear-gradient(to bottom, transparent, #8b5cf6, transparent)',
+          boxShadow: '0 0 10px #a78bfa, 0 0 20px #a78bfa, 0 0 30px #8b5cf6',
+          opacity: 0,
+          transition: 'opacity 0.3s',
+          willChange: 'opacity',
         }}
       />
 
-      {/* Card stream — centred vertically inside the zone */}
+      {/* Card stream */}
       <div className="absolute inset-0 flex items-center overflow-hidden">
         <div
           ref={cardLineRef}
-          className="flex items-center whitespace-nowrap select-none will-change-transform"
-          style={{ gap: `${cardGap}px` }}
+          className="flex items-center whitespace-nowrap select-none"
+          style={{ gap: `${cardGap}px`, willChange: 'transform' }}
         >
           {cards.map(card => (
             <div key={card.id} className="card-wrapper relative shrink-0" style={{ width: cardW, height: cardH }}>
 
-              {/* Image face — visible left of scanner */}
+              {/* Image face */}
               <div
                 className="card-normal absolute inset-0 rounded-[15px] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4)]"
-                style={{ zIndex: 2, clipPath: "inset(0 0 0 var(--clip-right, 0%))" }}
+                style={{ zIndex: 2, clipPath: 'inset(0 0 0 var(--clip-right, 0%))' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
                   alt=""
-                  className="w-full h-full object-cover rounded-[15px] brightness-110 contrast-110 transition-all duration-300"
+                  className="w-full h-full object-cover rounded-[15px] brightness-110 contrast-110"
                 />
               </div>
 
-              {/* ASCII face — visible right of scanner */}
+              {/* ASCII face */}
               <div
                 className="card-ascii absolute inset-0 rounded-[15px] overflow-hidden"
-                style={{ zIndex: 1, clipPath: "inset(0 calc(100% - var(--clip-left, 0%)) 0 0)" }}
+                style={{ zIndex: 1, clipPath: 'inset(0 calc(100% - var(--clip-left, 0%)) 0 0)' }}
               >
                 <pre
-                  className="scs-glitch absolute inset-0 m-0 p-0 overflow-hidden whitespace-pre text-left align-top box-border font-mono"
+                  className="absolute inset-0 m-0 p-0 overflow-hidden whitespace-pre text-left align-top box-border font-mono"
                   style={{
                     fontSize: 11,
-                    lineHeight: "13px",
-                    color: "rgba(220,210,255,0.6)",
-                    maskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.4) 80%, rgba(0,0,0,0.2) 100%)",
-                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.4) 80%, rgba(0,0,0,0.2) 100%)",
+                    lineHeight: '13px',
+                    color: 'rgba(220,210,255,0.6)',
+                    maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.2) 100%)',
+                    WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.2) 100%)',
                   }}
                 >
                   {card.ascii}
