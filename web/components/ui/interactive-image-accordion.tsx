@@ -75,25 +75,37 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
           alt={item.title}
           fill
           className="object-cover transition-transform duration-700"
-          style={{ transform: isActive ? 'scale(1.04)' : 'scale(1)' }}
+          style={{
+            transform: isActive ? 'scale(1.04)' : 'scale(1)',
+            filter: 'grayscale(35%) brightness(0.68) contrast(1.12) saturate(0.55)',
+          }}
           sizes="(max-width: 768px) 100vw, 380px"
         />
       </div>
+
+      {/* Green tint layer */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'rgba(10,30,15,0.38)',
+          mixBlendMode: 'multiply',
+        }}
+      />
 
       {/* Gradient overlay */}
       <div
         className="absolute inset-0"
         style={{
           background: isActive
-            ? 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.50) 50%, rgba(0,0,0,0.20) 100%)'
-            : 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.60) 100%)',
+            ? 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,8,4,0.48) 50%, rgba(0,4,2,0.18) 100%)'
+            : 'linear-gradient(to top, rgba(0,0,0,0.90) 0%, rgba(0,4,2,0.62) 100%)',
         }}
       />
 
       {isActive && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(34,197,94,0.10) 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(34,197,94,0.18) 0%, transparent 62%)' }}
         />
       )}
 
@@ -166,14 +178,20 @@ function MobileStepCard({ item }: { item: AccordionData }) {
         fill
         className="object-cover"
         sizes="100vw"
+        style={{ filter: 'grayscale(35%) brightness(0.68) contrast(1.12) saturate(0.55)' }}
+      />
+      {/* Green tint layer */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'rgba(10,30,15,0.38)', mixBlendMode: 'multiply' }}
       />
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.20) 100%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,8,4,0.50) 50%, rgba(0,4,2,0.18) 100%)' }}
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(34,197,94,0.10) 0%, transparent 60%)' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(34,197,94,0.18) 0%, transparent 62%)' }}
       />
       <div className="absolute inset-0 flex flex-col justify-end p-5">
         <div className="flex items-center gap-2 mb-2">
@@ -253,7 +271,7 @@ const landingItems: AccordionData[] = [
     step: '01',
     title: 'Paste Your Message',
     description: 'Drop in any SMS, email, chat snippet, or URL. ScamRadar+ accepts full conversation threads — not just single lines — so slow-burn social engineering never slips through.',
-    imageUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=600&fit=crop',
+    imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto/v1778708518/copypaste_3.jpg_udkwrx.webp',
     icon: MessageSquare,
   },
   {
@@ -261,7 +279,7 @@ const landingItems: AccordionData[] = [
     step: '02',
     title: 'Tone & Intent Read',
     description: 'The AI scores urgency, fear, reward, and threat signals — the psychological levers every scam relies on. 217 known scam phrases are matched exactly, in milliseconds.',
-    imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=600&fit=crop&q=90',
     icon: Zap,
   },
   {
@@ -269,7 +287,7 @@ const landingItems: AccordionData[] = [
     step: '03',
     title: 'Every Link Scanned',
     description: 'URLs are dissected for suspicious TLDs, IP-based hosting, lookalike domains, and embedded keyword patterns — independent of the message text itself.',
-    imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop',
+    imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto/v1778708619/How_to_Check_if_a_Website_is_Safe-Hero.jpg_cpjb1r.webp',
     icon: Globe,
   },
   {
@@ -277,7 +295,7 @@ const landingItems: AccordionData[] = [
     step: '04',
     title: 'Matched Against Known Scams',
     description: 'FAISS vector search retrieves the 10 closest real scam campaigns from 46,360 training messages — surfacing exactly which attack pattern your message resembles.',
-    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=90',
     icon: Cpu,
   },
   {
@@ -285,7 +303,7 @@ const landingItems: AccordionData[] = [
     step: '05',
     title: 'Instant Verdict',
     description: 'A calibrated confidence score lands as SCAM, SUSPICIOUS, or LEGIT — with a full breakdown of which signals triggered the decision, so you know exactly why.',
-    imageUrl: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800&h=600&fit=crop',
+    imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto/v1778711055/ScamDetector-2_bhqxya.png',
     icon: ShieldCheck,
   },
 ]
