@@ -1,12 +1,36 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { ShieldCheck, Cpu, Globe, ScanSearch, Zap, MessageSquare, ArrowUpRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const MONO: React.CSSProperties = { fontFamily: 'monospace' }
+const AUTO_DELAY = 4000 // ms per step
+
+// ─── Auto-advance hook ─────────────────────────────────────────────────────────
+
+function useAutoAdvance(count: number) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [timerKey, setTimerKey] = useState(0)
+
+  useEffect(() => {
+    if (isPaused) return
+    const id = setInterval(() => {
+      setActiveIndex(i => (i + 1) % count)
+    }, AUTO_DELAY)
+    return () => clearInterval(id)
+  }, [isPaused, timerKey, count])
+
+  const select = useCallback((i: number) => {
+    setActiveIndex(i)
+    setTimerKey(k => k + 1) // restart progress bar + timer
+  }, [])
+
+  return { activeIndex, isPaused, setIsPaused, timerKey, select }
+}
 
 // ─── Shared types ──────────────────────────────────────────────────────────────
 
@@ -66,7 +90,6 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
         }}
       />
 
-      {/* Active: subtle green bottom glow */}
       {isActive && (
         <div
           className="absolute inset-0 pointer-events-none"
@@ -74,7 +97,7 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
         />
       )}
 
-      {/* Collapsed state — writing-mode keeps vertical text in-bounds */}
+      {/* Collapsed */}
       {!isActive && (
         <div className="absolute inset-0 flex flex-col items-center py-5 gap-3">
           <span className="text-green-400 text-[10px] font-bold tracking-widest" style={MONO}>
@@ -97,7 +120,7 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
         </div>
       )}
 
-      {/* Expanded state */}
+      {/* Expanded */}
       {isActive && (
         <div className="absolute inset-0 flex flex-col justify-end p-6">
           <div className="flex items-center gap-2 mb-3">
@@ -172,6 +195,56 @@ function MobileStepCard({ item }: { item: AccordionData }) {
   )
 }
 
+// ─── Step pill with animated progress bar ─────────────────────────────────────
+
+function StepPill({
+  item,
+  isActive,
+  isPaused,
+  timerKey,
+  onSelect,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  item: AccordionData
+  isActive: boolean
+  isPaused: boolean
+  timerKey: number
+  onSelect: () => void
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}) {
+  return (
+    <button
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onSelect}
+      className="relative flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold transition-all duration-300 min-h-[44px] overflow-hidden"
+      style={{
+        ...MONO,
+        background: isActive ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+        border: isActive ? '1px solid rgba(34,197,94,0.40)' : '1px solid rgba(255,255,255,0.08)',
+        color: isActive ? '#4ade80' : 'rgba(255,255,255,0.35)',
+      }}
+    >
+      <span>{item.step}</span>
+      <span>{item.title}</span>
+
+      {/* Auto-advance progress bar — thin line sweeping across the bottom */}
+      {isActive && !isPaused && (
+        <motion.div
+          key={`${timerKey}-${item.id}`}
+          className="absolute bottom-0 left-0 h-[2px] bg-green-400 origin-left"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: AUTO_DELAY / 1000, ease: 'linear' }}
+          style={{ width: '100%' }}
+        />
+      )}
+    </button>
+  )
+}
+
 // ─── Landing page: "How It Works" ─────────────────────────────────────────────
 
 const landingItems: AccordionData[] = [
@@ -218,7 +291,7 @@ const landingItems: AccordionData[] = [
 ]
 
 export function LandingHowItWorks() {
-  const [activeIndex, setActiveIndex] = useState(4)
+  const { activeIndex, isPaused, setIsPaused, timerKey, select } = useAutoAdvance(landingItems.length)
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-16">
@@ -238,24 +311,19 @@ export function LandingHowItWorks() {
           verdict in under a second.
         </p>
 
-        {/* Step pills — 44px min height for touch */}
+        {/* Step pills */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start mb-8">
           {landingItems.map((item, i) => (
-            <button
+            <StepPill
               key={item.id}
-              onMouseEnter={() => setActiveIndex(i)}
-              onClick={() => setActiveIndex(i)}
-              className="flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold transition-all duration-300 min-h-[44px]"
-              style={{
-                ...MONO,
-                background: activeIndex === i ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                border: activeIndex === i ? '1px solid rgba(34,197,94,0.40)' : '1px solid rgba(255,255,255,0.08)',
-                color: activeIndex === i ? '#4ade80' : 'rgba(255,255,255,0.35)',
-              }}
-            >
-              <span>{item.step}</span>
-              <span>{item.title}</span>
-            </button>
+              item={item}
+              isActive={activeIndex === i}
+              isPaused={isPaused}
+              timerKey={timerKey}
+              onSelect={() => select(i)}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            />
           ))}
         </div>
 
@@ -272,23 +340,31 @@ export function LandingHowItWorks() {
 
       {/* Right — step visual */}
 
-      {/* Mobile card view: phones < 640px — crossfades on step change */}
-      <div className="sm:hidden w-full">
+      {/* Mobile card view */}
+      <div
+        className="sm:hidden w-full"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         <AnimatePresence mode="wait">
           <MobileStepCard key={activeIndex} item={landingItems[activeIndex]} />
         </AnimatePresence>
       </div>
 
-      {/* Tablet + desktop: horizontal scrollable accordion */}
-      <div className="hidden sm:block w-full lg:flex-1 overflow-x-auto">
+      {/* Tablet + desktop accordion */}
+      <div
+        className="hidden sm:block w-full lg:flex-1 overflow-x-auto"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         <div className="flex flex-row items-stretch gap-3 p-1 min-w-max mx-auto lg:mx-0">
           {landingItems.map((item, index) => (
             <AccordionItem
               key={item.id}
               item={item}
               isActive={index === activeIndex}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => setActiveIndex(index)}
+              onMouseEnter={() => { setIsPaused(true); select(index) }}
+              onClick={() => select(index)}
             />
           ))}
         </div>
@@ -343,7 +419,7 @@ const pipelineItems: AccordionData[] = [
 ]
 
 export function HowItWorksAccordion() {
-  const [activeIndex, setActiveIndex] = useState(4)
+  const { activeIndex, isPaused, setIsPaused, timerKey, select } = useAutoAdvance(pipelineItems.length)
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-16">
@@ -363,24 +439,19 @@ export function HowItWorksAccordion() {
           Logistic Regression model issues its final confidence-weighted verdict.
         </p>
 
-        {/* Step pills — 44px min height for touch */}
+        {/* Step pills */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
           {pipelineItems.map((item, i) => (
-            <button
+            <StepPill
               key={item.id}
-              onMouseEnter={() => setActiveIndex(i)}
-              onClick={() => setActiveIndex(i)}
-              className="flex items-center gap-1.5 px-3 rounded-full text-xs font-semibold transition-all duration-300 min-h-[44px]"
-              style={{
-                ...MONO,
-                background: activeIndex === i ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                border: activeIndex === i ? '1px solid rgba(34,197,94,0.40)' : '1px solid rgba(255,255,255,0.08)',
-                color: activeIndex === i ? '#4ade80' : 'rgba(255,255,255,0.35)',
-              }}
-            >
-              <span>{item.step}</span>
-              <span>{item.title}</span>
-            </button>
+              item={item}
+              isActive={activeIndex === i}
+              isPaused={isPaused}
+              timerKey={timerKey}
+              onSelect={() => select(i)}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            />
           ))}
         </div>
       </div>
@@ -388,22 +459,30 @@ export function HowItWorksAccordion() {
       {/* Right — step visual */}
 
       {/* Mobile card view */}
-      <div className="sm:hidden w-full">
+      <div
+        className="sm:hidden w-full"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         <AnimatePresence mode="wait">
           <MobileStepCard key={activeIndex} item={pipelineItems[activeIndex]} />
         </AnimatePresence>
       </div>
 
-      {/* Tablet + desktop: horizontal scrollable accordion */}
-      <div className="hidden sm:block w-full lg:flex-1 overflow-x-auto">
+      {/* Tablet + desktop accordion */}
+      <div
+        className="hidden sm:block w-full lg:flex-1 overflow-x-auto"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         <div className="flex flex-row items-stretch gap-3 p-1 min-w-max mx-auto lg:mx-0">
           {pipelineItems.map((item, index) => (
             <AccordionItem
               key={item.id}
               item={item}
               isActive={index === activeIndex}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => setActiveIndex(index)}
+              onMouseEnter={() => { setIsPaused(true); select(index) }}
+              onClick={() => select(index)}
             />
           ))}
         </div>

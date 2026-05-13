@@ -2,27 +2,27 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import { LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
+import { Cpu, Zap, ShieldCheck } from "lucide-react"
 import { ScannerCardStream } from "@/components/ui/scanner-card-stream"
 
 const features = [
   {
-    icon: <MessagesSquare className="size-4 text-green-400" />,
-    title: "Full Thread Analysis",
-    description:
-      "Paste an entire conversation, not just one message. ScamRadar+ reads context across multiple turns to catch slow-burn social engineering that single-message tools miss entirely.",
+    icon: <Cpu className="size-5 text-green-400" />,
+    stat: "97.4%",
+    title: "Detection Accuracy",
+    description: "F1 score across 9,272 held-out real messages",
   },
   {
-    icon: <ShieldAlert className="size-4 text-green-400" />,
-    title: "Evasion-Resistant",
-    description:
-      "Trained against l33t-speak, Unicode substitution, and character-level rewrites — the exact tricks scammers use to slip past keyword filters and naive classifiers.",
+    icon: <Zap className="size-5 text-green-400" />,
+    stat: "< 1s",
+    title: "Time to Verdict",
+    description: "Tone, URL, and vector analysis in one shot",
   },
   {
-    icon: <LayoutGrid className="size-4 text-green-400" />,
-    title: "17 Attack Types",
-    description:
-      "Pig-butchering to OTP theft, romance scams to fake job offers — classified across every major scam category, not reduced to a blunt spam-vs-not-spam binary.",
+    icon: <ShieldCheck className="size-5 text-green-400" />,
+    stat: "17",
+    title: "Scam Types Covered",
+    description: "From pig-butchering to OTP theft — all classified",
   },
 ]
 
@@ -152,21 +152,30 @@ export function SmartChoiceSection() {
                   WebkitBackdropFilter: "blur(12px)",
                   border: "1px solid rgba(255,255,255,0.07)",
                   borderRadius: "16px",
-                  padding: "20px",
+                  padding: "22px 20px",
                   boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
                 }}
               >
-                <div className="flex items-center gap-2 mb-3">
+                {/* Big stat */}
+                <div
+                  className="text-4xl font-black text-green-400 mb-3 leading-none tabular-nums"
+                  style={{ fontFamily: "monospace" }}
+                >
+                  {f.stat}
+                </div>
+                {/* Icon + title */}
+                <div className="flex items-center gap-2 mb-2">
                   {f.icon}
                   <h3
-                    className="text-sm font-semibold text-white"
+                    className="text-sm font-bold text-white"
                     style={{ fontFamily: "monospace" }}
                   >
                     {f.title}
                   </h3>
                 </div>
+                {/* Short label */}
                 <p
-                  className="text-white/40 text-sm leading-relaxed"
+                  className="text-white/35 text-xs leading-snug"
                   style={{ fontFamily: "monospace" }}
                 >
                   {f.description}
