@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { HowItWorksAccordion } from "@/components/ui/interactive-image-accordion";
 import { ArrowUpRight, ArrowLeft, ShieldCheck, Target, Activity, BarChart2, Zap, Database } from "lucide-react";
 import { StatCard } from "@/components/ui/card-10";
 import { LineChart8 } from "@/components/ui/line-charts-8";
@@ -705,37 +706,9 @@ export default function PerformancePage() {
           </div>
         </section>
 
-        {/* ── 9. Architecture summary ────────────────────────────────────── */}
+        {/* ── 9. Architecture summary — interactive accordion ─────────── */}
         <section>
-          <SectionHeader
-            label="System Architecture"
-            title="HOW IT WORKS"
-            sub="9-stage inference pipeline from raw text to calibrated verdict"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-9 gap-2">
-            {[
-              { step: "01", label: "Preprocess", sub: "Unicode · emoji · HTML · l33t" },
-              { step: "02", label: "Tone Score", sub: "Urgency · Fear · Reward · Threat" },
-              { step: "03", label: "URL Check", sub: "TLD · keywords · IP · lookalike" },
-              { step: "04", label: "Phrase Match", sub: "217 scam phrases (exact)" },
-              { step: "05", label: "TF-IDF", sub: "5 000 word + 3 000 char n-grams" },
-              { step: "06", label: "FAISS", sub: "k=10 scam vector proximity" },
-              { step: "07", label: "Inference", sub: "LR · 8 026 features" },
-              { step: "08", label: "Calibrate", sub: "Isotonic regression" },
-              { step: "09", label: "Verdict", sub: "SCAM / SUSPICIOUS / LEGIT" },
-            ].map((s, i, arr) => (
-              <div key={s.step} className="flex items-center gap-2">
-                <div className={`flex-1 ${CARD} p-3 text-center`}>
-                  <p className="text-green-400 text-xs font-bold" style={MONO}>{s.step}</p>
-                  <p className="text-white text-xs font-semibold mt-0.5" style={MONO}>{s.label}</p>
-                  <p className="text-white/30 text-[9px] mt-1 leading-tight" style={MONO}>{s.sub}</p>
-                </div>
-                {i < arr.length - 1 && (
-                  <p className="text-white/20 text-xs hidden lg:block" style={MONO}>→</p>
-                )}
-              </div>
-            ))}
-          </div>
+          <HowItWorksAccordion />
         </section>
 
       </div>
