@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AnimatedNavFramer } from "@/components/ui/navigation-menu";
+import { AnimatedNavFramer } from "@/components/ui/scroll-navigation-menu";
 import { Providers } from "@/components/ui/providers";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
