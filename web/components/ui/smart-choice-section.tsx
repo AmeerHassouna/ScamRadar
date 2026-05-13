@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { motion } from "framer-motion"
 import { LayoutGrid, MessagesSquare, ShieldAlert } from "lucide-react"
 import { ScannerCardStream } from "@/components/ui/scanner-card-stream"
@@ -129,7 +130,14 @@ export function SmartChoiceSection() {
       {/* Feature cards — overlap the bottom fade */}
       <div className="relative z-10 -mt-10 sm:-mt-20 md:-mt-24 pb-16 md:pb-24">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+          {/* Mobile: horizontal snap carousel  |  sm+: 3-col grid */}
+          <div
+            className="flex flex-row sm:grid sm:grid-cols-3 gap-4 sm:gap-5
+                       overflow-x-auto sm:overflow-x-visible
+                       snap-x snap-mandatory sm:snap-none
+                       pb-3 sm:pb-0 -mx-6 px-6 sm:mx-0 sm:px-0"
+            style={{ scrollbarWidth: "none" } as React.CSSProperties}
+          >
             {features.map((f, i) => (
               <motion.div
                 key={i}
@@ -137,6 +145,7 @@ export function SmartChoiceSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
+                className="flex-shrink-0 snap-start w-[82vw] sm:w-auto"
                 style={{
                   background: "rgba(24,24,27,0.85)",
                   backdropFilter: "blur(12px)",
@@ -165,6 +174,9 @@ export function SmartChoiceSection() {
               </motion.div>
             ))}
           </div>
+          <p className="sm:hidden text-white/20 text-[10px] tracking-widest uppercase mt-3 text-center" style={{ fontFamily: "monospace" }}>
+            ← swipe to browse →
+          </p>
         </div>
       </div>
 
