@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { HowItWorksAccordion } from "@/components/ui/interactive-image-accordion";
 import { ArrowUpRight, ArrowLeft, ShieldCheck, Target, Activity, BarChart2, Zap, Database } from "lucide-react";
 import { StatCard } from "@/components/ui/card-10";
 import { LineChart8 } from "@/components/ui/line-charts-8";
@@ -704,11 +703,6 @@ export default function PerformancePage() {
               <ScamTypeTable />
             </ChartCard>
           </div>
-        </section>
-
-        {/* ── 9. Architecture summary — interactive accordion ─────────── */}
-        <section>
-          <HowItWorksAccordion />
         </section>
 
       </div>
