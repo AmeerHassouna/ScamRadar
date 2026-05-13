@@ -73,16 +73,26 @@ function AccordionItem({ item, isActive, onMouseEnter, onClick }: AccordionItemP
         />
       )}
 
-      {/* Collapsed state */}
+      {/* Collapsed state — writing-mode keeps vertical text in-bounds */}
       {!isActive && (
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 gap-3">
-          <span className="text-green-400 text-[10px] font-bold" style={MONO}>{item.step}</span>
-          <span
-            className="text-white/80 text-xs font-semibold whitespace-nowrap"
-            style={{ ...MONO, transform: 'rotate(90deg)', transformOrigin: 'center' }}
-          >
-            {item.title}
+        <div className="absolute inset-0 flex flex-col items-center py-5 gap-3">
+          <span className="text-green-400 text-[10px] font-bold tracking-widest" style={MONO}>
+            {item.step}
           </span>
+          <div className="flex-1 flex items-center justify-center overflow-hidden w-full">
+            <span
+              className="text-white/85 text-[11px] font-semibold tracking-wider"
+              style={{
+                ...MONO,
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)',
+                maxHeight: '320px',
+                overflow: 'hidden',
+              }}
+            >
+              {item.title}
+            </span>
+          </div>
         </div>
       )}
 
@@ -118,7 +128,7 @@ const landingItems: AccordionData[] = [
     step: '01',
     title: 'Paste Your Message',
     description: 'Drop in any SMS, email, chat snippet, or URL. ScamRadar+ accepts full conversation threads — not just single lines — so slow-burn social engineering never slips through.',
-    imageUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=600&fit=crop',
     icon: MessageSquare,
   },
   {
@@ -126,7 +136,7 @@ const landingItems: AccordionData[] = [
     step: '02',
     title: 'Tone & Intent Read',
     description: 'The AI scores urgency, fear, reward, and threat signals — the psychological levers every scam relies on. 217 known scam phrases are matched exactly, in milliseconds.',
-    imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=600&fit=crop',
     icon: Zap,
   },
   {
@@ -134,7 +144,7 @@ const landingItems: AccordionData[] = [
     step: '03',
     title: 'Every Link Scanned',
     description: 'URLs are dissected for suspicious TLDs, IP-based hosting, lookalike domains, and embedded keyword patterns — independent of the message text itself.',
-    imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop',
     icon: Globe,
   },
   {
@@ -142,7 +152,7 @@ const landingItems: AccordionData[] = [
     step: '04',
     title: 'Matched Against Known Scams',
     description: 'FAISS vector search retrieves the 10 closest real scam campaigns from 46,360 training messages — surfacing exactly which attack pattern your message resembles.',
-    imageUrl: 'https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop',
     icon: Cpu,
   },
   {
@@ -150,7 +160,7 @@ const landingItems: AccordionData[] = [
     step: '05',
     title: 'Instant Verdict',
     description: 'A calibrated confidence score lands as SCAM, SUSPICIOUS, or LEGIT — with a full breakdown of which signals triggered the decision, so you know exactly why.',
-    imageUrl: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800&h=600&fit=crop',
     icon: ShieldCheck,
   },
 ]
@@ -234,7 +244,7 @@ const pipelineItems: AccordionData[] = [
     step: '01',
     title: 'Preprocess & Clean',
     description: 'Unicode normalisation, l33t-speak decoding, emoji stripping, and HTML parsing produce a canonical text form that makes scam evasion techniques invisible.',
-    imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&h=600&fit=crop',
     icon: ScanSearch,
   },
   {
@@ -242,7 +252,7 @@ const pipelineItems: AccordionData[] = [
     step: '02',
     title: 'Tone & Phrase Analysis',
     description: 'Urgency, fear, reward, and threat tone scores are computed alongside an exact match against 217 known scam phrases — the linguistic fingerprints of every major attack type.',
-    imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop',
     icon: Zap,
   },
   {
@@ -250,7 +260,7 @@ const pipelineItems: AccordionData[] = [
     step: '03',
     title: 'URL Scanning',
     description: 'Suspicious TLDs, IP-based links, lookalike domain patterns, and embedded keyword signals are extracted and scored independently of the message text.',
-    imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1509475826633-fed0a13c33dd?w=800&h=600&fit=crop',
     icon: Globe,
   },
   {
@@ -266,7 +276,7 @@ const pipelineItems: AccordionData[] = [
     step: '05',
     title: 'Calibrated Verdict',
     description: 'A calibrated Logistic Regression (isotonic regression) converts raw scores to a true probability — returning SCAM, SUSPICIOUS, or LEGIT with a confidence percentage.',
-    imageUrl: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop',
     icon: ShieldCheck,
   },
 ]
