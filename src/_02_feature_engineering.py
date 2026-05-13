@@ -541,6 +541,19 @@ _TYPE_PATTERNS = {
         r'\b(forex|crypto|currency).{0,20}trader.{0,60}(singapore|london|dubai|nigeria)\b',
         r'\b(i can show you|let me show you).{0,30}(strategy|method|system|trade|invest)\b',
         r'\b(made me|making me|earned).{0,10}\$[\d,]+.{0,20}(month|week|day|year)\b',
+        # ── Cold-contact opener patterns (before money request) ──────────────
+        r'\b(accidentally|mistakenly).{0,20}texted? (the )?wrong number\b',
+        r'\btexted?.{0,5}wrong number\b',
+        r'\bfound (your|this) (number|contact|profile).{0,40}(friend of a friend|mutual friend|randomly|by chance)\b',
+        r'\b(nurse|doctor|surgeon|physician).{0,30}(msf|m.decins|doctors without borders|conflict zone|war zone|yemen|iraq|afghanistan|syria|nigeria|ghana)\b',
+        r'\b(captain|colonel|lieutenant|commander|sergeant|major|general).{0,30}(us navy|us air force|us coast guard|nato|un peacekeeping|united nations|armed forces)\b',
+        r'\bcurrently (deployed|stationed|serving).{0,30}(on |in )(a )?(peacekeeping|humanitarian|nato|un).{0,20}(mission|force)\b',
+        r'\b(peacekeeping mission|humanitarian mission|un mission)\b',
+        r'\b(us navy|us air force|nato force|united nations force).{0,40}(mission|deployed|stationed|serving)\b',
+        r'\blooking for (a )?(genuine|real|honest|serious|meaningful).{0,20}(connection|relationship|partner|person|friend)\b',
+        r'\b(tired|sick).{0,10}of.{0,10}(fake|dishonest|shallow|superficial).{0,20}(people|connections|relationships)\b',
+        r'\bhope you (don.t|do not) mind.{0,20}(reaching out|contacting|messaging|me reaching)\b',
+        r'\b(entrepreneur|businessman|businesswoman|investor|professional).{0,50}(dubai|lagos|abuja|nigeria|ghana|accra|nairobi|kenya).{0,80}(connection|genuine|real|honest|single|lonely|someone special)\b',
     ],
     'advance_fee_scam': [
         r'\b\d+\s*(million|billion).{0,30}(dollar|usd|eur|gbp)\b',
@@ -582,6 +595,13 @@ _TYPE_PATTERNS = {
         r'\bstart (today |now )?with just\s+\$[\d,]+\b',
         r'\b(simple system|proven system|secret system).{0,60}(earn|make|income|money)\b',
         r'\b(changed my life|transformed my life).{0,60}(money|\$[\d,]+|income)\b',
+        # ── Soft-sell opener patterns ────────────────────────────────────────
+        r'\b(not spam|not a spam).{0,20}(i promise|i swear|honest|trust me|genuinely)\b',
+        r'\bjust (a )?regular (person|guy|girl|individual).{0,60}(wealth|returns?|dm me|found something|something that works)\b',
+        r'\b(no mlm|not mlm|not (a )?pyramid scheme?|no pyramid)\b.{0,60}(returns?|wealth|income|money|dm|message)\b',
+        r'\b(dm|inbox|message|reach out|contact).{0,15}me.{0,30}(if (you.re |you are )interested|to learn|for (info|details|the link|the strategy|more))\b',
+        r'\b(building|build|grow|growing).{0,15}wealth.{0,40}(dm|message|reach out|contact|found|share|help)\b',
+        r'\bfound something that (actually |really )?(works?|changed)\b.{0,60}(wealth|returns?|income|dm|message)\b',
     ],
     'threat_scam': [
         r'\b(legal action|arrest warrant|criminal charge|lawsuit|prosecute)\b',

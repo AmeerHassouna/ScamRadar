@@ -410,6 +410,80 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     if _has_6digit_code and _has_no_share and vt_malicious == 0 and not gsb_flagged:
         prob = min(prob, 0.25)
 
+    # ── 12f. Romance scam opener floor ───────────────────────────────────
+    #  Catches cold-contact social engineering openers BEFORE money terms
+    #  appear. These score very low on scam_phrase_score and tone signals
+    #  because the scammer deliberately keeps the first message innocent.
+    #  Requires ≥2 co-occurring signals to avoid false positives.
+    # Patterns split into two groups:
+    #   outreach (0–6): sender personally reaching out — unambiguous cold contact
+    #   identity  (7–12): persona claims (military rank, medical role) — only
+    #                     suspicious when combined with an outreach signal
+    _rom_pats = [
+        # ── outreach signals ──────────────────────────────────────────────
+        re.compile(r'\b(accidentally|mistakenly).{0,20}texted? (the )?wrong number\b', re.IGNORECASE),   # 0
+        re.compile(r'\btexted?.{0,5}wrong.{0,5}number\b', re.IGNORECASE),                                # 1
+        re.compile(r'\bfound (your|this) (number|contact|profile).{0,40}(friend of a friend|mutual friend|randomly|by chance)\b', re.IGNORECASE),  # 2
+        re.compile(r'\blooking for (a )?(genuine|real|honest|serious|meaningful).{0,20}(connection|relationship|partner|person|friend)\b', re.IGNORECASE),  # 3
+        re.compile(r'\b(tired|sick).{0,10}of.{0,10}(fake|dishonest|shallow).{0,20}(people|connections|relationships)\b', re.IGNORECASE),  # 4
+        re.compile(r'\bhope you (don.t|do not) mind.{0,20}(reaching out|contacting|messaging)\b', re.IGNORECASE),  # 5
+        re.compile(r'\b(entrepreneur|businessman|investor|professional).{0,50}(dubai|lagos|nigeria|ghana|accra|nairobi).{0,80}(connection|genuine|real|honest|single|lonely)\b', re.IGNORECASE),  # 6
+        re.compile(r'\bwould love to (connect|chat|talk|meet|get to know you)\b', re.IGNORECASE),         # 7
+        # ── identity / persona signals ────────────────────────────────────
+        re.compile(r'\b(nurse|doctor|surgeon|physician).{0,30}(msf|conflict zone|war zone|yemen|iraq|afghanistan|syria|nigeria|ghana)\b', re.IGNORECASE),  # 8
+        re.compile(r'\b(captain|colonel|lieutenant|commander|sergeant|major|general).{0,30}(us navy|us air force|nato|un peacekeeping|united nations|armed forces)\b', re.IGNORECASE),  # 9
+        re.compile(r'\bcurrently.{0,20}(on a )?peacekeeping mission\b', re.IGNORECASE),  # 10
+        re.compile(r'\b(peacekeeping mission|humanitarian mission)\b', re.IGNORECASE),   # 11
+        re.compile(r'\b(us navy|us air force|nato force|united nations).{0,40}(mission|deployed|stationed)\b', re.IGNORECASE),  # 12
+    ]
+    _OUTREACH_IDX = frozenset(range(8))   # indices 0–7 are personal-outreach patterns
+
+    _rom_hits  = [i for i, p in enumerate(_rom_pats) if p.search(text_clean)]
+    _romance_opener_score = len(_rom_hits)
+    _has_outreach = any(i in _OUTREACH_IDX for i in _rom_hits)
+    _legit_is_strong = new_feat.get('legit_phrase_score', 0) >= 2
+
+    # Requires ≥2 signals AND at least one is a personal outreach signal
+    # (prevents news articles about NATO/UN peacekeeping from triggering)
+    if (_romance_opener_score >= 2
+            and _has_outreach
+            and not is_all_trusted_domains(urls)
+            and not _legit_is_strong
+            and vt_malicious == 0
+            and not gsb_flagged):
+        prob = max(prob, 0.72)
+    elif (_romance_opener_score >= 1
+            and _has_outreach
+            and scam_type == 'romance_scam'
+            and prob < 0.45
+            and not is_all_trusted_domains(urls)):
+        prob = max(prob, 0.45)
+
+    # ── 12g. Soft-sell investment / social media scam opener floor ────────
+    #  Catches "not spam I promise…building wealth…DM me" style messages that
+    #  deliberately avoid hard keywords but combine multiple soft signals.
+    _inv_pats = [
+        re.compile(r'\b(not spam|not a spam).{0,20}(i promise|i swear|honest|trust me|genuinely)\b', re.IGNORECASE),
+        re.compile(r'\bjust (a )?regular (person|guy|girl|individual).{0,70}(wealth|returns?|dm me|found something)\b', re.IGNORECASE),
+        re.compile(r'\b(no mlm|not mlm|not (a )?pyramid scheme?|no pyramid)\b', re.IGNORECASE),
+        re.compile(r'\bsolid returns\b', re.IGNORECASE),
+        re.compile(r'\b(building|build|grow).{0,15}wealth\b', re.IGNORECASE),
+        re.compile(r'\bfound something that (actually |really )?works?\b', re.IGNORECASE),
+        re.compile(r'\b(dm|inbox|message).{0,10}me\b', re.IGNORECASE),
+        re.compile(r'\bwhat (actually |really )?works for (building|growing|creating) wealth\b', re.IGNORECASE),
+    ]
+    _soft_invest_score = sum(1 for p in _inv_pats if p.search(text_clean))
+
+    if (_soft_invest_score >= 3
+            and not is_all_trusted_domains(urls)
+            and not _legit_is_strong
+            and prob < 0.72):
+        prob = max(prob, 0.72)
+    elif (_soft_invest_score >= 2
+            and prob < 0.45
+            and not is_all_trusted_domains(urls)):
+        prob = max(prob, 0.45)
+
     # ── 13. Confidence capping (never show 0 % or 100 %) ─────────────────
     conf_pct = round(max(2.0, min(98.0, prob * 100)), 2)
 
@@ -421,7 +495,38 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     else:
         verdict = "LEGIT"
 
-    # ── 15. Feature contributions ─────────────────────────────────────────
+    # ── 15. Why-flagged explanation ───────────────────────────────────────
+    _why_parts = []
+    if _romance_opener_score >= 2:
+        _why_parts.append('Cold-contact social engineering opener detected')
+    if _soft_invest_score >= 3:
+        _why_parts.append('Soft-sell investment scam pattern detected')
+    if tone[0] >= 1:
+        _why_parts.append(f'Urgency manipulation ({tone[0]} signal{"s" if tone[0]>1 else ""})')
+    if tone[1] >= 1:
+        _why_parts.append(f'Fear-based language ({tone[1]} signal{"s" if tone[1]>1 else ""})')
+    if tone[2] >= 1:
+        _why_parts.append(f'Reward/prize bait ({tone[2]} signal{"s" if tone[2]>1 else ""})')
+    if tone[3] >= 1:
+        _why_parts.append('Threat or coercion language')
+    if new_feat.get('scam_phrase_score', 0) >= 1:
+        n = new_feat['scam_phrase_score']
+        _why_parts.append(f'Matched {n} known scam phrase{"s" if n>1 else ""}')
+    if new_feat.get('sender_impersonation_score', 0) >= 2:
+        _why_parts.append('Impersonation domain or lookalike URL detected')
+    if url_feat[0]:
+        _why_parts.append('Suspicious URL extension (e.g. .xyz, .tk, .top)')
+    if url_feat[2]:
+        _why_parts.append('IP-address-based URL — no real domain')
+    if scam_type and scam_type != 'general_spam':
+        _why_parts.append(f'Pattern matches {scam_type.replace("_", " ")} profile')
+    if vt_malicious > 0 or gsb_flagged:
+        _why_parts.append('URL flagged by Safe Browsing / VirusTotal')
+    why_flagged = '. '.join(_why_parts) if _why_parts else (
+        'ML model confidence indicates scam-like patterns' if verdict != 'LEGIT' else ''
+    )
+
+    # ── 16. Feature contributions ─────────────────────────────────────────
     contributions = {}
     if hasattr(model, 'coef_'):
         coef = np.array(model.coef_[0])
@@ -442,6 +547,7 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
         'confidence':             conf_pct,
         'threshold_used':         threshold,
         'scam_type':              scam_type,
+        'why_flagged':            why_flagged,
         'tone_urgency':           tone[0],
         'tone_fear':              tone[1],
         'tone_reward':            tone[2],
