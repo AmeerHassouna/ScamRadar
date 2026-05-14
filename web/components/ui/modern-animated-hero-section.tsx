@@ -638,10 +638,10 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
   }, [displayConf, mv, spring])
 
   return (
-    <div className="flex flex-col items-center pt-5 pb-2">
+    <div className="flex flex-col items-center pt-4 sm:pt-5 pb-2">
       <motion.svg
         viewBox="0 0 200 122"
-        className="w-44 sm:w-52"
+        className="w-40 sm:w-52"
         fill="none"
         style={{ overflow: 'visible' }}
         initial={{ opacity: 0, scale: 0.88 }}
@@ -712,28 +712,30 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
         </text>
 
         {/* Arc end labels */}
-        <text x={cx - r} y="120" textAnchor="start" fontSize="7" fill="rgba(255,255,255,0.18)"
+        <text x={cx - r} y="120" textAnchor="start" fontSize="8.5" fill="rgba(255,255,255,0.18)"
           style={{ fontFamily: 'monospace' }}>
-          {isLegit ? 'uncertain' : 'low risk'}
+          {isLegit ? 'uncertain' : 'low'}
         </text>
-        <text x={cx + r} y="120" textAnchor="end" fontSize="7" fill="rgba(255,255,255,0.18)"
+        <text x={cx + r} y="120" textAnchor="end" fontSize="8.5" fill="rgba(255,255,255,0.18)"
           style={{ fontFamily: 'monospace' }}>
-          {isLegit ? 'definitely safe' : 'high risk'}
+          {isLegit ? 'safe' : 'high'}
         </text>
       </motion.svg>
 
       {/* Verdict label — slides in after gauge */}
       <motion.div
-        className="flex items-center gap-2 mt-0.5"
+        className="flex items-center flex-wrap justify-center gap-x-2 gap-y-0.5 mt-0.5 px-4 text-center"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32, duration: 0.3, ease: 'easeOut' }}
       >
-        {vIcon}
-        <p className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>{vLabel}</p>
+        <div className="flex items-center gap-2">
+          {vIcon}
+          <p className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>{vLabel}</p>
+        </div>
         {!isLegit && scamType && typeof scamType === 'string' && (
           <p className="text-[8px] text-white/25 uppercase tracking-widest">
-            · {scamType.replace(/_/g, ' ')}
+            {scamType.replace(/_/g, ' ')}
           </p>
         )}
       </motion.div>
@@ -1137,7 +1139,7 @@ const RainingLetters: React.FC = () => {
 
                         {/* LEGIT: why it's safe */}
                         {isLegit && (
-                          <div className="px-4 py-3">
+                          <div className="px-3 sm:px-4 py-3">
                             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                               <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
                               Why this looks safe
@@ -1147,7 +1149,7 @@ const RainingLetters: React.FC = () => {
                                 'No suspicious links or lookalike domains found',
                                 'Tone and phrasing match legitimate communication patterns',
                               ].map(pt => (
-                                <li key={pt} className="flex items-start gap-2 text-[11px] text-white/50">
+                                <li key={pt} className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
                                   <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
                                   {pt}
                                 </li>
@@ -1161,26 +1163,25 @@ const RainingLetters: React.FC = () => {
 
                         {/* SCAM/SUSPICIOUS: what to do */}
                         {!isLegit && (
-                          <div className="px-4 py-3">
+                          <div className="px-3 sm:px-4 py-3">
                             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2">⚠ What should you do?</p>
                             <ul className="space-y-1.5">
                               {['Do not click any links or call any number in this message',
                                 'Block and report the sender on the platform you received it',
                                 'If you shared any financial details, contact your bank immediately',
                               ].map(action => (
-                                <li key={action} className="flex items-start gap-2 text-[11px] text-white/50">
+                                <li key={action} className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
                                   <span className="text-red-400/50 shrink-0 mt-0.5">→</span>
                                   {action}
                                 </li>
                               ))}
-                              <li className="flex items-start gap-2 text-[11px] text-white/50">
+                              <li className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
                                 <span className="text-red-400/50 shrink-0 mt-0.5">→</span>
                                 <span>
                                   Report:{' '}
                                   <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="text-red-400/50 underline underline-offset-2">reportfraud.ftc.gov</a>
-                                  {' '}(US) ·{' '}
-                                  <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/50 underline underline-offset-2">actionfraud.police.uk</a>
-                                  {' '}(UK)
+                                  {' '}(US)
+                                  <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/50 underline underline-offset-2">actionfraud.police.uk</a> (UK)</span>
                                 </span>
                               </li>
                             </ul>
@@ -1189,7 +1190,7 @@ const RainingLetters: React.FC = () => {
 
                         {/* Why flagged */}
                         {reasons.length > 0 && (
-                          <div className="px-4 py-3">
+                          <div className="px-3 sm:px-4 py-3">
                             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3" />
                               Why we flagged this
@@ -1207,20 +1208,20 @@ const RainingLetters: React.FC = () => {
 
                         {/* Warning signals */}
                         {tones.length > 0 && (
-                          <div className="px-4 py-3">
+                          <div className="px-3 sm:px-4 py-3">
                             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2.5">Warning Signals</p>
                             <div className="space-y-2">
                               {tones.map(tone => (
-                                <div key={tone.label} className="flex items-center gap-3">
+                                <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
                                   <div className="flex gap-1 shrink-0">
                                     {[1,2,3,4].map(i => (
-                                      <div key={i} className="w-2.5 h-2.5 rounded-full"
+                                      <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
                                         style={{ background: i <= tone.value ? tone.dot : 'rgba(255,255,255,0.08)' }} />
                                     ))}
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-xs text-white/60">{tone.label}</span>
-                                    <span className="text-[9px] text-white/22 ml-1.5">{tone.desc}</span>
+                                    <span className="text-[11px] sm:text-xs text-white/60">{tone.label}</span>
+                                    <span className="hidden sm:inline text-[9px] text-white/22 ml-1.5">{tone.desc}</span>
                                   </div>
                                 </div>
                               ))}
@@ -1230,14 +1231,14 @@ const RainingLetters: React.FC = () => {
 
                         {/* Link safety check */}
                         {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
-                          <div className="px-4 py-3">
+                          <div className="px-3 sm:px-4 py-3">
                             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                               <LinkIcon className="w-3 h-3" />
                               Link Safety Check
                             </p>
                             {result.urls_found.map((url: string) => (
                               <div key={url} className="flex items-center justify-between py-0.5 gap-2">
-                                <span className="text-[11px] text-white/30 truncate">{url}</span>
+                                <span className="text-[10px] sm:text-[11px] text-white/30 truncate">{url}</span>
                                 {result.gsb_flagged ? (
                                   <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px]">
                                     <ShieldX className="w-3 h-3" /> Dangerous
