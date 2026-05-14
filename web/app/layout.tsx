@@ -19,7 +19,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ScamRadar+ — AI-Powered Scam Detection",
-  description: "Detect scam messages instantly with machine learning, vector proximity search, and real-time URL scanning.",
+  description: "Paste any suspicious message and get an instant AI verdict. Free, no account required. Detects phishing, crypto scams, romance fraud, and 17 other scam types.",
+  openGraph: {
+    title: "ScamRadar+ — AI-Powered Scam Detection",
+    description: "Paste any suspicious message and get an instant AI verdict. Free, no account required.",
+    url: "https://scamradarplus.com",
+    siteName: "ScamRadar+",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ScamRadar+ — AI-Powered Scam Detection",
+    description: "Paste any suspicious message and get an instant AI verdict. Free, no account required.",
+  },
 };
 
 export default function RootLayout({

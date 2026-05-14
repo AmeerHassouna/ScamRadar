@@ -101,7 +101,7 @@ const questions = [
         id: 'item-9',
         title: 'What does the confidence score mean?',
         content:
-            'A 0–100 score reflecting how certain the model is. For SCAM verdicts it represents scam confidence; for LEGIT verdicts it is inverted (100 − score = legitimacy confidence). Scores above 85 are high-confidence; 50–85 warrant a closer look.',
+            'A 0–100 score showing how confident the model is in its verdict. Higher always means more certain — 95% means very confident, 60% means leaning that way but less sure. The score reflects certainty in the current verdict regardless of whether it is SCAM, SUSPICIOUS, or LEGIT. Scores above 85% are reliable; 60–85% is worth double-checking.',
     },
     {
         id: 'item-10',

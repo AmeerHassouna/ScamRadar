@@ -580,7 +580,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
                     </span>
-                    <span className="text-green-400/70 text-[9px]" style={{ fontFamily: 'monospace' }}>Running AI pipeline…</span>
+                    <span className="text-green-400/70 text-[9px]" style={{ fontFamily: 'monospace' }}>Analyzing your message…</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -668,7 +668,7 @@ const RainingLetters: React.FC = () => {
     { label: 'Phishing', icon: ShieldAlert, text: 'URGENT: Your PayPal account has been suspended! Verify now at http://paypal-secure-verify.tk/login' },
     { label: 'Crypto Scam', icon: AlertTriangle, text: 'I turned $500 into $12000 in 6 weeks with this crypto strategy DM me for the link' },
     { label: 'Legit', icon: CheckCircle, text: 'Your Amazon order has shipped. Estimated delivery Thursday. Track at amazon.com/orders' },
-    { label: 'OTP Code', icon: KeyRound, text: 'Your WhatsApp code is 847-291. Do not share this code with anyone.' },
+    { label: 'Safe OTP', icon: CheckCircle, text: 'Your WhatsApp code is 847-291. Do not share this code with anyone.' },
   ]
 
   const handleAnalyse = async () => {
@@ -838,6 +838,13 @@ const RainingLetters: React.FC = () => {
               Free to use · Messages are not stored · No account needed
             </p>
 
+            {/* Conversation mode hint */}
+            {conversationMode && (
+              <p className="text-center text-[10px] text-white/30 mb-1" style={{ fontFamily: 'monospace' }}>
+                Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation
+              </p>
+            )}
+
             <div className={cn(
               'relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
               prompt.trim() ? 'drop-shadow-[0_0_12px_rgba(0,255,0,0.3)]' : ''
@@ -853,8 +860,8 @@ const RainingLetters: React.FC = () => {
                   }
                 }}
                 placeholder={conversationMode
-                  ? 'Paste a full conversation thread here...'
-                  : 'Paste any suspicious message here...'}
+                  ? 'Paste a full conversation thread here (or upload a .txt file)...'
+                  : 'Paste any suspicious message here (min. 20 characters)...'}
                 rows={conversationMode ? 5 : 3}
                 className="w-full resize-none rounded-2xl bg-black/60 border border-white/10 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-green-500/30 backdrop-blur-md px-4 py-3 pb-12 text-sm"
                 style={{ fontFamily: 'monospace' }}
@@ -976,22 +983,42 @@ const RainingLetters: React.FC = () => {
                         : 'linear-gradient(to bottom, rgba(34,197,94,0.09), transparent)',
                     }}
                   >
-                    <Gauge
-                      value={safeNum(result.confidence)}
-                      size={150}
-                      strokeWidth={12}
-                      gradient={true}
-                      glowEffect={true}
-                      tickMarks={true}
-                      showPercentage={true}
-                      primary={
-                        result.verdict === 'SCAM' ? '#EF4444'
-                        : result.verdict === 'SUSPICIOUS' ? '#F59E0B'
-                        : '#22C55E'
-                      }
-                      label={result.verdict}
-                      transition={{ length: 1200, delay: 100 }}
-                    />
+                    {result.verdict === 'LEGIT' ? (
+                      /* Shield visual for LEGIT — gauge fill-up reads as "danger" to users */
+                      <motion.div
+                        className="flex flex-col items-center gap-2 py-1"
+                        initial={{ opacity: 0, scale: 0.75 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.45, ease: 'easeOut' }}
+                      >
+                        <div
+                          className="w-[120px] h-[120px] rounded-full flex items-center justify-center"
+                          style={{
+                            background: 'radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 60%, transparent 100%)',
+                            border: '2px solid rgba(34,197,94,0.30)',
+                            boxShadow: '0 0 36px rgba(34,197,94,0.18)',
+                          }}
+                        >
+                          <ShieldCheck className="w-14 h-14 text-emerald-400 drop-shadow-lg" />
+                        </div>
+                        <p className="text-2xl font-black text-emerald-400 tracking-tight" style={{ fontFamily: 'monospace' }}>
+                          {(100 - safeNum(result.confidence)).toFixed(0)}% safe
+                        </p>
+                      </motion.div>
+                    ) : (
+                      <Gauge
+                        value={safeNum(result.confidence)}
+                        size={150}
+                        strokeWidth={12}
+                        gradient={true}
+                        glowEffect={true}
+                        tickMarks={true}
+                        showPercentage={true}
+                        primary={result.verdict === 'SCAM' ? '#EF4444' : '#F59E0B'}
+                        label={result.verdict}
+                        transition={{ length: 1200, delay: 100 }}
+                      />
+                    )}
 
                     {/* Human-readable verdict */}
                     <div className={cn(
@@ -1013,7 +1040,7 @@ const RainingLetters: React.FC = () => {
 
                     <p className="text-white/40 text-xs mt-0.5">
                       {result.verdict === 'LEGIT'
-                        ? `${safeNum(result.confidence).toFixed(0)}% confident this is legitimate`
+                        ? `${(100 - safeNum(result.confidence)).toFixed(0)}% confident this is legitimate`
                         : `${safeNum(result.confidence).toFixed(0)}% confident this is a scam`}
                     </p>
 
@@ -1026,6 +1053,31 @@ const RainingLetters: React.FC = () => {
 
                   {/* ── Body ── */}
                   <div className="px-4 pb-4 space-y-3">
+
+                    {/* LEGIT reassurance block */}
+                    {result.verdict === 'LEGIT' && (
+                      <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3.5">
+                        <p className="text-xs font-semibold text-white/55 mb-2.5 flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          Why this looks safe
+                        </p>
+                        <ul className="space-y-2">
+                          {[
+                            'No urgency language, threats, or pressure tactics detected',
+                            'No suspicious links or lookalike domains found',
+                            'Tone and phrasing match legitimate communication patterns',
+                          ].map((point) => (
+                            <li key={point} className="flex items-start gap-2 text-[11px] text-white/50">
+                              <span className="text-emerald-400/60 shrink-0 mt-0.5">✓</span>
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-white/25 mt-2.5 leading-relaxed">
+                          Stay vigilant — if something still feels off, trust your instincts and verify directly with the sender.
+                        </p>
+                      </div>
+                    )}
 
                     {/* What to do — SCAM / SUSPICIOUS first */}
                     {(result.verdict === 'SCAM' || result.verdict === 'SUSPICIOUS') && (

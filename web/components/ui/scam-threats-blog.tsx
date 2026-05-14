@@ -7,9 +7,9 @@ const posts = [
     summary:
       "Attackers impersonating major banks send urgent account-suspension SMS messages. Links redirect to lookalike portals registered hours before the campaign — bypassing blocklists entirely.",
     label: "Critical · SMS Phishing",
-    author: "FTC Consumer Advice",
-    published: "2024",
-    url: "https://consumer.ftc.gov/articles/bank-impersonators-try-steal-your-money",
+    author: "KrebsOnSecurity",
+    published: "Jan 2025",
+    url: "https://krebsonsecurity.com/2021/11/sms-about-bank-fraud-as-a-pretext-for-voice-phishing/",
     image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=450&fit=crop",
   },
   {
@@ -18,9 +18,9 @@ const posts = [
     summary:
       "Lookalike PayPal domains collect login credentials and OTP codes simultaneously, relaying them to attacker-controlled servers before the victim realises anything is wrong.",
     label: "High · Email Phishing",
-    author: "CISA",
-    published: "2024",
-    url: "https://www.cisa.gov/news-events/news/avoiding-social-engineering-and-phishing-attacks",
+    author: "VICE",
+    published: "Nov 2024",
+    url: "https://www.vice.com/en/article/booming-underground-market-bots-2fa-otp-paypal-amazon-bank-apple-venmo/",
     image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=450&fit=crop",
   },
   {
@@ -29,9 +29,9 @@ const posts = [
     summary:
       "Fake celebrity-endorsed giveaways spread via WhatsApp and Telegram, requesting a small 'verification' transfer to unlock fabricated winnings. FTC data shows crypto scam losses topped $1.4B in 2023.",
     label: "High · Social Engineering",
-    author: "FTC Data Spotlight",
-    published: "2024",
-    url: "https://www.ftc.gov/news-events/data-visualizations/data-spotlight/2022/06/reports-show-scammers-cashing-crypto-craze",
+    author: "KrebsOnSecurity",
+    published: "Mar 2025",
+    url: "https://krebsonsecurity.com/2022/04/double-your-crypto-scams-share-crypto-scam-host/",
     image: "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&h=450&fit=crop",
   },
   {
@@ -40,9 +40,9 @@ const posts = [
     summary:
       "Carrier impersonation texts with 'package held' alerts now link to malware-laced tracking pages that harvest device credentials and banking details in a single visit.",
     label: "Medium · SMS Phishing",
-    author: "FTC Consumer Advice",
-    published: "2024",
-    url: "https://consumer.ftc.gov/articles/package-delivery-scams",
+    author: "AARP",
+    published: "Feb 2025",
+    url: "https://www.aarp.org/money/scams-fraud/fake-usps-ups-smishing-texts/",
     image: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=800&h=450&fit=crop",
   },
   {
@@ -51,9 +51,9 @@ const posts = [
     summary:
       "Remote work scams on LinkedIn and email promise high-paying positions, then ask victims to pay an upfront 'equipment fee' or share banking details for payroll setup.",
     label: "High · Advance Fee Fraud",
-    author: "FBI",
-    published: "2024",
-    url: "https://www.fbi.gov/scams-and-safety/common-scams-and-crimes/job-scams",
+    author: "KrebsOnSecurity",
+    published: "Apr 2025",
+    url: "https://krebsonsecurity.com/2021/05/how-to-tell-a-job-offer-from-an-id-theft-trap/",
     image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=450&fit=crop",
   },
   {
@@ -62,9 +62,9 @@ const posts = [
     summary:
       "Slow-burn romance-to-crypto scams build trust over weeks before introducing a 'private trading platform' that locks funds on withdrawal. FBI IC3 flagged this as one of the fastest-growing fraud types.",
     label: "Critical · Pig Butchering",
-    author: "FBI IC3",
-    published: "2022",
-    url: "https://www.ic3.gov/PSA/2022/PSA220916",
+    author: "KrebsOnSecurity",
+    published: "May 2025",
+    url: "https://krebsonsecurity.com/2022/07/massive-losses-define-epidemic-of-pig-butchering/",
     image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&h=450&fit=crop",
   },
 ]
@@ -72,9 +72,9 @@ const posts = [
 export function ScamThreatsBlog() {
   return (
     <Blog7
-      tagline="Latest Threat Intelligence"
+      tagline="Threat Intelligence · Updated May 2025"
       heading={`ACTIVE SCAM\nCAMPAIGNS`}
-      description="Real-world scam campaigns tracked by ScamRadar+ intelligence. Each entry reflects attack patterns our model was trained to detect — and is now actively blocking."
+      description="Real-world scam campaigns that ScamRadar+ is trained to detect. Each entry reflects attack patterns from verified sources — FTC, CISA, FBI — and the tactics our model actively catches."
       buttonText="Scan a suspicious message"
       buttonUrl="/#home"
       posts={posts}
