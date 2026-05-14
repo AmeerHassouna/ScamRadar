@@ -940,20 +940,37 @@ const RainingLetters: React.FC = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="mt-3 rounded-2xl bg-black/80 border border-white/10 backdrop-blur-md p-4"
-                  style={{ fontFamily: 'monospace' }}
+                  className="mt-3 rounded-2xl overflow-hidden"
+                  style={{
+                    fontFamily: 'monospace',
+                    border: `1px solid ${
+                      result.verdict === 'SCAM' ? 'rgba(239,68,68,0.22)'
+                      : result.verdict === 'SUSPICIOUS' ? 'rgba(245,158,11,0.22)'
+                      : 'rgba(34,197,94,0.22)'
+                    }`,
+                    background: 'rgba(0,0,0,0.88)',
+                    backdropFilter: 'blur(16px)',
+                  }}
                 >
                 <ErrorBoundary onError={() => {
                     setResult(null)
                     addToast('Could not display the result. Please try again.', 'error')
                   }}>
-                  {/* Gauge centered at top */}
-                  <div className="flex flex-col items-center mb-4">
+
+                  {/* ── Header strip ── */}
+                  <div
+                    className="px-5 pt-5 pb-4 flex flex-col items-center gap-1"
+                    style={{
+                      background: result.verdict === 'SCAM'
+                        ? 'linear-gradient(to bottom, rgba(239,68,68,0.09), transparent)'
+                        : result.verdict === 'SUSPICIOUS'
+                        ? 'linear-gradient(to bottom, rgba(245,158,11,0.09), transparent)'
+                        : 'linear-gradient(to bottom, rgba(34,197,94,0.09), transparent)',
+                    }}
+                  >
                     <Gauge
-                      value={result.verdict === 'LEGIT'
-                        ? 100 - safeNum(result.confidence)
-                        : safeNum(result.confidence)}
-                      size={160}
+                      value={safeNum(result.confidence)}
+                      size={150}
                       strokeWidth={12}
                       gradient={true}
                       glowEffect={true}
@@ -968,9 +985,9 @@ const RainingLetters: React.FC = () => {
                       transition={{ length: 1200, delay: 100 }}
                     />
 
-                    {/* Verdict text */}
+                    {/* Human-readable verdict */}
                     <div className={cn(
-                      'flex items-center gap-2 text-lg font-black tracking-widest mt-2',
+                      'flex items-center gap-2 text-lg font-black tracking-wide mt-1',
                       result.verdict === 'SCAM' ? 'text-red-400'
                       : result.verdict === 'SUSPICIOUS' ? 'text-amber-400'
                       : 'text-emerald-400'
@@ -981,114 +998,152 @@ const RainingLetters: React.FC = () => {
                         ? <AlertCircle className="w-5 h-5" />
                         : <ShieldCheck className="w-5 h-5" />
                       }
-                      {result.verdict}
+                      {result.verdict === 'SCAM' ? 'This is likely a scam'
+                        : result.verdict === 'SUSPICIOUS' ? 'This looks suspicious'
+                        : 'This looks safe'}
                     </div>
-                    <div className="text-white/40 text-xs mt-1">
+
+                    <p className="text-white/40 text-xs mt-0.5">
                       {result.verdict === 'LEGIT'
-                        ? `${(100 - safeNum(result.confidence)).toFixed(1)}% confidence it is legitimate`
-                        : `${safeNum(result.confidence).toFixed(1)}% confidence it is a scam`}
-                    </div>
+                        ? `${safeNum(result.confidence).toFixed(0)}% confident this is legitimate`
+                        : `${safeNum(result.confidence).toFixed(0)}% confident this is a scam`}
+                    </p>
+
                     {result.verdict !== 'LEGIT' && result.scam_type && typeof result.scam_type === 'string' && (
-                      <span className="mt-2 px-3 py-1 rounded-full text-xs border border-white/10 text-white/40">
+                      <span className="mt-2 px-3 py-1 rounded-full text-xs border border-white/10 text-white/35">
                         {result.scam_type.replace(/_/g, ' ')}
                       </span>
                     )}
                   </div>
 
-                  {/* What to do next — SCAM / SUSPICIOUS only */}
-                  {(result.verdict === 'SCAM' || result.verdict === 'SUSPICIOUS') && (
-                    <div className="rounded-lg border border-red-400/15 bg-red-400/5 p-3 mb-3">
-                      <p className="text-[10px] font-semibold text-white/50 mb-2 uppercase tracking-wider" style={{ fontFamily: 'monospace' }}>What should you do?</p>
-                      <ul className="space-y-1.5">
-                        {[
-                          'Do not click any links or call any number in this message',
-                          'Block and report the sender on the platform you received it',
-                          'If financial details were shared, contact your bank immediately',
-                        ].map((action) => (
-                          <li key={action} className="flex items-start gap-2 text-[10px] text-white/45" style={{ fontFamily: 'monospace' }}>
-                            <span className="text-red-400/70 shrink-0 mt-px">→</span>
-                            <span>{action}</span>
+                  {/* ── Body ── */}
+                  <div className="px-4 pb-4 space-y-3">
+
+                    {/* What to do — SCAM / SUSPICIOUS first */}
+                    {(result.verdict === 'SCAM' || result.verdict === 'SUSPICIOUS') && (
+                      <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-3.5">
+                        <p className="text-xs font-semibold text-white/55 mb-2.5">⚠ What should you do?</p>
+                        <ul className="space-y-2">
+                          {[
+                            'Do not click any links or call any number in this message',
+                            'Block and report the sender on the platform you received it',
+                            'If you shared any financial details, contact your bank immediately',
+                          ].map((action) => (
+                            <li key={action} className="flex items-start gap-2 text-[11px] text-white/50">
+                              <span className="text-red-400/60 shrink-0 mt-0.5">→</span>
+                              <span>{action}</span>
+                            </li>
+                          ))}
+                          <li className="flex items-start gap-2 text-[11px] text-white/50">
+                            <span className="text-red-400/60 shrink-0 mt-0.5">→</span>
+                            <span>
+                              Report it:{' '}
+                              <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">reportfraud.ftc.gov</a>
+                              {' '}(US) ·{' '}
+                              <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">actionfraud.police.uk</a>
+                              {' '}(UK)
+                            </span>
                           </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Why we flagged this */}
+                    {typeof result.why_flagged === 'string' && result.why_flagged && (() => {
+                      const reasons = result.why_flagged.split('|').map((s: string) => s.trim()).filter(Boolean)
+                      return (
+                        <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                            <AlertCircle className="w-3 h-3" />
+                            Why we flagged this
+                          </p>
+                          <ul className="space-y-2">
+                            {reasons.map((reason: string, i: number) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-amber-400/50 shrink-0 mt-0.5 text-xs">•</span>
+                                <span className="text-xs text-white/60 leading-relaxed">{reason}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Tone signals — dots, only show non-zero */}
+                    {(() => {
+                      const tones = [
+                        { label: 'Creates Urgency',  desc: 'Pressures you to act right now',         value: safeNum(result.tone_urgency), dotColor: '#EF4444' },
+                        { label: 'Uses Fear',         desc: 'Language designed to frighten you',      value: safeNum(result.tone_fear),    dotColor: '#F97316' },
+                        { label: 'Promises Rewards',  desc: 'Offers fake prizes, money, or jobs',     value: safeNum(result.tone_reward),  dotColor: '#EAB308' },
+                        { label: 'Makes Threats',     desc: 'Threatens account loss, arrest, etc.',   value: safeNum(result.tone_threat),  dotColor: '#DC2626' },
+                      ].filter(t => t.value > 0)
+                      if (tones.length === 0) return null
+                      return (
+                        <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-3">Warning Signals Detected</p>
+                          <div className="space-y-2.5">
+                            {tones.map(tone => (
+                              <div key={tone.label} className="flex items-center gap-3">
+                                <div className="flex gap-1 shrink-0">
+                                  {[1,2,3,4].map(i => (
+                                    <div
+                                      key={i}
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ background: i <= tone.value ? tone.dotColor : 'rgba(255,255,255,0.08)' }}
+                                    />
+                                  ))}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-xs text-white/65">{tone.label}</span>
+                                  <span className="text-[9px] text-white/25 ml-1.5">{tone.desc}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Link safety check */}
+                    {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
+                      <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <LinkIcon className="w-3 h-3" />
+                          Link Safety Check
+                        </p>
+                        {result.urls_found.map((url: string) => (
+                          <div key={url} className="flex items-center justify-between text-xs py-1 gap-2">
+                            <span className="text-white/35 truncate">{url}</span>
+                            {result.gsb_flagged ? (
+                              <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px]">
+                                <ShieldX className="w-3 h-3" /> Dangerous
+                              </span>
+                            ) : (
+                              <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px]">
+                                <ShieldCheck className="w-3 h-3" /> Safe
+                              </span>
+                            )}
+                          </div>
                         ))}
-                        <li className="flex items-start gap-2 text-[10px] text-white/45" style={{ fontFamily: 'monospace' }}>
-                          <span className="text-red-400/70 shrink-0 mt-px">→</span>
-                          <span>Report it: <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">reportfraud.ftc.gov</a> (US) · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">actionfraud.police.uk</a> (UK)</span>
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* False-positive note for borderline verdicts */}
-                  {result.verdict !== 'LEGIT' && safeNum(result.confidence) < 90 && (
-                    <p className="text-[10px] text-white/25 text-center mb-3 px-2 leading-relaxed" style={{ fontFamily: 'monospace' }}>
-                      Scores below 90% warrant human review. Legitimate security alerts from known services may occasionally be flagged.
-                    </p>
-                  )}
-
-                  {/* Tone bars */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                    {[
-                      { label: 'Urgency', desc: 'Pressure to act immediately',          value: safeNum(result.tone_urgency), color: 'bg-red-500' },
-                      { label: 'Fear',    desc: 'Language designed to frighten you',     value: safeNum(result.tone_fear),    color: 'bg-orange-500' },
-                      { label: 'Reward',  desc: 'False prizes, money, or benefit lures', value: safeNum(result.tone_reward),  color: 'bg-yellow-500' },
-                      { label: 'Threat',  desc: 'Threats of arrest, loss, or exposure',  value: safeNum(result.tone_threat),  color: 'bg-red-700' },
-                    ].map((tone) => (
-                      <div key={tone.label} className="bg-white/5 rounded-lg p-2" title={tone.desc}>
-                        <div className="flex justify-between text-xs text-white/40 mb-0.5">
-                          <span>{tone.label}</span><span>{tone.value}/4</span>
-                        </div>
-                        <p className="text-[9px] text-white/20 mb-1.5 leading-none">{tone.desc}</p>
-                        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full', tone.color)}
-                            style={{ width: `${Math.min(tone.value * 25, 100)}%` }}
-                          />
-                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Borderline disclaimer */}
+                    {result.verdict !== 'LEGIT' && safeNum(result.confidence) < 90 && (
+                      <p className="text-[10px] text-white/25 text-center leading-relaxed px-2">
+                        Confidence below 90% — consider double-checking. Legitimate security alerts from known services may occasionally be flagged.
+                      </p>
+                    )}
+
+                    {/* Reset */}
+                    <button
+                      onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
+                      className="w-full py-2 rounded-xl text-xs text-white/35 hover:text-white/60 border border-white/10 hover:border-white/20 transition-all"
+                      style={{ fontFamily: 'monospace' }}
+                    >
+                      ← Analyse another message
+                    </button>
                   </div>
-
-                  {/* Why flagged */}
-                  {typeof result.why_flagged === 'string' && result.why_flagged && (
-                    <div className="bg-white/5 rounded-lg p-2 mb-3">
-                      <div className="text-xs text-white/40 mb-1">Why flagged?</div>
-                      <div className="text-xs text-white/60">{result.why_flagged}</div>
-                    </div>
-                  )}
-
-                  {/* Google Safe Browsing URL check */}
-                  {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
-                    <div className="bg-white/5 rounded-lg p-2 mb-3">
-                      <div className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
-                        <LinkIcon className="w-3 h-3" />
-                        Google Safe Browsing
-                      </div>
-                      {result.urls_found.map((url: string) => (
-                        <div key={url} className="flex items-center justify-between text-xs py-1 gap-2">
-                          <span className="text-white/40 truncate">{url}</span>
-                          {result.gsb_flagged ? (
-                            <span className="text-red-400 flex items-center gap-1 shrink-0">
-                              <ShieldX className="w-3 h-3" />
-                              {result.gsb_threat_type?.replace(/_/g, ' ') || 'Threat Detected'}
-                            </span>
-                          ) : (
-                            <span className="text-emerald-400 flex items-center gap-1 shrink-0">
-                              <ShieldCheck className="w-3 h-3" /> Safe
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Reset button */}
-                  <button
-                    onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
-                    className="w-full py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/20 transition-all"
-                    style={{ fontFamily: 'monospace' }}
-                  >
-                    Analyse another message
-                  </button>
                 </ErrorBoundary>
                 </motion.div>
               )}

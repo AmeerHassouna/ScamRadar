@@ -511,35 +511,111 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
         verdict = "LEGIT"
 
     # ── 15. Why-flagged explanation ───────────────────────────────────────
+    # Ordered by severity: most damning evidence first, cap at 3 reasons.
     _why_parts = []
-    if _romance_opener_score >= 2:
-        _why_parts.append('Cold-contact social engineering opener detected')
-    if _soft_invest_score >= 3:
-        _why_parts.append('Soft-sell investment scam pattern detected')
-    if tone[0] >= 1:
-        _why_parts.append(f'Urgency manipulation ({tone[0]} signal{"s" if tone[0]>1 else ""})')
-    if tone[1] >= 1:
-        _why_parts.append(f'Fear-based language ({tone[1]} signal{"s" if tone[1]>1 else ""})')
-    if tone[2] >= 1:
-        _why_parts.append(f'Reward/prize bait ({tone[2]} signal{"s" if tone[2]>1 else ""})')
-    if tone[3] >= 1:
-        _why_parts.append('Threat or coercion language')
-    if new_feat.get('scam_phrase_score', 0) >= 1:
-        n = new_feat['scam_phrase_score']
-        _why_parts.append(f'Matched {n} known scam phrase{"s" if n>1 else ""}')
-    if new_feat.get('sender_impersonation_score', 0) >= 2:
-        _why_parts.append('Impersonation domain or lookalike URL detected')
-    if url_feat[0]:
-        _why_parts.append('Suspicious URL extension (e.g. .xyz, .tk, .top)')
-    if url_feat[2]:
-        _why_parts.append('IP-address-based URL — no real domain')
-    if scam_type and scam_type != 'general_spam':
-        _why_parts.append(f'Pattern matches {scam_type.replace("_", " ")} profile')
+
     if vt_malicious > 0 or gsb_flagged:
-        _why_parts.append('URL flagged by Safe Browsing / VirusTotal')
-    why_flagged = '. '.join(_why_parts) if _why_parts else (
-        'ML model confidence indicates scam-like patterns' if verdict != 'LEGIT' else ''
-    )
+        _why_parts.append('A link in this message has been confirmed as dangerous by Google Safe Browsing')
+
+    if url_feat[2] and urls:
+        _why_parts.append(
+            f'The link "{urls[0]}" goes to a raw IP address instead of a real website — '
+            'legitimate companies always use a proper domain name'
+        )
+    elif url_feat[2]:
+        _why_parts.append(
+            'A link in this message uses a raw IP address instead of a real website name, '
+            'which is a common sign of a fraudulent site'
+        )
+
+    if new_feat.get('sender_impersonation_score', 0) >= 2:
+        if urls:
+            _why_parts.append(
+                f'The link "{urls[0]}" is designed to look like a trusted company\'s website but is actually a fake'
+            )
+        else:
+            _why_parts.append(
+                'The message appears to impersonate a trusted company or service using a fake lookalike name or domain'
+            )
+
+    if url_feat[0] and urls:
+        _why_parts.append(
+            f'The link uses an unusual web extension — "{urls[0]}" is not the kind of address a legitimate company uses'
+        )
+    elif url_feat[0]:
+        _why_parts.append(
+            'The message contains a link with an unusual web extension (.tk, .xyz, .top) — '
+            'legitimate companies do not use these for official communications'
+        )
+
+    if _romance_opener_score >= 2:
+        _why_parts.append(
+            'The message opens with unsolicited personal contact — a common tactic scammers use '
+            'to build false trust before asking for money or personal information'
+        )
+
+    if _soft_invest_score >= 3:
+        _why_parts.append(
+            'The message uses vague promises of easy returns and asks you to reach out privately — '
+            'hallmarks of investment and crypto fraud'
+        )
+
+    if tone[0] >= 2:
+        _why_parts.append(
+            'Strong urgency language pressures you to act immediately — '
+            'scammers do this so you don\'t have time to stop and verify'
+        )
+    elif tone[0] == 1:
+        _why_parts.append(
+            'The message creates a sense of urgency to push you into acting quickly without checking first'
+        )
+
+    if tone[1] >= 2:
+        _why_parts.append(
+            'The message threatens negative consequences (such as account suspension or legal action) '
+            'to frighten you into responding without thinking'
+        )
+    elif tone[1] == 1:
+        _why_parts.append(
+            'Fear-based language is used to create anxiety and make you more likely to comply without questioning the message'
+        )
+
+    if tone[2] >= 2:
+        _why_parts.append(
+            'The message promises money, prizes, or guaranteed returns to tempt you — a classic scam lure'
+        )
+    elif tone[2] == 1:
+        _why_parts.append(
+            'An offer of reward or financial gain is used to make the message seem worth engaging with'
+        )
+
+    if tone[3] >= 1:
+        _why_parts.append(
+            'The message makes explicit threats — such as arrest, account closure, or public exposure — to force you to comply'
+        )
+
+    if new_feat.get('scam_phrase_score', 0) >= 2:
+        _why_parts.append(
+            'Multiple phrases in this message match patterns found in thousands of confirmed scam messages in our dataset'
+        )
+    elif new_feat.get('scam_phrase_score', 0) == 1:
+        _why_parts.append(
+            'At least one phrase matches patterns seen repeatedly in known scam messages'
+        )
+
+    if not _why_parts and verdict != 'LEGIT':
+        if scam_type and scam_type != 'general_spam':
+            _why_parts.append(
+                f'The structure and language of this message closely match a {scam_type.replace("_", " ")} — '
+                'the AI found patterns consistent with this type of fraud'
+            )
+        else:
+            _why_parts.append(
+                'The AI detected subtle patterns in the phrasing and structure of this message '
+                'that closely resemble thousands of known scam messages, even without a single obvious red flag'
+            )
+
+    why_flagged = '|'.join(_why_parts[:3]) if _why_parts else ('' if verdict == 'LEGIT' else '')
 
     # ── 16. Feature contributions ─────────────────────────────────────────
     contributions = {}
