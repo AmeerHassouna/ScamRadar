@@ -537,7 +537,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
 
                     {/* Tone signals — 4 cols matching real UI */}
                     <motion.div
-                      className="grid grid-cols-4 gap-1.5 px-3 pb-3"
+                      className="grid grid-cols-2 gap-1.5 px-3 pb-3"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
                     >
                       {[
@@ -625,6 +625,7 @@ const RainingLetters: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
 
   // Ping the API immediately on page load so the server wakes up before the user submits
   useEffect(() => {
@@ -634,6 +635,12 @@ const RainingLetters: React.FC = () => {
     const id = setInterval(() => fetch(`${base}/health`).catch(() => {}), 9 * 60 * 1000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (result && resultRef.current && window.innerWidth < 640) {
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 200)
+    }
+  }, [result])
 
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'error', duration = 5000) => {
     setToasts(prev => [...prev, { id: nextId(), message, type, duration }])
@@ -792,7 +799,7 @@ const RainingLetters: React.FC = () => {
                   style={{ fontFamily: 'monospace' }}
                   title="Paste a single SMS, email, or chat message"
                 >
-                  Single Message
+                  <span className="sm:hidden">Single</span><span className="hidden sm:inline">Single Message</span>
                 </button>
                 <button
                   onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
@@ -805,14 +812,14 @@ const RainingLetters: React.FC = () => {
                   style={{ fontFamily: 'monospace' }}
                   title="Paste a full chat thread or upload a .txt/.csv file — analyses the entire conversation at once"
                 >
-                  Full Conversation
+                  <span className="sm:hidden">Conversation</span><span className="hidden sm:inline">Full Conversation</span>
                 </button>
               </div>
               {/* Demo trigger */}
               <button
                 onClick={() => setShowDemo(true)}
                 title="See a demo"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
                 style={{
                   fontFamily: 'monospace',
                   background: 'rgba(255,255,255,0.04)',
@@ -923,7 +930,7 @@ const RainingLetters: React.FC = () => {
                     leadingIcon={ex.icon}
                     onClick={() => setPrompt(ex.text)}
                     style={{ fontFamily: 'monospace' }}
-                    className="border-white/10 bg-black/40 text-white/50 hover:text-white hover:border-white/30 rounded-full"
+                    className="border-white/10 bg-black/40 text-white/50 hover:text-white hover:border-white/30 rounded-full shrink-0"
                   >
                     {ex.label}
                   </Button>
@@ -937,6 +944,7 @@ const RainingLetters: React.FC = () => {
             <AnimatePresence>
               {result && (
                 <motion.div
+                  ref={resultRef}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
@@ -1088,7 +1096,7 @@ const RainingLetters: React.FC = () => {
                                   {[1,2,3,4].map(i => (
                                     <div
                                       key={i}
-                                      className="w-2 h-2 rounded-full"
+                                      className="w-2.5 h-2.5 rounded-full"
                                       style={{ background: i <= tone.value ? tone.dotColor : 'rgba(255,255,255,0.08)' }}
                                     />
                                   ))}

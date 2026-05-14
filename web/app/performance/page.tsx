@@ -146,7 +146,7 @@ function SectionHeader({ label, title, sub }: { label: string; title: string; su
   return (
     <div className="text-center mb-10">
       <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3" style={MONO}>{label}</p>
-      <h2 className="text-3xl md:text-5xl font-black text-white mb-2" style={MONO}>{title}</h2>
+      <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-white mb-2" style={MONO}>{title}</h2>
       {sub && <p className="text-white/40 text-sm max-w-xl mx-auto" style={MONO}>{sub}</p>}
     </div>
   );
@@ -179,20 +179,20 @@ function ConfusionMatrix() {
     <div className="flex flex-col gap-3">
       {/* Axis labels */}
       <div className="flex">
-        <div className="w-28 shrink-0" />
+        <div className="w-14 sm:w-28 shrink-0" />
         <div className="flex-1 grid grid-cols-2 text-center">
-          <p className="text-white/40 text-xs pb-1" style={MONO}>Predicted: Legit</p>
-          <p className="text-white/40 text-xs pb-1" style={MONO}>Predicted: Scam</p>
+          <p className="text-white/40 text-xs pb-1" style={MONO}><span className="sm:hidden">Legit</span><span className="hidden sm:inline">Predicted: Legit</span></p>
+          <p className="text-white/40 text-xs pb-1" style={MONO}><span className="sm:hidden">Scam</span><span className="hidden sm:inline">Predicted: Scam</span></p>
         </div>
       </div>
       <div className="flex gap-3">
         {/* Row labels */}
-        <div className="w-28 shrink-0 flex flex-col gap-3">
+        <div className="w-14 sm:w-28 shrink-0 flex flex-col gap-3">
           <div className="h-24 flex items-center justify-end pr-3">
-            <p className="text-white/40 text-xs text-right" style={MONO}>Actual:<br />Legit</p>
+            <p className="text-white/40 text-xs text-right" style={MONO}><span className="sm:hidden">Legit</span><span className="hidden sm:inline">Actual:<br />Legit</span></p>
           </div>
           <div className="h-24 flex items-center justify-end pr-3">
-            <p className="text-white/40 text-xs text-right" style={MONO}>Actual:<br />Scam</p>
+            <p className="text-white/40 text-xs text-right" style={MONO}><span className="sm:hidden">Scam</span><span className="hidden sm:inline">Actual:<br />Scam</span></p>
           </div>
         </div>
         {/* 2×2 grid */}
@@ -200,7 +200,7 @@ function ConfusionMatrix() {
           {cells.map((c) => (
             <div key={c.label} className={`h-24 rounded-lg border ${c.bg} flex flex-col items-center justify-center gap-1`}>
               <p className={`text-2xl font-black ${c.color}`} style={MONO}>{c.value.toLocaleString()}</p>
-              <p className="text-white/50 text-[10px] text-center leading-tight" style={MONO}>{c.label}</p>
+              <p className="text-white/50 text-[10px] text-center leading-tight hidden sm:block" style={MONO}>{c.label}</p>
               <p className="text-white/25 text-[9px]" style={MONO}>{((c.value / total) * 100).toFixed(1)}%</p>
             </div>
           ))}

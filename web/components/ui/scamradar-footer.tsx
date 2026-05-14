@@ -129,7 +129,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
             >
               © {new Date().getFullYear()} ScamRadar+. All rights reserved. · Built with Next.js, scikit-learn & FAISS.
             </p>
-            <nav className="flex gap-4 items-center">
+            <nav className="flex flex-col sm:flex-row gap-1 sm:gap-4 items-center text-center sm:text-left">
               <span className="text-xs text-white/15" style={{ fontFamily: "monospace" }}>
                 Messages are not stored · Free to use
               </span>
