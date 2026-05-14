@@ -265,6 +265,351 @@ function RainingCanvas() {
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />
 }
 
+// ─── Demo modal — mini browser window ─────────────────────────────────────────
+
+type DemoVerdict = 'SCAM' | 'SUSPICIOUS' | 'LEGIT'
+
+const DEMO_EXAMPLES: Array<{
+  message: string; verdict: DemoVerdict; confidence: number; type: string;
+  urgency: number; fear: number; reward: number; threat: number;
+}> = [
+  {
+    message: "URGENT: Your PayPal account has been suspended! Verify now at http://paypal-secure-verify.tk/login or lose access permanently.",
+    verdict: "SCAM", confidence: 97, type: "Phishing",
+    urgency: 3, fear: 2, reward: 0, threat: 2,
+  },
+  {
+    message: "I turned $500 into $12,000 in 6 weeks with this crypto bot. DM me for the link. No experience needed. Guaranteed returns every month.",
+    verdict: "SCAM", confidence: 94, type: "Investment Scam",
+    urgency: 1, fear: 0, reward: 3, threat: 0,
+  },
+  {
+    message: "Your Amazon order #113-5234891 has shipped. Estimated delivery Thursday. Track your package at amazon.com/orders",
+    verdict: "LEGIT", confidence: 96, type: "Legitimate",
+    urgency: 0, fear: 0, reward: 0, threat: 0,
+  },
+]
+
+type DemoPhase = 'typing' | 'clicking' | 'scanning' | 'result'
+
+function MiniSendBtn({ phase }: { phase: DemoPhase }) {
+  const isLoading = phase === 'scanning'
+  const isClicking = phase === 'clicking'
+  return (
+    <motion.div
+      animate={{ scale: isClicking ? 0.82 : 1 }}
+      transition={{ duration: 0.12 }}
+      className="w-7 h-7 rounded-full flex items-center justify-center"
+      style={{
+        background: 'rgba(74,222,128,0.18)',
+        border: '1px solid rgba(74,222,128,0.4)',
+        boxShadow: isLoading ? '0 0 10px rgba(74,222,128,0.25)' : 'none',
+      }}
+    >
+      {isLoading ? (
+        <div className="w-3 h-3 rounded-full border border-green-400/30 border-t-green-400 animate-spin" />
+      ) : (
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="#4ade80" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </motion.div>
+  )
+}
+
+function MiniGauge({ value, color }: { value: number; color: string }) {
+  return (
+    <svg width="120" height="70" viewBox="0 0 120 70" aria-hidden="true">
+      {/* Track */}
+      <path d="M 14 64 A 46 46 0 0 1 106 64"
+        stroke="rgba(255,255,255,0.07)" strokeWidth="9" fill="none" strokeLinecap="round" />
+      {/* Glow layer */}
+      <motion.path d="M 14 64 A 46 46 0 0 1 106 64"
+        stroke={color} strokeWidth="9" fill="none" strokeLinecap="round"
+        strokeOpacity={0.25} filter="blur(4px)"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: value / 100 }}
+        transition={{ duration: 1.1, ease: 'easeOut', delay: 0.15 }}
+      />
+      {/* Main arc */}
+      <motion.path d="M 14 64 A 46 46 0 0 1 106 64"
+        stroke={color} strokeWidth="9" fill="none" strokeLinecap="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: value / 100 }}
+        transition={{ duration: 1.1, ease: 'easeOut', delay: 0.15 }}
+      />
+      {/* Value */}
+      <motion.text x="60" y="56" textAnchor="middle" fill={color}
+        fontSize="20" fontWeight="900" fontFamily="monospace"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+      >
+        {value}%
+      </motion.text>
+    </svg>
+  )
+}
+
+function DemoModal({ onClose }: { onClose: () => void }) {
+  const [exIdx, setExIdx]         = useState(0)
+  const [typedText, setTypedText] = useState('')
+  const [phase, setPhase]         = useState<DemoPhase>('typing')
+
+  const ex    = DEMO_EXAMPLES[exIdx]
+  const color = ex.verdict === 'SCAM' ? '#EF4444' : ex.verdict === 'SUSPICIOUS' ? '#F59E0B' : '#22C55E'
+  const icon  = ex.verdict === 'SCAM'
+    ? <ShieldX className="w-3.5 h-3.5" />
+    : ex.verdict === 'LEGIT'
+    ? <ShieldCheck className="w-3.5 h-3.5" />
+    : <AlertCircle className="w-3.5 h-3.5" />
+
+  // Reset on example change
+  useEffect(() => { setTypedText(''); setPhase('typing') }, [exIdx])
+
+  // Typewriter
+  useEffect(() => {
+    if (phase !== 'typing') return
+    if (typedText.length >= ex.message.length) {
+      const t = setTimeout(() => setPhase('clicking'), 400)
+      return () => clearTimeout(t)
+    }
+    const speed = typedText.length < 20 ? 28 : 16
+    const t = setTimeout(() => setTypedText(ex.message.slice(0, typedText.length + 1)), speed)
+    return () => clearTimeout(t)
+  }, [phase, typedText, ex])
+
+  // Click animation → scanning
+  useEffect(() => {
+    if (phase !== 'clicking') return
+    const t = setTimeout(() => setPhase('scanning'), 300)
+    return () => clearTimeout(t)
+  }, [phase])
+
+  // Scanning → result
+  useEffect(() => {
+    if (phase !== 'scanning') return
+    const t = setTimeout(() => setPhase('result'), 1800)
+    return () => clearTimeout(t)
+  }, [phase])
+
+  // Auto-advance
+  useEffect(() => {
+    if (phase !== 'result') return
+    const t = setTimeout(() => setExIdx(i => (i + 1) % DEMO_EXAMPLES.length), 4000)
+    return () => clearTimeout(t)
+  }, [phase])
+
+  // Escape
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', fn)
+    return () => document.removeEventListener('keydown', fn)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}
+      />
+
+      {/* Outer wrapper: label + browser + dots */}
+      <motion.div
+        className="relative w-full max-w-lg flex flex-col gap-3"
+        initial={{ opacity: 0, scale: 0.93, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.93, y: 14 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Top row: label + close */}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-green-400 text-[10px] font-semibold uppercase tracking-widest" style={{ fontFamily: 'monospace' }}>
+            Live Demo · {exIdx + 1}/{DEMO_EXAMPLES.length}
+          </p>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/8 transition-all"
+            aria-label="Close demo"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Browser window ── */}
+        <div className="rounded-xl overflow-hidden" style={{
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 20px 80px rgba(0,0,0,0.8), 0 0 40px rgba(34,197,94,0.05)',
+        }}>
+
+          {/* Chrome bar */}
+          <div className="flex items-center gap-2 px-3 py-2" style={{ background: 'rgba(20,20,20,0.98)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Traffic lights */}
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
+            </div>
+            {/* URL bar */}
+            <div className="flex-1 mx-3 flex items-center gap-1.5 rounded-md px-2.5 py-0.5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400/60 shrink-0" />
+              <span className="text-white/35 text-[10px]" style={{ fontFamily: 'monospace' }}>scamradarplus.com</span>
+            </div>
+          </div>
+
+          {/* Page content */}
+          <div className="relative overflow-hidden" style={{ background: '#000', minHeight: phase === 'result' ? '340px' : '220px', transition: 'min-height 0.4s ease' }}>
+
+            {/* Subtle matrix-rain tint */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(34,197,94,0.06) 0%, transparent 60%)',
+            }} />
+
+            <div className="relative z-10 px-5 pt-5 pb-4 flex flex-col items-center gap-2.5">
+
+              {/* Mini ScamRadar+ title */}
+              <div className="text-center">
+                <p className="text-white font-black text-base tracking-tight leading-none" style={{ fontFamily: 'monospace' }}>
+                  SCAMRADAR<span className="text-green-400">+</span>
+                </p>
+                <p className="text-white/25 text-[9px] mt-0.5" style={{ fontFamily: 'monospace' }}>AI-powered scam detection</p>
+              </div>
+
+              {/* Mini mode toggle */}
+              <div className="flex gap-0.5 rounded-full p-0.5" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="text-[9px] px-2.5 py-1 rounded-full font-semibold" style={{ fontFamily: 'monospace', background: 'rgba(34,197,94,0.18)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
+                  Single Message
+                </div>
+                <div className="text-[9px] px-2.5 py-1 rounded-full text-white/30" style={{ fontFamily: 'monospace' }}>
+                  Full Conversation
+                </div>
+              </div>
+
+              {/* Mini textarea */}
+              <div className="w-full rounded-xl p-[1px]" style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
+                boxShadow: typedText.length > 0 ? '0 0 14px rgba(34,197,94,0.18)' : 'none',
+              }}>
+                <div className="relative rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '62px' }}>
+                  <p className="text-white/80 text-[10px] leading-relaxed pr-8" style={{ fontFamily: 'monospace' }}>
+                    {typedText || <span className="text-white/20">Paste any suspicious message here…</span>}
+                    {phase === 'typing' && typedText.length > 0 && (
+                      <span className="inline-block w-[1.5px] h-[11px] bg-green-400 ml-[1px] align-text-bottom animate-pulse" />
+                    )}
+                  </p>
+                  {/* Mini send button */}
+                  <div className="absolute bottom-2 right-2">
+                    <MiniSendBtn phase={phase} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Result card — mirrors the real UI */}
+              <AnimatePresence>
+                {phase === 'result' && (
+                  <motion.div
+                    key="demo-result"
+                    className="w-full rounded-xl overflow-hidden"
+                    style={{ background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {/* Gauge row */}
+                    <div className="flex flex-col items-center pt-3 pb-1">
+                      <MiniGauge value={ex.confidence} color={color} />
+                      {/* Verdict label */}
+                      <motion.div
+                        className="flex items-center gap-1.5 font-black text-sm tracking-widest"
+                        style={{ fontFamily: 'monospace', color }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                      >
+                        {icon}
+                        {ex.verdict}
+                      </motion.div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="mx-3 my-2" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+
+                    {/* Tone signals — 4 cols matching real UI */}
+                    <motion.div
+                      className="grid grid-cols-4 gap-1.5 px-3 pb-3"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+                    >
+                      {[
+                        { label: 'Urgency', val: ex.urgency },
+                        { label: 'Fear',    val: ex.fear },
+                        { label: 'Reward',  val: ex.reward },
+                        { label: 'Threat',  val: ex.threat },
+                      ].map(({ label, val }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <span className="text-[8px] text-white/30" style={{ fontFamily: 'monospace' }}>{label}</span>
+                          <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: val > 0 ? color : 'rgba(255,255,255,0.1)' }}
+                              initial={{ width: 0 }}
+                              animate={{ width: val > 0 ? `${(val / 3) * 100}%` : '8%' }}
+                              transition={{ duration: 0.5, delay: 0.8 }}
+                            />
+                          </div>
+                          <span className="text-[8px] font-bold" style={{ fontFamily: 'monospace', color: val > 0 ? color : 'rgba(255,255,255,0.2)' }}>
+                            {val}/3
+                          </span>
+                        </div>
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Scanning overlay inside browser */}
+              <AnimatePresence>
+                {phase === 'scanning' && (
+                  <motion.div
+                    key="demo-scanning"
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg"
+                    style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)' }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  >
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                    </span>
+                    <span className="text-green-400/70 text-[9px]" style={{ fontFamily: 'monospace' }}>Running AI pipeline…</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+            </div>
+          </div>
+        </div>
+
+        {/* Dot nav below browser */}
+        <div className="flex items-center justify-center gap-2">
+          {DEMO_EXAMPLES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setExIdx(i)}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === exIdx ? '20px' : '6px',
+                height: '6px',
+                background: i === exIdx ? '#4ade80' : 'rgba(255,255,255,0.15)',
+              }}
+              aria-label={`Example ${i + 1}`}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 // ─── Main hero component ───────────────────────────────────────────────────────
 
 const RainingLetters: React.FC = () => {
@@ -273,6 +618,7 @@ const RainingLetters: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
   const [warmingUp, setWarmingUp] = useState(false)
+  const [showDemo, setShowDemo] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [conversationMode, setConversationMode] = useState(false)
@@ -432,8 +778,8 @@ const RainingLetters: React.FC = () => {
           {/* Input box */}
           <div className="w-full">
 
-            {/* Mode toggle */}
-            <div className="flex justify-center mb-2">
+            {/* Mode toggle + demo button */}
+            <div className="flex items-center justify-center gap-2 mb-2">
               <div className="flex gap-1 bg-black/60 border border-white/10 rounded-full p-1 backdrop-blur-sm">
                 <button
                   onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
@@ -460,7 +806,23 @@ const RainingLetters: React.FC = () => {
                   Full Conversation
                 </button>
               </div>
+              {/* Demo trigger */}
+              <button
+                onClick={() => setShowDemo(true)}
+                title="See a demo"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
+                style={{
+                  fontFamily: 'monospace',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                }}
+              >
+                ?
+              </button>
             </div>
+
+            {/* Demo modal */}
+            {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
             <div className={cn(
               'relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
