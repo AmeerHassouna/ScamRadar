@@ -103,8 +103,7 @@ export function AnimatedNavFramer() {
 
             {/* Logo */}
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Link
-                href="/#home"
+              <button
                 onClick={() => handleLinkClick("/#home")}
                 className="flex items-center gap-2"
               >
@@ -114,7 +113,7 @@ export function AnimatedNavFramer() {
                 <span className="text-white font-black text-sm tracking-tight" style={MONO}>
                   ScamRadar<span className="text-green-400">+</span>
                 </span>
-              </Link>
+              </button>
             </motion.div>
 
             {/* Desktop nav links */}

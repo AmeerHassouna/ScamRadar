@@ -4,6 +4,10 @@ import Link from "next/link";
 import { ShieldCheck, GitFork, Mail, Globe, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+}
+
 interface FooterLink {
   label: string;
   href: string;
@@ -38,9 +42,9 @@ const socialLinks: SocialLink[] = [
 ];
 
 const navLinks: FooterLink[] = [
-  { label: "Home", href: "/#home" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Team", href: "/#team" },
+  { label: "Home", href: "home" },
+  { label: "How It Works", href: "how-it-works" },
+  { label: "Team", href: "team" },
 ];
 
 export function ScamRadarFooter({ className }: FooterProps) {
@@ -104,14 +108,14 @@ export function ScamRadarFooter({ className }: FooterProps) {
               {/* Nav links */}
               <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-semibold uppercase tracking-widest text-white/40">
                 {navLinks.map((link, index) => (
-                  <Link
+                  <button
                     key={index}
-                    href={link.href}
+                    onClick={() => scrollTo(link.href)}
                     className="hover:text-green-400 transition-colors duration-300"
                     style={{ fontFamily: "monospace" }}
                   >
                     {link.label}
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
