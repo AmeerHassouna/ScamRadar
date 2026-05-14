@@ -270,13 +270,21 @@ async def health(request: Request):
     return {'status': 'ok', 'model': 'ScamRadar+ v5', **cache_info()}
 
 
+@app.get('/warmup')
+@limiter.limit("30/minute")
+async def warmup(request: Request):
+    """Fires a lightweight prediction to ensure all model code paths are hot."""
+    await _predict("URGENT: Your account has been suspended. Verify now at http://secure-login.tk")
+    return {'status': 'warm'}
+
+
 @app.get('/stats')
 @limiter.limit("30/minute")
 async def stats(request: Request):
     return {
-        'total_messages': 45851,
-        'scam_messages':  21955,
-        'legit_messages': 23896,
+        'total_messages': 46360,
+        'scam_messages':  22164,
+        'legit_messages': 24196,
         'channels':       4,
         'accuracy':       97.39,
         'precision':      97.47,

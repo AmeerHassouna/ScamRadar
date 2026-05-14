@@ -272,12 +272,22 @@ const RainingLetters: React.FC = () => {
   // Detect input state
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
+  const [warmingUp, setWarmingUp] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [conversationMode, setConversationMode] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Ping the API immediately on page load so the server wakes up before the user submits
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+    fetch(`${base}/health`).catch(() => {})
+    // Keep the server warm every 9 min while the tab stays open
+    const id = setInterval(() => fetch(`${base}/health`).catch(() => {}), 9 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'error', duration = 5000) => {
     setToasts(prev => [...prev, { id: nextId(), message, type, duration }])
@@ -311,6 +321,7 @@ const RainingLetters: React.FC = () => {
   const handleAnalyse = async () => {
     if (!prompt.trim()) return
     setIsAnalysing(true)
+    setWarmingUp(false)
     setResult(null)
     setToasts([])
 
@@ -318,8 +329,17 @@ const RainingLetters: React.FC = () => {
     const endpoint = conversationMode ? `${base}/analyze-conversation` : `${base}/predict`
     const body = { text: prompt.trim() }
 
+    // Show "warming up" state if the first response takes > 4s
+    const warmupTimer = setTimeout(() => setWarmingUp(true), 4000)
+
     const MAX_RETRIES = 3
     const RETRY_DELAY = 8000
+
+    const finish = () => {
+      clearTimeout(warmupTimer)
+      setWarmingUp(false)
+      setIsAnalysing(false)
+    }
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -338,7 +358,7 @@ const RainingLetters: React.FC = () => {
               : errText || `Server error ${response.status}`
           )
           addToast(detail, 'error')
-          setIsAnalysing(false)
+          finish()
           return
         }
         const data = await response.json()
@@ -361,7 +381,7 @@ const RainingLetters: React.FC = () => {
               : detailToString(data.detail),
             'error'
           )
-          setIsAnalysing(false)
+          finish()
           return
         }
 
@@ -374,17 +394,18 @@ const RainingLetters: React.FC = () => {
         data.confidence = Math.min(100, Math.max(0, safeNum(data.confidence, 0)))
 
         setResult(data)
-        setIsAnalysing(false)
+        finish()
         return
       } catch (err) {
         if (attempt < MAX_RETRIES) {
+          setWarmingUp(true)
           const secs = RETRY_DELAY / 1000
-          addToast(`API is waking up (free-tier cold start — up to 60 s). Retrying in ${secs}s…`, 'warning', RETRY_DELAY)
+          addToast(`Server is waking up — retrying in ${secs}s…`, 'warning', RETRY_DELAY)
           await new Promise(r => setTimeout(r, RETRY_DELAY))
         } else {
           addToast('Could not reach the API. Check your connection and try again.', 'error')
           console.error('API error:', err)
-          setIsAnalysing(false)
+          finish()
         }
       }
     }
@@ -502,6 +523,22 @@ const RainingLetters: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Warming-up banner */}
+            {warmingUp && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl border border-green-400/20 bg-green-400/5"
+                style={{ fontFamily: 'monospace' }}
+              >
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                </span>
+                <span className="text-green-400/80 text-xs">Warming up AI model — first run takes a few seconds…</span>
+              </motion.div>
+            )}
 
             {/* Quick example pills */}
             {!result && (

@@ -9,6 +9,7 @@ import numpy as np
 import faiss
 from urllib.parse import urlparse
 from scipy.sparse import hstack, csr_matrix
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config import (MODELS_PATH, NUMERICAL_FEATURES_V5, DEFAULT_THRESHOLD,
@@ -113,6 +114,16 @@ def check_url_google_safebrowsing(url, api_key):
 
 # ── Load pipeline artefacts ────────────────────────────────────────────────
 
+def _load_pkl(path: str):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+
+def _load_st_model():
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+
 def load_pipeline():
     scam_index_path = os.path.join(MODELS_PATH, 'scam_faiss.index')
     if not os.path.exists(scam_index_path):
@@ -120,25 +131,29 @@ def load_pipeline():
             "Model files not found. Please run main.py first to train the models."
         )
 
-    print("Loading ScamRadar+ pipeline...")
-    payload     = pickle.load(open(os.path.join(MODELS_PATH, 'scamradar_model.pkl'),   'rb'))
-    tfidf       = pickle.load(open(os.path.join(MODELS_PATH, 'tfidf_vectorizer.pkl'),  'rb'))
-    char_tfidf  = pickle.load(open(os.path.join(MODELS_PATH, 'char_vectorizer.pkl'),   'rb'))
-    scaler      = pickle.load(open(os.path.join(MODELS_PATH, 'scaler.pkl'),             'rb'))
-    scam_index  = faiss.read_index(scam_index_path)
-
     legit_index_path = os.path.join(MODELS_PATH, 'legit_faiss.index')
-    legit_index = faiss.read_index(legit_index_path) if os.path.exists(legit_index_path) else None
+    has_legit = os.path.exists(legit_index_path)
 
-    from sentence_transformers import SentenceTransformer
-    st_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("Loading ScamRadar+ pipeline (parallel)...")
+    with ThreadPoolExecutor(max_workers=6) as exe:
+        f_payload    = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scamradar_model.pkl'))
+        f_tfidf      = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'tfidf_vectorizer.pkl'))
+        f_char_tfidf = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'char_vectorizer.pkl'))
+        f_scaler     = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scaler.pkl'))
+        f_scam_idx   = exe.submit(faiss.read_index, scam_index_path)
+        f_legit_idx  = exe.submit(faiss.read_index, legit_index_path) if has_legit else None
+        f_st         = exe.submit(_load_st_model)
 
-    if isinstance(payload, dict):
-        model = payload['model']
-    else:
-        model = payload
+        payload    = f_payload.result()
+        tfidf      = f_tfidf.result()
+        char_tfidf = f_char_tfidf.result()
+        scaler     = f_scaler.result()
+        scam_index = f_scam_idx.result()
+        legit_index = f_legit_idx.result() if f_legit_idx else None
+        st_model   = f_st.result()
 
-    print(f"✅ Pipeline loaded  (threshold={DEFAULT_THRESHOLD:.2f})")
+    model = payload['model'] if isinstance(payload, dict) else payload
+    print(f"✅ Pipeline loaded (threshold={DEFAULT_THRESHOLD:.2f})")
     return model, tfidf, char_tfidf, scaler, scam_index, st_model
 
 
