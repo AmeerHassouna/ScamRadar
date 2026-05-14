@@ -103,4 +103,28 @@ const questions = [
         content:
             'A 0–100 score reflecting how certain the model is. For SCAM verdicts it represents scam confidence; for LEGIT verdicts it is inverted (100 − score = legitimacy confidence). Scores above 85 are high-confidence; 50–85 warrant a closer look.',
     },
+    {
+        id: 'item-10',
+        title: 'Is ScamRadar+ free to use?',
+        content:
+            'Yes — completely free. No account, no subscription, no credit card required. Paste any message and get an instant verdict. The tool is free to use directly on this site, and the developer API is also openly accessible.',
+    },
+    {
+        id: 'item-11',
+        title: 'Are my messages stored or shared?',
+        content:
+            'No. Messages you submit are analysed in real time and are not stored, logged, or used for model retraining. The API processes your text and returns a result — nothing is written to a database. Do not submit passwords or highly sensitive personal data as a general security practice.',
+    },
+    {
+        id: 'item-12',
+        title: 'What should I do after ScamRadar+ flags a message as SCAM?',
+        content:
+            'Do not click any links or call any numbers in the message. Block and report the sender on the platform you received it. If you already shared financial information, contact your bank immediately. You can report scams to the FTC at reportfraud.ftc.gov (US), Action Fraud at actionfraud.police.uk (UK), or your local consumer protection authority.',
+    },
+    {
+        id: 'item-13',
+        title: 'How is this different from Gmail\'s spam filter or built-in phone protection?',
+        content:
+            'Standard spam filters are trained to detect known bad senders and bulk mail — they block most obvious spam but miss targeted social engineering, romance scams, WhatsApp fraud, and sophisticated phishing that uses clean domains. ScamRadar+ analyses the actual text content and tone of a message, catches slow-burn manipulation tactics, and works on any platform — not just email.',
+    },
 ];

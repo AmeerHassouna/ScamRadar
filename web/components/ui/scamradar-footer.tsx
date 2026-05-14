@@ -64,7 +64,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
                 className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-4"
                 style={{ fontFamily: "monospace" }}
               >
-                BSc Final Year Project · Emek Yezreel College · 2026
+                Academic Research Project · AI &amp; Machine Learning · 2026
               </p>
 
               {/* Brand name */}
@@ -129,7 +129,10 @@ export function ScamRadarFooter({ className }: FooterProps) {
             >
               © {new Date().getFullYear()} ScamRadar+. All rights reserved. · Built with Next.js, scikit-learn & FAISS.
             </p>
-            <nav className="flex gap-4">
+            <nav className="flex gap-4 items-center">
+              <span className="text-xs text-white/15" style={{ fontFamily: "monospace" }}>
+                Messages are not stored · Free to use
+              </span>
               <span
                 className="text-xs text-white/25"
                 style={{ fontFamily: "monospace" }}

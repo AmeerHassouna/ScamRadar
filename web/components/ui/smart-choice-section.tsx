@@ -88,9 +88,9 @@ export function SmartChoiceSection() {
             className="text-3xl sm:text-4xl font-black text-white lg:text-5xl leading-tight"
             style={{ fontFamily: "monospace" }}
           >
-            PROTECTION THAT
+            DETECTION THAT
             <br />
-            <span className="text-green-400">ACTUALLY PROTECTS</span>
+            <span className="text-green-400">ACTUALLY WORKS</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 14 }}
@@ -102,7 +102,8 @@ export function SmartChoiceSection() {
           >
             Most tools react after the damage. ScamRadar+ reads tone, intent, and semantic
             patterns — the exact signals scammers rely on — and gives you a verdict{" "}
-            <span className="text-white/75 font-semibold">before you act.</span>
+            <span className="text-white/75 font-semibold">before you act.</span>{" "}
+            Free to use. No account required.
           </motion.p>
         </div>
       </div>

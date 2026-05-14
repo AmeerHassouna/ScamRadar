@@ -373,6 +373,20 @@ export default function PerformancePage() {
             title="PERFORMANCE"
             sub="Calibrated Logistic Regression · 46,360 messages · 8,026 features · threshold = 0.47"
           />
+          {/* Plain-language metric glossary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 text-center">
+            {[
+              { term: 'Accuracy', plain: 'Out of all messages, how many did we classify correctly?' },
+              { term: 'Precision', plain: 'Of messages we called SCAM, what fraction really were scams?' },
+              { term: 'Recall', plain: 'Of all real scams in the dataset, what fraction did we catch?' },
+              { term: 'F1 Score', plain: 'Balanced average of Precision and Recall — the key overall quality score.' },
+            ].map(({ term, plain }) => (
+              <div key={term} className="bg-zinc-900/40 border border-white/6 rounded-xl p-3">
+                <p className="text-green-400 text-xs font-bold mb-1" style={MONO}>{term}</p>
+                <p className="text-white/35 text-[10px] leading-snug" style={MONO}>{plain}</p>
+              </div>
+            ))}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard title="Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline"
               icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} />

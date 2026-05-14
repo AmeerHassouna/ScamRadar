@@ -790,6 +790,7 @@ const RainingLetters: React.FC = () => {
                       : 'text-white/40 hover:text-white/60'
                   )}
                   style={{ fontFamily: 'monospace' }}
+                  title="Paste a single SMS, email, or chat message"
                 >
                   Single Message
                 </button>
@@ -802,6 +803,7 @@ const RainingLetters: React.FC = () => {
                       : 'text-white/40 hover:text-white/60'
                   )}
                   style={{ fontFamily: 'monospace' }}
+                  title="Paste a full chat thread or upload a .txt/.csv file — analyses the entire conversation at once"
                 >
                   Full Conversation
                 </button>
@@ -823,6 +825,11 @@ const RainingLetters: React.FC = () => {
 
             {/* Demo modal */}
             {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
+
+            {/* Trust badge */}
+            <p className="text-center text-[10px] text-white/25 mt-1 mb-1" style={{ fontFamily: 'monospace' }}>
+              Free to use · Messages are not stored · No account needed
+            </p>
 
             <div className={cn(
               'relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
@@ -898,7 +905,7 @@ const RainingLetters: React.FC = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
                 </span>
-                <span className="text-green-400/80 text-xs">Warming up AI model — first run takes a few seconds…</span>
+                <span className="text-green-400/80 text-xs">Warming up AI model — first request may take up to 30 seconds…</span>
               </motion.div>
             )}
 
@@ -988,6 +995,29 @@ const RainingLetters: React.FC = () => {
                     )}
                   </div>
 
+                  {/* What to do next — SCAM / SUSPICIOUS only */}
+                  {(result.verdict === 'SCAM' || result.verdict === 'SUSPICIOUS') && (
+                    <div className="rounded-lg border border-red-400/15 bg-red-400/5 p-3 mb-3">
+                      <p className="text-[10px] font-semibold text-white/50 mb-2 uppercase tracking-wider" style={{ fontFamily: 'monospace' }}>What should you do?</p>
+                      <ul className="space-y-1.5">
+                        {[
+                          'Do not click any links or call any number in this message',
+                          'Block and report the sender on the platform you received it',
+                          'If financial details were shared, contact your bank immediately',
+                        ].map((action) => (
+                          <li key={action} className="flex items-start gap-2 text-[10px] text-white/45" style={{ fontFamily: 'monospace' }}>
+                            <span className="text-red-400/70 shrink-0 mt-px">→</span>
+                            <span>{action}</span>
+                          </li>
+                        ))}
+                        <li className="flex items-start gap-2 text-[10px] text-white/45" style={{ fontFamily: 'monospace' }}>
+                          <span className="text-red-400/70 shrink-0 mt-px">→</span>
+                          <span>Report it: <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">reportfraud.ftc.gov</a> (US) · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/60 underline underline-offset-2">actionfraud.police.uk</a> (UK)</span>
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
                   {/* False-positive note for borderline verdicts */}
                   {result.verdict !== 'LEGIT' && safeNum(result.confidence) < 90 && (
                     <p className="text-[10px] text-white/25 text-center mb-3 px-2 leading-relaxed" style={{ fontFamily: 'monospace' }}>
@@ -998,15 +1028,16 @@ const RainingLetters: React.FC = () => {
                   {/* Tone bars */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                     {[
-                      { label: 'Urgency', value: safeNum(result.tone_urgency), color: 'bg-red-500' },
-                      { label: 'Fear',    value: safeNum(result.tone_fear),    color: 'bg-orange-500' },
-                      { label: 'Reward',  value: safeNum(result.tone_reward),  color: 'bg-yellow-500' },
-                      { label: 'Threat',  value: safeNum(result.tone_threat),  color: 'bg-red-700' },
+                      { label: 'Urgency', desc: 'Pressure to act immediately',          value: safeNum(result.tone_urgency), color: 'bg-red-500' },
+                      { label: 'Fear',    desc: 'Language designed to frighten you',     value: safeNum(result.tone_fear),    color: 'bg-orange-500' },
+                      { label: 'Reward',  desc: 'False prizes, money, or benefit lures', value: safeNum(result.tone_reward),  color: 'bg-yellow-500' },
+                      { label: 'Threat',  desc: 'Threats of arrest, loss, or exposure',  value: safeNum(result.tone_threat),  color: 'bg-red-700' },
                     ].map((tone) => (
-                      <div key={tone.label} className="bg-white/5 rounded-lg p-2">
-                        <div className="flex justify-between text-xs text-white/40 mb-1">
-                          <span>{tone.label}</span><span>{tone.value}</span>
+                      <div key={tone.label} className="bg-white/5 rounded-lg p-2" title={tone.desc}>
+                        <div className="flex justify-between text-xs text-white/40 mb-0.5">
+                          <span>{tone.label}</span><span>{tone.value}/4</span>
                         </div>
+                        <p className="text-[9px] text-white/20 mb-1.5 leading-none">{tone.desc}</p>
                         <div className="h-1 bg-white/10 rounded-full overflow-hidden">
                           <div
                             className={cn('h-full rounded-full', tone.color)}
