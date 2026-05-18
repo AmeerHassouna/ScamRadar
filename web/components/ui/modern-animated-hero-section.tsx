@@ -655,10 +655,10 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
         />
         {/* Overlaid number + label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor, fontFamily: 'monospace' }}>
+          <span className="text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor }}>
             {count}%
           </span>
-          <span className="text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]" style={{ fontFamily: 'monospace' }}>
+          <span className="text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]">
             CONFIDENCE
           </span>
         </div>
@@ -673,7 +673,7 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
       >
         <div className="flex items-center gap-2">
           {vIcon}
-          <p className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>{vLabel}</p>
+          <p className="text-sm font-black text-white">{vLabel}</p>
         </div>
         {!isLegit && scamType && typeof scamType === 'string' && (
           <p className="text-[8px] text-white/25 uppercase tracking-widest">
@@ -871,7 +871,6 @@ const RainingLetters: React.FC = () => {
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
                   )}
-                  style={{ fontFamily: 'monospace' }}
                   title="Paste a single SMS, email, or chat message"
                 >
                   <span className="sm:hidden">Single</span><span className="hidden sm:inline">Single Message</span>
@@ -884,7 +883,6 @@ const RainingLetters: React.FC = () => {
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
                   )}
-                  style={{ fontFamily: 'monospace' }}
                   title="Paste a full chat thread or upload a .txt/.csv file — analyses the entire conversation at once"
                 >
                   <span className="sm:hidden">Conversation</span><span className="hidden sm:inline">Full Conversation</span>
@@ -896,7 +894,6 @@ const RainingLetters: React.FC = () => {
                 title="See a demo"
                 className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
                 style={{
-                  fontFamily: 'monospace',
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.10)',
                 }}
@@ -909,13 +906,13 @@ const RainingLetters: React.FC = () => {
             {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
             {/* Trust badge */}
-            <p className="text-center text-[10px] text-white/25 mt-1 mb-1" style={{ fontFamily: 'monospace' }}>
+            <p className="text-center text-[10px] text-white/25 mt-1 mb-1">
               Free to use · Messages are not stored · No account needed
             </p>
 
             {/* Conversation mode hint */}
             {conversationMode && (
-              <p className="text-center text-[10px] text-white/30 mb-1" style={{ fontFamily: 'monospace' }}>
+              <p className="text-center text-[10px] text-white/30 mb-1">
                 Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation
               </p>
             )}
@@ -939,7 +936,6 @@ const RainingLetters: React.FC = () => {
                   : 'Paste any suspicious message here (min. 20 characters)...'}
                 rows={conversationMode ? 5 : 3}
                 className="w-full resize-none rounded-2xl bg-black/60 border border-white/10 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-green-500/30 backdrop-blur-md px-4 py-3 pb-12 text-sm"
-                style={{ fontFamily: 'monospace' }}
               />
               {/* Upload button — conversation mode only */}
               {conversationMode && (
@@ -954,7 +950,6 @@ const RainingLetters: React.FC = () => {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 min-h-[44px] transition-all duration-200"
-                    style={{ fontFamily: 'monospace' }}
                     title="Upload .txt, .md, .csv, .log, .json"
                   >
                     <Paperclip className="w-3 h-3" />
@@ -976,7 +971,7 @@ const RainingLetters: React.FC = () => {
               </div>
               {/* Character counter — shown when approaching / below minimum */}
               {prompt.length > 0 && prompt.trim().length < 20 && (
-                <div className="absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none" style={{ fontFamily: 'monospace' }}>
+                <div className="absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none">
                   {prompt.trim().length}/20 min
                 </div>
               )}
@@ -988,7 +983,6 @@ const RainingLetters: React.FC = () => {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl border border-green-400/20 bg-green-400/5"
-                style={{ fontFamily: 'monospace' }}
               >
                 <span className="relative flex h-2 w-2 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -1011,7 +1005,6 @@ const RainingLetters: React.FC = () => {
                     size="sm"
                     leadingIcon={ex.icon}
                     onClick={() => setPrompt(ex.text)}
-                    style={{ fontFamily: 'monospace' }}
                     className="border-white/10 bg-black/40 text-white/50 hover:text-white hover:border-white/30 rounded-full shrink-0"
                   >
                     {ex.label}
@@ -1082,7 +1075,7 @@ const RainingLetters: React.FC = () => {
                         {/* LEGIT: why it's safe */}
                         {isLegit && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
                               <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
                               Why this looks safe
                             </p>
@@ -1106,7 +1099,7 @@ const RainingLetters: React.FC = () => {
                         {/* SCAM/SUSPICIOUS: what to do */}
                         {!isLegit && (
                           <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5" style={{ fontFamily: 'monospace' }}>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
                               What to do now
                             </p>
                             <ul className="space-y-2">
@@ -1135,7 +1128,7 @@ const RainingLetters: React.FC = () => {
                         {/* Why flagged */}
                         {reasons.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3" />
                               What raised the alarm
                             </p>
@@ -1153,7 +1146,7 @@ const RainingLetters: React.FC = () => {
                         {/* Warning signals */}
                         {tones.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3" style={{ fontFamily: 'monospace' }}>Warning Signals</p>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
                             <div className="space-y-2.5">
                               {tones.map(tone => (
                                 <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
@@ -1176,7 +1169,7 @@ const RainingLetters: React.FC = () => {
                         {/* Link safety check */}
                         {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <LinkIcon className="w-3 h-3" />
                               Link Safety Check
                             </p>
