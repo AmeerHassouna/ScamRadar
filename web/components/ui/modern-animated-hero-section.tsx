@@ -655,10 +655,10 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
         />
         {/* Overlaid number + label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor }}>
+          <span className="font-mono text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor }}>
             {count}%
           </span>
-          <span className="text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]">
+          <span className="font-mono text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]">
             CONFIDENCE
           </span>
         </div>
@@ -673,10 +673,10 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
       >
         <div className="flex items-center gap-2">
           {vIcon}
-          <p className="text-sm font-black text-white">{vLabel}</p>
+          <p className="font-mono text-sm font-black text-white">{vLabel}</p>
         </div>
         {!isLegit && scamType && typeof scamType === 'string' && (
-          <p className="text-[8px] text-white/25 uppercase tracking-widest">
+          <p className="font-mono text-[8px] text-white/25 uppercase tracking-widest">
             {scamType.replace(/_/g, ' ')}
           </p>
         )}
@@ -866,7 +866,7 @@ const RainingLetters: React.FC = () => {
                 <button
                   onClick={() => { setConversationMode(false); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
                   className={cn(
-                    'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
+                    'font-mono text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     !conversationMode
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
@@ -878,7 +878,7 @@ const RainingLetters: React.FC = () => {
                 <button
                   onClick={() => { setConversationMode(true); setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
                   className={cn(
-                    'text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
+                    'font-mono text-xs px-3 py-1.5 min-h-[44px] rounded-full transition-all duration-200',
                     conversationMode
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'text-white/40 hover:text-white/60'
@@ -892,7 +892,7 @@ const RainingLetters: React.FC = () => {
               <button
                 onClick={() => setShowDemo(true)}
                 title="See a demo"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
+                className="font-mono w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white/35 hover:text-green-400 transition-all duration-200"
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.10)',
@@ -906,7 +906,7 @@ const RainingLetters: React.FC = () => {
             {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
             {/* Trust badge */}
-            <p className="text-center text-[10px] text-white/25 mt-1 mb-1">
+            <p className="font-mono text-center text-[10px] text-white/25 mt-1 mb-1">
               Free to use · Messages are not stored · No account needed
             </p>
 
@@ -1075,7 +1075,7 @@ const RainingLetters: React.FC = () => {
                         {/* LEGIT: why it's safe */}
                         {isLegit && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
                               <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
                               Why this looks safe
                             </p>
@@ -1084,13 +1084,13 @@ const RainingLetters: React.FC = () => {
                                 'No suspicious links or lookalike domains found',
                                 'Tone and phrasing match legitimate communication patterns',
                               ].map(pt => (
-                                <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
+                                <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
                                   <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
                                   {pt}
                                 </li>
                               ))}
                             </ul>
-                            <p className="text-[10px] text-white/30 mt-2.5 leading-relaxed">
+                            <p className="font-mono text-[10px] text-white/30 mt-2.5 leading-relaxed">
                               Still feels off? Verify directly with the sender — don't use contact details from the message itself.
                             </p>
                           </div>
@@ -1099,7 +1099,7 @@ const RainingLetters: React.FC = () => {
                         {/* SCAM/SUSPICIOUS: what to do */}
                         {!isLegit && (
                           <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
                               What to do now
                             </p>
                             <ul className="space-y-2">
@@ -1107,12 +1107,12 @@ const RainingLetters: React.FC = () => {
                                 'Block and report the sender on the platform you received it',
                                 'If you already shared financial details, contact your bank immediately',
                               ].map(action => (
-                                <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
+                                <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
                                   <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
                                   {action}
                                 </li>
                               ))}
-                              <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
+                              <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
                                 <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
                                 <span>
                                   Report at{' '}
@@ -1128,13 +1128,13 @@ const RainingLetters: React.FC = () => {
                         {/* Why flagged */}
                         {reasons.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3" />
                               What raised the alarm
                             </p>
                             <ul className="space-y-2">
                               {reasons.map((r: string, i: number) => (
-                                <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed">
+                                <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed font-mono">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400/55 shrink-0 mt-[5px]" />
                                   {r}
                                 </li>
@@ -1146,7 +1146,7 @@ const RainingLetters: React.FC = () => {
                         {/* Warning signals */}
                         {tones.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
                             <div className="space-y-2.5">
                               {tones.map(tone => (
                                 <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
@@ -1157,8 +1157,8 @@ const RainingLetters: React.FC = () => {
                                     ))}
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-[12px] text-white/65">{tone.label}</span>
-                                    <span className="hidden sm:inline text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
+                                    <span className="font-mono text-[12px] text-white/65">{tone.label}</span>
+                                    <span className="hidden sm:inline font-mono text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
                                   </div>
                                 </div>
                               ))}
@@ -1169,13 +1169,13 @@ const RainingLetters: React.FC = () => {
                         {/* Link safety check */}
                         {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
                           <div className="px-3 sm:px-4 py-3.5">
-                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <LinkIcon className="w-3 h-3" />
                               Link Safety Check
                             </p>
                             {result.urls_found.map((url: string) => (
                               <div key={url} className="flex items-center justify-between py-1 gap-2">
-                                <span className="text-[11px] text-white/35 truncate">{url}</span>
+                                <span className="font-mono text-[11px] text-white/35 truncate">{url}</span>
                                 {result.gsb_flagged ? (
                                   <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
                                     <ShieldX className="w-3 h-3" /> Dangerous
@@ -1194,7 +1194,7 @@ const RainingLetters: React.FC = () => {
 
                       {/* Borderline note */}
                       {!isLegit && safeNum(result.confidence) < 90 && (
-                        <p className="text-[10px] text-white/28 text-center px-4 pt-3 leading-relaxed">
+                        <p className="font-mono text-[10px] text-white/28 text-center px-4 pt-3 leading-relaxed">
                           Confidence below 90% — worth a second look. Legitimate security alerts can sometimes be flagged.
                         </p>
                       )}
@@ -1203,7 +1203,7 @@ const RainingLetters: React.FC = () => {
                       <div className="px-3 sm:px-4 pt-3 pb-4">
                         <button
                           onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
-                          className="w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
+                          className="font-mono w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
                         >
                           <span className="inline-block group-hover:-translate-x-0.5 transition-transform duration-150 text-base leading-none">←</span>
                           Scan another message
