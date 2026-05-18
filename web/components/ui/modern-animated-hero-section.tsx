@@ -1079,6 +1079,232 @@ const RainingLetters: React.FC = () => {
                   { label: 'Makes Threats',    desc: 'Threatens account loss, arrest, etc.', value: safeNum(result.tone_threat),  dot: '#DC2626' },
                 ].filter(t => t.value > 0)
 
+                // ── Shared sections ────────────────────────────────────────────
+                const sharedSections = (
+                  <div className="divide-y divide-white/[0.06]">
+                    {/* Why flagged */}
+                    {reasons.length > 0 && (
+                      <div className="px-3 sm:px-4 py-3.5">
+                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                          <AlertCircle className="w-3 h-3" />
+                          What raised the alarm
+                        </p>
+                        <ul className="space-y-2">
+                          {reasons.map((r: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400/55 shrink-0 mt-[5px]" />
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Warning signals */}
+                    {tones.length > 0 && (
+                      <div className="px-3 sm:px-4 py-3.5">
+                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
+                        <div className="space-y-2.5">
+                          {tones.map(tone => (
+                            <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
+                              <div className="flex gap-1 shrink-0">
+                                {[1,2,3,4].map(i => (
+                                  <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
+                                    style={{ background: i <= tone.value ? tone.dot : 'rgba(255,255,255,0.08)' }} />
+                                ))}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-mono text-[12px] text-white/65">{tone.label}</span>
+                                <span className="hidden sm:inline font-mono text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Link safety check */}
+                    {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
+                      <div className="px-3 sm:px-4 py-3.5">
+                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                          <LinkIcon className="w-3 h-3" />
+                          Link Safety Check
+                        </p>
+                        {result.urls_found.map((url: string) => (
+                          <div key={url} className="flex items-center justify-between py-1 gap-2">
+                            <span className="font-mono text-[11px] text-white/35 truncate">{url}</span>
+                            {result.gsb_flagged ? (
+                              <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
+                                <ShieldX className="w-3 h-3" /> Dangerous
+                              </span>
+                            ) : (
+                              <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
+                                <ShieldCheck className="w-3 h-3" /> Safe
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+
+                // ── Conversation result panel ───────────────────────────────────
+                if (conversationMode) {
+                  const totalMessages   = safeNum(result.total_messages, 0)
+                  const messagesAnalyzed = safeNum(result.messages_analyzed, 0)
+                  const fullScore   = safeNum(result.full_conversation_score, 0)
+                  const windowScore = safeNum(result.window_analysis_score, 0)
+                  const finalScore  = safeNum(result.final_messages_score, 0)
+
+                  const barColor = (s: number) =>
+                    s >= 65 ? '#EF4444' : s >= 40 ? '#F59E0B' : '#22C55E'
+
+                  const cvLabel = result.verdict === 'SCAM' ? 'This conversation is a scam'
+                    : result.verdict === 'SUSPICIOUS' ? 'This conversation looks suspicious'
+                    : 'This conversation looks safe'
+
+                  return (
+                    <motion.div
+                      ref={resultRef}
+                      key="result"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.28, ease: 'easeOut' }}
+                      className="mt-3 rounded-2xl overflow-hidden"
+                      style={{ background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
+                    >
+                      <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
+
+                        {/* Gauge */}
+                        <ConfidenceGauge
+                          displayConf={displayConf}
+                          vColor={vColor}
+                          vLabel={cvLabel}
+                          vIcon={vIcon}
+                          isLegit={isLegit}
+                          scamType={result.scam_type}
+                        />
+
+                        {/* Messages stat */}
+                        <p className="font-mono text-center text-[10px] text-white/25 -mt-2 pb-3">
+                          {messagesAnalyzed} of {totalMessages} messages analysed
+                        </p>
+
+                        <div className="divide-y divide-white/[0.06]">
+
+                          {/* Score breakdown — the unique insight of conversation mode */}
+                          <div className="px-3 sm:px-4 py-3.5">
+                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3.5">
+                              Conversation Breakdown
+                            </p>
+                            <div className="space-y-3">
+                              {([
+                                { label: 'Full thread',    score: fullScore,   desc: 'how the whole conversation reads' },
+                                { label: 'Peak window',    score: windowScore, desc: 'most suspicious stretch of messages' },
+                                { label: 'Final messages', score: finalScore,  desc: 'where scammers usually escalate' },
+                              ] as const).map(({ label, score, desc }) => (
+                                <div key={label}>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <div>
+                                      <span className="font-mono text-[12px] text-white/60">{label}</span>
+                                      <span className="hidden sm:inline font-mono text-[10px] text-white/25 ml-2">— {desc}</span>
+                                    </div>
+                                    <span className="font-mono text-[11px] font-bold" style={{ color: barColor(score) }}>
+                                      {Math.round(score)}%
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      style={{ background: barColor(score) }}
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${score}%` }}
+                                      transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* LEGIT: why it's safe */}
+                          {isLegit && (
+                            <div className="px-3 sm:px-4 py-3.5">
+                              <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                                <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
+                                Why this conversation looks safe
+                              </p>
+                              <ul className="space-y-2">
+                                {['No urgency language, manipulation, or pressure tactics found across the thread',
+                                  'No suspicious links or impersonation signals detected',
+                                  'Tone and patterns are consistent with legitimate conversation',
+                                ].map(pt => (
+                                  <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
+                                    <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
+                                    {pt}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="font-mono text-[10px] text-white/30 mt-2.5 leading-relaxed">
+                                Still uneasy? Trust your instincts — never share money or personal details over chat.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* SCAM/SUSPICIOUS: conversation-specific actions */}
+                          {!isLegit && (
+                            <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
+                              <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
+                                What to do now
+                              </p>
+                              <ul className="space-y-2">
+                                {[
+                                  'Stop responding — do not send money, gift cards, or personal details',
+                                  'Screenshot the full thread before you block or delete anything',
+                                  'Block and report the sender on every platform they contacted you on',
+                                ].map(action => (
+                                  <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
+                                    <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
+                                    {action}
+                                  </li>
+                                ))}
+                                <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
+                                  <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
+                                  <span>
+                                    Report at{' '}
+                                    <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>reportfraud.ftc.gov</a>
+                                    {' '}(US)
+                                    <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>actionfraud.police.uk</a> (UK)</span>
+                                  </span>
+                                </li>
+                              </ul>
+                            </div>
+                          )}
+
+                        </div>
+
+                        {/* Shared: why flagged, warning signals, link safety */}
+                        {sharedSections}
+
+                        {/* Reset */}
+                        <div className="px-3 sm:px-4 pt-3 pb-4">
+                          <button
+                            onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
+                            className="font-mono w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
+                          >
+                            <span className="inline-block group-hover:-translate-x-0.5 transition-transform duration-150 text-base leading-none">←</span>
+                            Analyse another conversation
+                          </button>
+                        </div>
+
+                      </ErrorBoundary>
+                    </motion.div>
+                  )
+                }
+
+                // ── Single-message result panel ────────────────────────────────
                 return (
                   <motion.div
                     ref={resultRef}
@@ -1092,7 +1318,7 @@ const RainingLetters: React.FC = () => {
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
-                      {/* ── Gauge ── */}
+                      {/* Gauge */}
                       <ConfidenceGauge
                         displayConf={displayConf}
                         vColor={vColor}
@@ -1102,7 +1328,7 @@ const RainingLetters: React.FC = () => {
                         scamType={result.scam_type}
                       />
 
-                      {/* ── Sections ── */}
+                      {/* Sections */}
                       <div className="divide-y divide-white/[0.06]">
 
                         {/* LEGIT: why it's safe */}
@@ -1158,72 +1384,10 @@ const RainingLetters: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Why flagged */}
-                        {reasons.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3.5">
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-                              <AlertCircle className="w-3 h-3" />
-                              What raised the alarm
-                            </p>
-                            <ul className="space-y-2">
-                              {reasons.map((r: string, i: number) => (
-                                <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed font-mono">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/55 shrink-0 mt-[5px]" />
-                                  {r}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Warning signals */}
-                        {tones.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3.5">
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
-                            <div className="space-y-2.5">
-                              {tones.map(tone => (
-                                <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
-                                  <div className="flex gap-1 shrink-0">
-                                    {[1,2,3,4].map(i => (
-                                      <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
-                                        style={{ background: i <= tone.value ? tone.dot : 'rgba(255,255,255,0.08)' }} />
-                                    ))}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="font-mono text-[12px] text-white/65">{tone.label}</span>
-                                    <span className="hidden sm:inline font-mono text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Link safety check */}
-                        {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3.5">
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                              <LinkIcon className="w-3 h-3" />
-                              Link Safety Check
-                            </p>
-                            {result.urls_found.map((url: string) => (
-                              <div key={url} className="flex items-center justify-between py-1 gap-2">
-                                <span className="font-mono text-[11px] text-white/35 truncate">{url}</span>
-                                {result.gsb_flagged ? (
-                                  <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
-                                    <ShieldX className="w-3 h-3" /> Dangerous
-                                  </span>
-                                ) : (
-                                  <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
-                                    <ShieldCheck className="w-3 h-3" /> Safe
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
                       </div>
+
+                      {/* Shared: why flagged, warning signals, link safety */}
+                      {sharedSections}
 
                       {/* Borderline note */}
                       {!isLegit && safeNum(result.confidence) < 90 && (
