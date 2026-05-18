@@ -125,14 +125,21 @@ def _load_st_model():
 
 
 def load_pipeline():
+    # Check if sentence_transformers is importable before loading FAISS indices.
+    # Without the encoder there is no way to create query embeddings, so loading
+    # the 33 MB index files would just waste RAM and startup time.
+    _st_available = False
+    try:
+        import sentence_transformers as _st  # noqa: F401
+        _st_available = True
+    except ImportError:
+        print("⚠️  sentence-transformers not installed; FAISS index will not be loaded")
+
     scam_index_path = os.path.join(MODELS_PATH, 'scam_faiss.index')
     if not os.path.exists(scam_index_path):
         raise FileNotFoundError(
             "Model files not found. Please run main.py first to train the models."
         )
-
-    legit_index_path = os.path.join(MODELS_PATH, 'legit_faiss.index')
-    has_legit = os.path.exists(legit_index_path)
 
     print("Loading ScamRadar+ pipeline (parallel)...")
     with ThreadPoolExecutor(max_workers=5) as exe:
@@ -140,23 +147,22 @@ def load_pipeline():
         f_tfidf      = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'tfidf_vectorizer.pkl'))
         f_char_tfidf = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'char_vectorizer.pkl'))
         f_scaler     = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scaler.pkl'))
-        f_scam_idx   = exe.submit(faiss.read_index, scam_index_path)
-        f_legit_idx  = exe.submit(faiss.read_index, legit_index_path) if has_legit else None
+        f_scam_idx   = exe.submit(faiss.read_index, scam_index_path) if _st_available else None
 
         payload    = f_payload.result()
         tfidf      = f_tfidf.result()
         char_tfidf = f_char_tfidf.result()
         scaler     = f_scaler.result()
-        scam_index = f_scam_idx.result()
-        legit_index = f_legit_idx.result() if f_legit_idx else None
+        scam_index = f_scam_idx.result() if f_scam_idx else None
 
     # ST model is optional — not available on low-memory deployments
     st_model = None
-    try:
-        st_model = _load_st_model()
-        print("✅ Sentence-transformers model loaded")
-    except Exception as e:
-        print(f"⚠️  Sentence-transformers unavailable ({e}); proximity_scam_score will be 0.0")
+    if _st_available:
+        try:
+            st_model = _load_st_model()
+            print("✅ Sentence-transformers model loaded")
+        except Exception as e:
+            print(f"⚠️  ST model load failed ({e}); proximity_scam_score will be 0.0")
 
     model = payload['model'] if isinstance(payload, dict) else payload
     print(f"✅ Pipeline loaded (threshold={DEFAULT_THRESHOLD:.2f})")
