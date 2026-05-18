@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -26,10 +27,39 @@ MAX_CONVERSATION_LENGTH   = 100_000    # 100 KB of plain text
 MAX_FILE_BYTES            = 1_048_576  # 1 MB binary
 ALLOWED_UPLOAD_EXTENSIONS = {'.txt', '.log', '.csv'}
 
+# ── Pipeline state — populated by background task at startup ──────────────────
+_pipe: dict | None = None
+
+
+async def _load_pipeline_bg() -> None:
+    global _pipe
+    print('Loading ScamRadar+ pipeline in background...')
+    try:
+        result = await asyncio.to_thread(load_pipeline)
+        _pipe = {
+            'model':      result[0],
+            'tfidf':      result[1],
+            'char_tfidf': result[2],
+            'scaler':     result[3],
+            'scam_index': result[4],
+            'st_model':   result[5],
+        }
+        print('✅ Pipeline ready!')
+    except Exception as exc:
+        print(f'❌ Pipeline load failed: {exc}')
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start loading in background — uvicorn serves requests immediately
+    asyncio.create_task(_load_pipeline_bg())
+    yield
+
+
 # ── Rate limiter ───────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
-app = FastAPI(title='ScamRadar+ API')
+app = FastAPI(title='ScamRadar+ API', lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -58,11 +88,6 @@ app.add_middleware(
     allow_methods=['GET', 'POST', 'OPTIONS'],
     allow_headers=['Content-Type', 'Authorization'],
 )
-
-# ── Load pipeline once at startup ─────────────────────────────────────────────
-print('Loading ScamRadar+ pipeline...')
-model, tfidf, char_tfidf, scaler, scam_index, st_model = load_pipeline()
-print('✅ Pipeline loaded!')
 
 
 # ── Request models ────────────────────────────────────────────────────────────
@@ -94,22 +119,20 @@ class ConversationRequest(BaseModel):
 # ── Core prediction helper (cache-aware, non-blocking) ─────────────────────────
 
 async def _predict(text: str, *, with_url_checks: bool = True) -> dict:
-    """
-    Returns a cached result instantly or runs predict_message in a thread pool
-    so the event loop is never blocked.
-    """
+    if _pipe is None:
+        raise HTTPException(status_code=503, detail='starting_up')
+
     cached = get_prediction(text)
     if cached is not None:
         return cached
 
-    vt_key  = VIRUSTOTAL_API_KEY  if with_url_checks else None
-    gsb_key = GOOGLE_SAFEBROWSING_API_KEY if with_url_checks else None
-
     result = await asyncio.to_thread(
         predict_message,
-        text, model, tfidf, char_tfidf, scaler, scam_index, st_model,
-        vt_api_key=vt_key,
-        gsb_api_key=gsb_key,
+        text,
+        _pipe['model'], _pipe['tfidf'], _pipe['char_tfidf'],
+        _pipe['scaler'], _pipe['scam_index'], _pipe['st_model'],
+        vt_api_key=VIRUSTOTAL_API_KEY  if with_url_checks else None,
+        gsb_api_key=GOOGLE_SAFEBROWSING_API_KEY if with_url_checks else None,
     )
     set_prediction(text, result)
     return result
@@ -176,13 +199,17 @@ async def analyze_conversation(request: Request, body: ConversationRequest):
     final_text  = ' '.join(texts[final_start:])
     final_task  = _predict(final_text, with_url_checks=True) if len(final_text.strip()) > 20 else None
 
-    # Run everything concurrently — cache hits return instantly, misses run in parallel threads
     all_tasks = [full_result_task] + window_tasks + ([final_task] if final_task else [])
-    all_results = await asyncio.gather(*all_tasks)
+    all_results = await asyncio.gather(*all_tasks, return_exceptions=True)
 
-    full_result   = all_results[0]
+    # Surface any exception (including 503 if pipeline not ready yet)
+    for r in all_results:
+        if isinstance(r, Exception):
+            raise r
+
+    full_result    = all_results[0]
     window_results = all_results[1:1 + len(window_tasks)]
-    final_result  = all_results[1 + len(window_tasks)] if final_task else None
+    final_result   = all_results[1 + len(window_tasks)] if final_task else None
 
     full_score = full_result['confidence'] / 100
 
@@ -267,7 +294,9 @@ async def login(request: Request):
 @app.get('/health')
 @limiter.limit("120/minute")
 async def health(request: Request):
-    return {'status': 'ok', 'model': 'ScamRadar+ v5', **cache_info()}
+    if _pipe is None:
+        return JSONResponse(status_code=200, content={'status': 'loading'})
+    return {'status': 'ready', 'model': 'ScamRadar+ v5', **cache_info()}
 
 
 @app.get('/warmup')

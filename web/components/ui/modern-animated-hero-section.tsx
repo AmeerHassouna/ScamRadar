@@ -693,6 +693,7 @@ const RainingLetters: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
   const [warmingUp, setWarmingUp] = useState(false)
+  const [serverReady, setServerReady] = useState(false)
   const [showDemo, setShowDemo] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -702,13 +703,30 @@ const RainingLetters: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultRef = useRef<HTMLDivElement>(null)
 
-  // Ping the API immediately on page load so the server wakes up before the user submits
+  // Poll /health on page load until the pipeline is ready, then keep warm every 9 min
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-    fetch(`${base}/health`).catch(() => {})
-    // Keep the server warm every 9 min while the tab stays open
+    let cancelled = false
+
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const res = await fetch(`${base}/health`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.status === 'ready') {
+              if (!cancelled) setServerReady(true)
+              break
+            }
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 2000))
+      }
+    }
+    poll()
+
     const id = setInterval(() => fetch(`${base}/health`).catch(() => {}), 9 * 60 * 1000)
-    return () => clearInterval(id)
+    return () => { cancelled = true; clearInterval(id) }
   }, [])
 
   useEffect(() => {
@@ -777,6 +795,12 @@ const RainingLetters: React.FC = () => {
           body: JSON.stringify(body),
         })
         if (!response.ok) {
+          // 503 = pipeline still loading — retry quickly with no error toast
+          if (response.status === 503 && attempt < MAX_RETRIES) {
+            setWarmingUp(true)
+            await new Promise(r => setTimeout(r, 3000))
+            continue
+          }
           const errText = await response.text()
           let parsed: unknown
           try { parsed = JSON.parse(errText) } catch { parsed = null }
@@ -822,6 +846,7 @@ const RainingLetters: React.FC = () => {
         data.confidence = Math.min(100, Math.max(0, safeNum(data.confidence, 0)))
 
         setResult(data)
+        setServerReady(true)
         finish()
         return
       } catch (err) {
@@ -906,9 +931,17 @@ const RainingLetters: React.FC = () => {
             {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
             {/* Trust badge */}
-            <p className="font-mono text-center text-[10px] text-white/25 mt-1 mb-1">
-              Free to use · Messages are not stored · No account needed
-            </p>
+            <div className="flex items-center justify-center gap-3 mt-1 mb-1">
+              <p className="font-mono text-center text-[10px] text-white/25">
+                Free to use · Messages are not stored · No account needed
+              </p>
+              {!serverReady && (
+                <span className="flex items-center gap-1 text-[10px] text-white/20 font-mono shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />
+                  Connecting…
+                </span>
+              )}
+            </div>
 
             {/* Conversation mode hint */}
             {conversationMode && (
