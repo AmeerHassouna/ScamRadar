@@ -3,7 +3,8 @@
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip } from "lucide-react"
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion"
+import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
+import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import SendButton from "@/components/ui/send-button"
@@ -609,7 +610,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ─── Semicircle confidence gauge ──────────────────────────────────────────────
+// ─── Circular confidence gauge ────────────────────────────────────────────────
 
 function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType }: {
   displayConf: number
@@ -619,112 +620,53 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
   isLegit: boolean
   scamType?: string
 }) {
-  const cx = 100, cy = 108, r = 82
-  const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
-  const ang = (displayConf / 100) * Math.PI
-  const dotX = cx - r * Math.cos(ang)
-  const dotY = cy - r * Math.sin(ang)
-  const showDot = displayConf > 2 && displayConf < 98
-
-  // Single spring drives both arc fill AND count-up number
+  // Spring drives the count-up number; gaugeValue triggers the CSS arc transition
   const mv = useMotionValue(0)
   const spring = useSpring(mv, { damping: 52, stiffness: 85 })
-  const dashOffset = useTransform(spring, v => 1 - v / 100)
   const [count, setCount] = useState(0)
+  const [gaugeValue, setGaugeValue] = useState(0)
+
   useEffect(() => {
     const unsub = spring.on('change', v => setCount(Math.round(v)))
-    const t = setTimeout(() => mv.set(displayConf), 130)
+    const t = setTimeout(() => {
+      mv.set(displayConf)
+      setGaugeValue(displayConf)
+    }, 130)
     return () => { unsub(); clearTimeout(t) }
   }, [displayConf, mv, spring])
 
   return (
     <div className="flex flex-col items-center pt-4 sm:pt-5 pb-2">
-      <motion.svg
-        viewBox="0 0 200 122"
-        className="w-40 sm:w-52"
-        fill="none"
-        style={{ overflow: 'visible' }}
+      <motion.div
+        className="relative w-36 sm:w-44 aspect-square"
         initial={{ opacity: 0, scale: 0.88 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
       >
-        <defs>
-          <filter id="scr-arc-glow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="scr-dot-glow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Track */}
-        <path d={arcPath} stroke="rgba(255,255,255,0.06)" strokeWidth="14" strokeLinecap="round" fill="none"/>
-
-        {/* Filled arc — driven by same spring as the number */}
-        <motion.path
-          d={arcPath}
-          stroke={vColor}
-          strokeWidth="13"
-          strokeLinecap="round"
-          fill="none"
-          pathLength={1}
-          strokeDasharray="1 0"
-          style={{ strokeDashoffset: dashOffset }}
-          filter="url(#scr-arc-glow)"
+        <Gauge
+          size="100%"
+          value={gaugeValue}
+          primary={vColor}
+          secondary="rgba(255,255,255,0.07)"
+          strokeWidth={10}
+          gapPercent={4}
+          showValue={false}
+          transition={{ length: 950, delay: 0 }}
         />
+        {/* Overlaid number + label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor, fontFamily: 'monospace' }}>
+            {count}%
+          </span>
+          <span className="text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]" style={{ fontFamily: 'monospace' }}>
+            CONFIDENCE
+          </span>
+        </div>
+      </motion.div>
 
-        {/* Dot: pulsing halo + spring pop + glow */}
-        {showDot && (
-          <>
-            {/* Halo pulse */}
-            <motion.circle
-              cx={dotX} cy={dotY} r={11}
-              fill={vColor}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.13, 0.03, 0.13] }}
-              transition={{ delay: 0.85, duration: 2.6, repeat: Infinity, ease: 'easeInOut', times: [0, 0.08, 0.55, 1] }}
-            />
-            {/* Glow layer */}
-            <circle cx={dotX} cy={dotY} r={5} fill={vColor} filter="url(#scr-dot-glow)"/>
-            {/* White core — spring pop */}
-            <motion.circle
-              cx={dotX} cy={dotY} r={3.5}
-              fill="rgba(255,255,255,0.88)"
-              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.82, type: 'spring', stiffness: 520, damping: 18 }}
-            />
-          </>
-        )}
-
-        {/* Count-up number */}
-        <text x="100" y="76" textAnchor="middle" dominantBaseline="middle"
-          fontSize="38" fontWeight="900" fill={vColor} style={{ fontFamily: 'monospace' }}>
-          {count}%
-        </text>
-        <text x="100" y="96" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8" fill="rgba(255,255,255,0.22)"
-          style={{ fontFamily: 'monospace', letterSpacing: '2.5px' }}>
-          CONFIDENCE
-        </text>
-
-        {/* Arc end labels */}
-        <text x={cx - r} y="120" textAnchor="start" fontSize="8.5" fill="rgba(255,255,255,0.18)"
-          style={{ fontFamily: 'monospace' }}>
-          {isLegit ? 'uncertain' : 'low'}
-        </text>
-        <text x={cx + r} y="120" textAnchor="end" fontSize="8.5" fill="rgba(255,255,255,0.18)"
-          style={{ fontFamily: 'monospace' }}>
-          {isLegit ? 'safe' : 'high'}
-        </text>
-      </motion.svg>
-
-      {/* Verdict label — slides in after gauge */}
+      {/* Verdict label */}
       <motion.div
-        className="flex items-center flex-wrap justify-center gap-x-2 gap-y-0.5 mt-0.5 px-4 text-center"
+        className="flex items-center flex-wrap justify-center gap-x-2 gap-y-0.5 mt-3 px-4 text-center"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32, duration: 0.3, ease: 'easeOut' }}
@@ -1120,7 +1062,7 @@ const RainingLetters: React.FC = () => {
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.28, ease: 'easeOut' }}
                     className="mt-3 rounded-2xl overflow-hidden"
-                    style={{ fontFamily: 'monospace', background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
+                    style={{ background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
@@ -1135,53 +1077,55 @@ const RainingLetters: React.FC = () => {
                       />
 
                       {/* ── Sections ── */}
-                      <div className="divide-y divide-white/[0.05]">
+                      <div className="divide-y divide-white/[0.06]">
 
                         {/* LEGIT: why it's safe */}
                         {isLegit && (
-                          <div className="px-3 sm:px-4 py-3">
-                            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <div className="px-3 sm:px-4 py-3.5">
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
                               <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
                               Why this looks safe
                             </p>
-                            <ul className="space-y-1.5">
+                            <ul className="space-y-2">
                               {['No urgency language, threats, or pressure tactics detected',
                                 'No suspicious links or lookalike domains found',
                                 'Tone and phrasing match legitimate communication patterns',
                               ].map(pt => (
-                                <li key={pt} className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
+                                <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
                                   <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
                                   {pt}
                                 </li>
                               ))}
                             </ul>
-                            <p className="text-[9px] text-white/20 mt-2 leading-relaxed">
-                              Stay vigilant — if something still feels off, verify directly with the sender.
+                            <p className="text-[10px] text-white/30 mt-2.5 leading-relaxed">
+                              Still feels off? Verify directly with the sender — don't use contact details from the message itself.
                             </p>
                           </div>
                         )}
 
                         {/* SCAM/SUSPICIOUS: what to do */}
                         {!isLegit && (
-                          <div className="px-3 sm:px-4 py-3">
-                            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2">⚠ What should you do?</p>
-                            <ul className="space-y-1.5">
+                          <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5" style={{ fontFamily: 'monospace' }}>
+                              What to do now
+                            </p>
+                            <ul className="space-y-2">
                               {['Do not click any links or call any number in this message',
                                 'Block and report the sender on the platform you received it',
-                                'If you shared any financial details, contact your bank immediately',
+                                'If you already shared financial details, contact your bank immediately',
                               ].map(action => (
-                                <li key={action} className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
-                                  <span className="text-red-400/50 shrink-0 mt-0.5">→</span>
+                                <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
+                                  <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
                                   {action}
                                 </li>
                               ))}
-                              <li className="flex items-start gap-2 text-[11px] text-white/50 leading-relaxed">
-                                <span className="text-red-400/50 shrink-0 mt-0.5">→</span>
+                              <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed">
+                                <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
                                 <span>
-                                  Report:{' '}
-                                  <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="text-red-400/50 underline underline-offset-2">reportfraud.ftc.gov</a>
+                                  Report at{' '}
+                                  <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>reportfraud.ftc.gov</a>
                                   {' '}(US)
-                                  <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="text-red-400/50 underline underline-offset-2">actionfraud.police.uk</a> (UK)</span>
+                                  <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>actionfraud.police.uk</a> (UK)</span>
                                 </span>
                               </li>
                             </ul>
@@ -1190,15 +1134,15 @@ const RainingLetters: React.FC = () => {
 
                         {/* Why flagged */}
                         {reasons.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3">
-                            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <div className="px-3 sm:px-4 py-3.5">
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
                               <AlertCircle className="w-3 h-3" />
-                              Why we flagged this
+                              What raised the alarm
                             </p>
-                            <ul className="space-y-1.5">
+                            <ul className="space-y-2">
                               {reasons.map((r: string, i: number) => (
-                                <li key={i} className="flex items-start gap-2 text-[11px] text-white/55 leading-relaxed">
-                                  <span className="text-amber-400/40 shrink-0 mt-0.5 text-[10px]">•</span>
+                                <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/55 shrink-0 mt-[5px]" />
                                   {r}
                                 </li>
                               ))}
@@ -1208,9 +1152,9 @@ const RainingLetters: React.FC = () => {
 
                         {/* Warning signals */}
                         {tones.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3">
-                            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2.5">Warning Signals</p>
-                            <div className="space-y-2">
+                          <div className="px-3 sm:px-4 py-3.5">
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3" style={{ fontFamily: 'monospace' }}>Warning Signals</p>
+                            <div className="space-y-2.5">
                               {tones.map(tone => (
                                 <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
                                   <div className="flex gap-1 shrink-0">
@@ -1220,8 +1164,8 @@ const RainingLetters: React.FC = () => {
                                     ))}
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-[11px] sm:text-xs text-white/60">{tone.label}</span>
-                                    <span className="hidden sm:inline text-[9px] text-white/22 ml-1.5">{tone.desc}</span>
+                                    <span className="text-[12px] text-white/65">{tone.label}</span>
+                                    <span className="hidden sm:inline text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
                                   </div>
                                 </div>
                               ))}
@@ -1231,20 +1175,20 @@ const RainingLetters: React.FC = () => {
 
                         {/* Link safety check */}
                         {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
-                          <div className="px-3 sm:px-4 py-3">
-                            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <div className="px-3 sm:px-4 py-3.5">
+                            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ fontFamily: 'monospace' }}>
                               <LinkIcon className="w-3 h-3" />
                               Link Safety Check
                             </p>
                             {result.urls_found.map((url: string) => (
-                              <div key={url} className="flex items-center justify-between py-0.5 gap-2">
-                                <span className="text-[10px] sm:text-[11px] text-white/30 truncate">{url}</span>
+                              <div key={url} className="flex items-center justify-between py-1 gap-2">
+                                <span className="text-[11px] text-white/35 truncate">{url}</span>
                                 {result.gsb_flagged ? (
-                                  <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px]">
+                                  <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
                                     <ShieldX className="w-3 h-3" /> Dangerous
                                   </span>
                                 ) : (
-                                  <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px]">
+                                  <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
                                     <ShieldCheck className="w-3 h-3" /> Safe
                                   </span>
                                 )}
@@ -1257,19 +1201,19 @@ const RainingLetters: React.FC = () => {
 
                       {/* Borderline note */}
                       {!isLegit && safeNum(result.confidence) < 90 && (
-                        <p className="text-[9px] text-white/20 text-center px-4 pt-2 leading-relaxed">
-                          Below 90% — worth double-checking. Some legitimate security alerts may occasionally be flagged.
+                        <p className="text-[10px] text-white/28 text-center px-4 pt-3 leading-relaxed">
+                          Confidence below 90% — worth a second look. Legitimate security alerts can sometimes be flagged.
                         </p>
                       )}
 
-                      {/* Reset */}
-                      <div className="px-4 py-3">
+                      {/* Scan again */}
+                      <div className="px-3 sm:px-4 pt-3 pb-4">
                         <button
                           onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
-                          className="w-full py-2 rounded-xl text-xs text-white/30 hover:text-white/55 border border-white/8 hover:border-white/18 transition-all"
-                          style={{ fontFamily: 'monospace' }}
+                          className="w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
                         >
-                          ← Analyse another message
+                          <span className="inline-block group-hover:-translate-x-0.5 transition-transform duration-150 text-base leading-none">←</span>
+                          Scan another message
                         </button>
                       </div>
 

@@ -135,14 +135,13 @@ def load_pipeline():
     has_legit = os.path.exists(legit_index_path)
 
     print("Loading ScamRadar+ pipeline (parallel)...")
-    with ThreadPoolExecutor(max_workers=6) as exe:
+    with ThreadPoolExecutor(max_workers=5) as exe:
         f_payload    = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scamradar_model.pkl'))
         f_tfidf      = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'tfidf_vectorizer.pkl'))
         f_char_tfidf = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'char_vectorizer.pkl'))
         f_scaler     = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scaler.pkl'))
         f_scam_idx   = exe.submit(faiss.read_index, scam_index_path)
         f_legit_idx  = exe.submit(faiss.read_index, legit_index_path) if has_legit else None
-        f_st         = exe.submit(_load_st_model)
 
         payload    = f_payload.result()
         tfidf      = f_tfidf.result()
@@ -150,7 +149,14 @@ def load_pipeline():
         scaler     = f_scaler.result()
         scam_index = f_scam_idx.result()
         legit_index = f_legit_idx.result() if f_legit_idx else None
-        st_model   = f_st.result()
+
+    # ST model is optional — not available on low-memory deployments
+    st_model = None
+    try:
+        st_model = _load_st_model()
+        print("✅ Sentence-transformers model loaded")
+    except Exception as e:
+        print(f"⚠️  Sentence-transformers unavailable ({e}); proximity_scam_score will be 0.0")
 
     model = payload['model'] if isinstance(payload, dict) else payload
     print(f"✅ Pipeline loaded (threshold={DEFAULT_THRESHOLD:.2f})")
@@ -288,10 +294,13 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     X_char_new  = char_tfidf.transform([text_norm])
 
     # ── 9. FAISS scam proximity ───────────────────────────────────────────
-    emb = st_model.encode([text_norm], convert_to_numpy=True).astype('float32')
-    faiss.normalize_L2(emb)
-    D_scam, _ = scam_index.search(emb, k=FAISS_K_SCAM)
-    prox_scam  = float(D_scam[0].mean())
+    if st_model is not None and scam_index is not None:
+        emb = st_model.encode([text_norm], convert_to_numpy=True).astype('float32')
+        faiss.normalize_L2(emb)
+        D_scam, _ = scam_index.search(emb, k=FAISS_K_SCAM)
+        prox_scam = float(D_scam[0].mean())
+    else:
+        prox_scam = 0.0
 
     # ── 10. Numerical feature vector ──────────────────────────────────────
     #  legit_proximity_score and proximity_delta intentionally excluded —

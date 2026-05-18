@@ -6,16 +6,11 @@ slowapi==0.1.9
 python-dotenv==1.2.2
 cachetools>=5.3
 
-# ML inference (torch installed separately in Dockerfile)
+# ML inference
 numpy
 scipy
 scikit-learn
 faiss-cpu
-sentence-transformers
-huggingface_hub
-transformers
-tokenizers
-safetensors
 
 # Feature engineering
 pandas
