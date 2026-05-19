@@ -11,24 +11,13 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   Cell, Legend, PolarRadiusAxis,
 } from "recharts";
+import { useTheme } from "next-themes";
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
-const G = "#4ade80";          // green-400
-const G2 = "#16a34a";         // green-700
-const WHITE = "rgba(255,255,255,0.55)";
-const GRID = "rgba(255,255,255,0.07)";
+// ─── Static palette (non-colour constants stay at module level) ───────────────
 const CARD = "bg-zinc-900/60 border border-white/10 rounded-xl";
 const MONO: React.CSSProperties = { fontFamily: "monospace" };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fmt = (fn: (v: number, name: string) => [string, string]) => (v: any, name: any) => fn(+v, String(name)) as [string, string];
-const TOOLTIP_STYLE = {
-  backgroundColor: "#111",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: 8,
-  color: "#fff",
-  fontFamily: "monospace",
-  fontSize: 12,
-};
 
 // ─── Real model data ──────────────────────────────────────────────────────────
 
@@ -101,12 +90,12 @@ const scamRadarData = [
 
 // Dataset composition
 const datasetData = [
-  { source: "SpamAssassin", scam: 0, legit: 4150, fill: G },
-  { source: "Enron Email", scam: 0, legit: 16545, fill: G },
-  { source: "PhishTank", scam: 11012, legit: 0, fill: "#60a5fa" },
-  { source: "SMS Spam", scam: 747, legit: 3621, fill: "#a78bfa" },
-  { source: "Reddit", scam: 509, legit: 671, fill: "#fb923c" },
-  { source: "Augmented", scam: 10156, legit: 2949, fill: "#f472b6" },
+  { source: "SpamAssassin", scam: 0, legit: 4150 },
+  { source: "Enron Email",  scam: 0, legit: 16545 },
+  { source: "PhishTank",    scam: 11012, legit: 0 },
+  { source: "SMS Spam",     scam: 747, legit: 3621 },
+  { source: "Reddit",       scam: 509, legit: 671 },
+  { source: "Augmented",    scam: 10156, legit: 2949 },
 ];
 
 // Precision-Recall sparkline (threshold sweep 0.1 → 0.9)
@@ -350,6 +339,28 @@ function ScamTypeTable() {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PerformancePage() {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== 'light'
+
+  // ─── Theme-aware chart palette ──────────────────────────────────────────
+  const G      = isDark ? "#4ade80" : "#15803d"   // green
+  const BLUE   = isDark ? "#60a5fa" : "#2563eb"   // blue
+  const PURPLE = isDark ? "#a78bfa" : "#7c3aed"   // purple
+  const ORANGE = isDark ? "#fb923c" : "#c2410c"   // orange
+  const WHITE  = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.55)"
+  const TICK   = isDark ? "rgba(255,255,255,0.30)" : "rgba(15,23,42,0.35)"
+  const GRID   = isDark ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.09)"
+  const DOTSTROKE = isDark ? "#000" : "#fff"
+  const TOOLTIP_STYLE = {
+    backgroundColor: isDark ? "#111" : "#ffffff",
+    border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.10)"}`,
+    borderRadius: 8,
+    color: isDark ? "#fff" : "#0f172a",
+    fontFamily: "monospace",
+    fontSize: 12,
+    ...(isDark ? {} : { boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }),
+  }
+
   return (
     <main className="bg-black min-h-screen pt-20 pb-24 px-4">
       <div className="max-w-7xl mx-auto space-y-24">
@@ -438,8 +449,8 @@ export default function PerformancePage() {
                   />
                   <Line type="monotone" dataKey="precision" stroke={G} strokeWidth={2} dot={false}
                     name="Precision" activeDot={{ r: 4, fill: G }} />
-                  <Line type="monotone" dataKey="recall" stroke="#60a5fa" strokeWidth={2} dot={false}
-                    name="Recall" activeDot={{ r: 4, fill: "#60a5fa" }} />
+                  <Line type="monotone" dataKey="recall" stroke={BLUE} strokeWidth={2} dot={false}
+                    name="Recall" activeDot={{ r: 4, fill: BLUE }} />
                 </LineChart>
               </ResponsiveContainer>
               <div className="flex gap-4 mt-2">
@@ -449,7 +460,7 @@ export default function PerformancePage() {
                 <span className="text-[10px] text-blue-400 flex items-center gap-1" style={MONO}>
                   <span className="w-3 h-0.5 bg-blue-400 inline-block" /> Recall
                 </span>
-                <span className="text-[10px] text-white/30 ml-auto" style={MONO}>▲ optimal @ 0.47</span>
+                <span className="text-[10px] text-white/40 ml-auto" style={MONO}>▲ optimal @ 0.47</span>
               </div>
             </ChartCard>
 
@@ -461,12 +472,12 @@ export default function PerformancePage() {
               <ResponsiveContainer width="100%" height={130}>
                 <BarChart data={confDistData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barGap={1}>
                   <YAxis hide />
-                  <XAxis dataKey="bin" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9, fontFamily: "monospace" }}
+                  <XAxis dataKey="bin" tick={{ fill: TICK, fontSize: 9, fontFamily: "monospace" }}
                     axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE}
                     formatter={fmt((v, name) => [`${v}%`, name])} />
                   <Bar dataKey="scam" name="Scam" fill={G} fillOpacity={0.8} radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="legit" name="Legit" fill="#60a5fa" fillOpacity={0.5} radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="legit" name="Legit" fill={BLUE} fillOpacity={0.5} radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
               <div className="flex gap-4 mt-2">
@@ -487,7 +498,7 @@ export default function PerformancePage() {
               <ResponsiveContainer width="100%" height={130}>
                 <BarChart data={channelSparkData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                   <YAxis domain={[94, 100]} hide />
-                  <XAxis dataKey="ch" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10, fontFamily: "monospace" }}
+                  <XAxis dataKey="ch" tick={{ fill: TICK, fontSize: 10, fontFamily: "monospace" }}
                     axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE}
                     formatter={fmt((v) => [`${v.toFixed(2)}%`, "F1"])} />
@@ -496,7 +507,7 @@ export default function PerformancePage() {
                       <Cell key={i} fill={G} fillOpacity={0.6 + i * 0.1} />
                     ))}
                   </Bar>
-                  <ReferenceLine y={97.39} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" strokeWidth={1} />
+                  <ReferenceLine y={97.39} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-[10px] text-white/25 mt-2" style={MONO}>
@@ -539,7 +550,7 @@ export default function PerformancePage() {
                     formatter={fmt((v, name) => [`${(+v * 100).toFixed(1)}%`, name])}
                   />
                   {/* Random baseline */}
-                  <Line data={randomLine} type="linear" dataKey="tpr" stroke="rgba(255,255,255,0.15)"
+                  <Line data={randomLine} type="linear" dataKey="tpr" stroke={isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.15)"}
                     strokeDasharray="4 4" strokeWidth={1} dot={false} name="Random" />
                   {/* Model ROC */}
                   <Line data={rocData} type="monotone" dataKey="tpr" stroke={G}
@@ -592,9 +603,9 @@ export default function PerformancePage() {
                   formatter={fmt((v, name) => [`${v.toFixed(2)}%`, name])} />
                 <Legend wrapperStyle={{ color: WHITE, fontFamily: "monospace", fontSize: 11, paddingTop: 12 }} />
                 <Bar dataKey="acc" name="Accuracy" fill={G} fillOpacity={0.9} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="f1" name="F1 Score" fill="#60a5fa" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="precision" name="Precision" fill="#a78bfa" fillOpacity={0.7} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="recall" name="Recall" fill="#fb923c" fillOpacity={0.7} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="f1" name="F1 Score" fill={BLUE} fillOpacity={0.8} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="precision" name="Precision" fill={PURPLE} fillOpacity={0.7} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="recall" name="Recall" fill={ORANGE} fillOpacity={0.7} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -642,7 +653,7 @@ export default function PerformancePage() {
                     axisLine={{ stroke: GRID }} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ color: WHITE, fontFamily: "monospace", fontSize: 10, paddingTop: 4 }} />
-                  <Bar dataKey="legit" name="Legit" fill="#60a5fa" fillOpacity={0.7} radius={[2, 2, 0, 0]} stackId="a" />
+                  <Bar dataKey="legit" name="Legit" fill={BLUE} fillOpacity={0.7} radius={[2, 2, 0, 0]} stackId="a" />
                   <Bar dataKey="scam" name="Scam" fill={G} fillOpacity={0.8} radius={[2, 2, 0, 0]} stackId="a" />
                 </BarChart>
               </ResponsiveContainer>
@@ -671,14 +682,14 @@ export default function PerformancePage() {
                   formatter={fmt((v, name) => [`${v.toFixed(2)}%`, name])} />
                 <Legend wrapperStyle={{ color: WHITE, fontFamily: "monospace", fontSize: 11, paddingTop: 12 }} />
                 <Line type="monotone" dataKey="acc" name="Accuracy" stroke={G} strokeWidth={2.5}
-                  dot={{ r: 5, fill: G, stroke: "#000", strokeWidth: 2 }}
+                  dot={{ r: 5, fill: G, stroke: DOTSTROKE, strokeWidth: 2 }}
                   activeDot={{ r: 6, fill: G }} />
-                <Line type="monotone" dataKey="auc" name="AUC-ROC" stroke="#60a5fa" strokeWidth={2}
+                <Line type="monotone" dataKey="auc" name="AUC-ROC" stroke={BLUE} strokeWidth={2}
                   strokeDasharray="5 3"
-                  dot={{ r: 4, fill: "#60a5fa", stroke: "#000", strokeWidth: 2 }}
-                  activeDot={{ r: 5, fill: "#60a5fa" }} />
-                <Line type="monotone" dataKey="f1" name="F1 Score" stroke="#a78bfa" strokeWidth={1.5}
-                  dot={{ r: 3, fill: "#a78bfa" }} activeDot={{ r: 5 }} />
+                  dot={{ r: 4, fill: BLUE, stroke: DOTSTROKE, strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: BLUE }} />
+                <Line type="monotone" dataKey="f1" name="F1 Score" stroke={PURPLE} strokeWidth={1.5}
+                  dot={{ r: 3, fill: PURPLE }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -701,7 +712,7 @@ export default function PerformancePage() {
                   <PolarAngleAxis dataKey="type"
                     tick={{ fill: WHITE, fontSize: 9, fontFamily: "monospace" }} />
                   <PolarRadiusAxis domain={[85, 100]} angle={30}
-                    tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 8, fontFamily: "monospace" }}
+                    tick={{ fill: isDark ? "rgba(255,255,255,0.20)" : "rgba(15,23,42,0.22)", fontSize: 8, fontFamily: "monospace" }}
                     axisLine={false} tickCount={4} />
                   <Radar name="Detection %" dataKey="score" stroke={G} fill={G}
                     fillOpacity={0.18} strokeWidth={2}

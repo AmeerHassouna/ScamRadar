@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toast } from "@/components/ui/toast"
 import type { ToastMessage } from "@/components/ui/toast"
 import HoverSlatButton from "@/components/ui/hover-button"
+import { useTheme } from 'next-themes'
 
 const safeNum = (v: unknown, fallback = 0): number => {
   const n = Number(v)
@@ -170,8 +171,11 @@ const ScrambledTitle: React.FC = () => {
 
 const RAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
 
-function RainingCanvas() {
+function RainingCanvas({ isDark }: { isDark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isDarkRef = useRef(isDark)
+
+  useEffect(() => { isDarkRef.current = isDark }, [isDark])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -232,14 +236,14 @@ function RainingCanvas() {
         lastFlicker = now
       }
 
-      // Fill black (opaque canvas — no transparency needed)
-      ctx.fillStyle = '#000'
+      // Fill background
+      ctx.fillStyle = isDarkRef.current ? '#000' : '#f0f4f8'
       ctx.fillRect(0, 0, W, H)
 
       // Batch 1: inactive chars
       ctx.font = `${FONT}px monospace`
-      ctx.fillStyle = '#475569'
-      ctx.globalAlpha = 0.40
+      ctx.fillStyle = isDarkRef.current ? '#475569' : '#94a3b8'
+      ctx.globalAlpha = isDarkRef.current ? 0.40 : 0.55
       for (const p of particles) {
         if (p.active) continue
         p.y += p.speedPx * dt
@@ -247,9 +251,9 @@ function RainingCanvas() {
         ctx.fillText(p.char, p.x, p.y)
       }
 
-      // Batch 2: active chars (bright green, slightly larger)
+      // Batch 2: active chars
       ctx.font = `bold ${FONT + 4}px monospace`
-      ctx.fillStyle = '#00ff00'
+      ctx.fillStyle = isDarkRef.current ? '#00ff00' : '#15803d'
       ctx.globalAlpha = 1
       for (const p of particles) {
         if (!p.active) continue
@@ -697,6 +701,9 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
 
 const RainingLetters: React.FC = () => {
 
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== 'light'
+
   // Detect input state
   const [prompt, setPrompt] = useState('')
   const [isAnalysing, setIsAnalysing] = useState(false)
@@ -876,7 +883,7 @@ const RainingLetters: React.FC = () => {
   return (
     <div className="relative w-full min-h-[100dvh] bg-black overflow-hidden">
       {/* Canvas-based raining characters — replaces 300 spans × 60fps React re-renders */}
-      <RainingCanvas />
+      <RainingCanvas isDark={isDark} />
 
       {/* Centered overlay — title + input */}
       <div className={cn(
@@ -1078,12 +1085,16 @@ const RainingLetters: React.FC = () => {
                 const displayConf = isLegit
                   ? 100 - safeNum(result.confidence)
                   : safeNum(result.confidence)
-                const vColor = result.verdict === 'SCAM' ? '#EF4444'
-                  : result.verdict === 'SUSPICIOUS' ? '#F59E0B'
-                  : '#22C55E'
-                const vBorder = result.verdict === 'SCAM' ? 'rgba(239,68,68,0.20)'
-                  : result.verdict === 'SUSPICIOUS' ? 'rgba(245,158,11,0.20)'
-                  : 'rgba(34,197,94,0.20)'
+                const vColor = result.verdict === 'SCAM'
+                  ? (isDark ? '#EF4444' : '#DC2626')
+                  : result.verdict === 'SUSPICIOUS'
+                  ? (isDark ? '#F59E0B' : '#B45309')
+                  : (isDark ? '#22C55E' : '#15803D')
+                const vBorder = result.verdict === 'SCAM'
+                  ? (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(220,38,38,0.22)')
+                  : result.verdict === 'SUSPICIOUS'
+                  ? (isDark ? 'rgba(245,158,11,0.20)' : 'rgba(180,83,9,0.22)')
+                  : (isDark ? 'rgba(34,197,94,0.20)' : 'rgba(21,128,61,0.22)')
                 const vLabel = result.verdict === 'SCAM' ? 'This is likely a scam'
                   : result.verdict === 'SUSPICIOUS' ? 'This looks suspicious'
                   : 'This looks safe'
@@ -1195,8 +1206,8 @@ const RainingLetters: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
                       transition={{ duration: 0.28, ease: 'easeOut' }}
-                      className="mt-3 rounded-2xl overflow-hidden"
-                      style={{ background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
+                      className="mt-3 rounded-2xl overflow-hidden hero-result-card"
+                      style={{ border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
                     >
                       <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
@@ -1346,8 +1357,8 @@ const RainingLetters: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.28, ease: 'easeOut' }}
-                    className="mt-3 rounded-2xl overflow-hidden"
-                    style={{ background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
+                    className="mt-3 rounded-2xl overflow-hidden hero-result-card"
+                    style={{ border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
