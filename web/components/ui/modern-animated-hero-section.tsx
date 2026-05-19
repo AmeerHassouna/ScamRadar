@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip } from "lucide-react"
+import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, Globe } from "lucide-react"
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,14 @@ const safeNum = (v: unknown, fallback = 0): number => {
 }
 
 const KNOWN_VERDICTS = new Set(["SCAM", "SUSPICIOUS", "LEGIT"])
+
+const LANG_NAMES: Record<string, string> = {
+  ar: 'Arabic', zh: 'Chinese', fr: 'French', de: 'German', hi: 'Hindi',
+  id: 'Indonesian', it: 'Italian', ja: 'Japanese', ko: 'Korean', ms: 'Malay',
+  nl: 'Dutch', pl: 'Polish', pt: 'Portuguese', ro: 'Romanian', ru: 'Russian',
+  es: 'Spanish', sv: 'Swedish', th: 'Thai', tr: 'Turkish', uk: 'Ukrainian',
+  ur: 'Urdu', vi: 'Vietnamese',
+}
 
 // Pydantic 422 errors return detail as an array of objects — extract a readable string
 const detailToString = (detail: unknown): string => {
@@ -951,7 +959,7 @@ const RainingLetters: React.FC = () => {
             )}
 
             <div className={cn(
-              'relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
+              'rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
               prompt.trim() ? 'drop-shadow-[0_0_12px_rgba(0,255,0,0.3)]' : ''
             )}>
               <textarea
@@ -968,46 +976,50 @@ const RainingLetters: React.FC = () => {
                   ? 'Paste a full conversation thread here (or upload a .txt file)...'
                   : 'Paste any suspicious message here (min. 20 characters)...'}
                 rows={conversationMode ? 5 : 3}
-                className="font-mono w-full resize-none rounded-2xl bg-black/60 border border-white/10 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-green-500/30 backdrop-blur-md px-4 py-3 pb-12 text-sm"
+                className="font-mono w-full resize-none rounded-t-2xl bg-black/60 border border-white/10 border-b-0 text-white placeholder:text-white/30 outline-none focus:ring-0 backdrop-blur-md px-4 py-3 text-sm"
               />
-              {/* Upload button — conversation mode only */}
-              {conversationMode && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".txt,.log,.csv"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="font-mono absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 min-h-[44px] transition-all duration-200"
-                    title="Upload .txt, .md, .csv, .log, .json"
-                  >
-                    <Paperclip className="w-3 h-3" />
-                    {fileName ? (
-                      <span className="font-mono text-green-400 max-w-[120px] truncate">{fileName}</span>
-                    ) : (
-                      'Upload file'
-                    )}
-                  </button>
-                </>
-              )}
+              {/* Bottom bar — sits flush under textarea */}
+              <div className="flex items-center justify-between gap-2 bg-black/60 border border-white/10 border-t border-t-white/[0.06] rounded-b-2xl px-3 py-2">
+                {/* Left: upload (conversation) or spacer */}
+                {conversationMode ? (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".txt,.log,.csv"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="font-mono flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 transition-colors duration-200 min-h-[36px]"
+                      title="Upload .txt, .csv, .log"
+                    >
+                      <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                      {fileName
+                        ? <span className="text-green-400 max-w-[140px] truncate">{fileName}</span>
+                        : 'Upload file'
+                      }
+                    </button>
+                  </>
+                ) : (
+                  <div />
+                )}
 
-              <div className="absolute bottom-3 right-3">
-                <SendButton
-                  onClick={handleAnalyse}
-                  disabled={!prompt.trim() || prompt.trim().length < 20}
-                  loading={isAnalysing}
-                />
-              </div>
-              {/* Character counter — shown when approaching / below minimum */}
-              {prompt.length > 0 && prompt.trim().length < 20 && (
-                <div className="font-mono absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none">
-                  {prompt.trim().length}/20 min
+                {/* Right: char counter + send */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {prompt.length > 0 && prompt.trim().length < 20 && (
+                    <span className="font-mono text-[10px] text-yellow-400/60">
+                      {prompt.trim().length}/20
+                    </span>
+                  )}
+                  <SendButton
+                    onClick={handleAnalyse}
+                    disabled={!prompt.trim() || prompt.trim().length < 20}
+                    loading={isAnalysing}
+                  />
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Warming-up banner */}
@@ -1177,6 +1189,18 @@ const RainingLetters: React.FC = () => {
                     >
                       <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
+                        {/* Translation strip — top of card */}
+                        {result.was_translated && result.detected_language && (
+                          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]" style={{ background: 'rgba(99,102,241,0.07)' }}>
+                            <Globe className="w-3 h-3 text-indigo-400/80 shrink-0" />
+                            <span className="font-mono text-[11px] text-white/55">
+                              Translated from{' '}
+                              <span className="text-white/80">{LANG_NAMES[result.detected_language] ?? result.detected_language.toUpperCase()}</span>
+                            </span>
+                            <span className="ml-auto font-mono text-[10px] text-white/25 shrink-0">auto-detected</span>
+                          </div>
+                        )}
+
                         {/* Gauge */}
                         <ConfidenceGauge
                           displayConf={displayConf}
@@ -1317,6 +1341,18 @@ const RainingLetters: React.FC = () => {
                     style={{ background: 'rgba(6,6,6,0.96)', border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
+
+                      {/* Translation strip — top of card */}
+                      {result.was_translated && result.detected_language && (
+                        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]" style={{ background: 'rgba(99,102,241,0.07)' }}>
+                          <Globe className="w-3 h-3 text-indigo-400/80 shrink-0" />
+                          <span className="font-mono text-[11px] text-white/55">
+                            Translated from{' '}
+                            <span className="text-white/80">{LANG_NAMES[result.detected_language] ?? result.detected_language.toUpperCase()}</span>
+                          </span>
+                          <span className="ml-auto font-mono text-[10px] text-white/25 shrink-0">auto-detected</span>
+                        </div>
+                      )}
 
                       {/* Gauge */}
                       <ConfidenceGauge

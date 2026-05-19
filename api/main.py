@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src._09_prediction_pipeline import load_pipeline, predict_message
 from api.cache import get_prediction, set_prediction, cache_info
+from api.translate import detect_and_translate
 from config import (
     GOOGLE_SAFEBROWSING_API_KEY, VIRUSTOTAL_API_KEY,
     MIN_MESSAGE_LENGTH, MAX_MESSAGE_LENGTH,
@@ -126,14 +127,22 @@ async def _predict(text: str, *, with_url_checks: bool = True) -> dict:
     if cached is not None:
         return cached
 
+    # Translate non-English input before model inference (non-blocking)
+    translated_text, detected_lang = await asyncio.to_thread(detect_and_translate, text)
+
     result = await asyncio.to_thread(
         predict_message,
-        text,
+        translated_text,
         _pipe['model'], _pipe['tfidf'], _pipe['char_tfidf'],
         _pipe['scaler'], _pipe['scam_index'], _pipe['st_model'],
         vt_api_key=VIRUSTOTAL_API_KEY  if with_url_checks else None,
         gsb_api_key=GOOGLE_SAFEBROWSING_API_KEY if with_url_checks else None,
     )
+
+    if detected_lang:
+        result['detected_language'] = detected_lang
+        result['was_translated'] = True
+
     set_prediction(text, result)
     return result
 
