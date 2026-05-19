@@ -18,3 +18,7 @@ vaderSentiment==3.3.2
 requests
 python-whois
 regex
+
+# Auto-translation
+langdetect==1.0.9
+deep-translator==1.11.4
