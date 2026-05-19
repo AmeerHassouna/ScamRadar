@@ -882,13 +882,15 @@ const RainingLetters: React.FC = () => {
       <div className={cn(
         "absolute z-20 w-full px-4",
         result
-          ? "left-1/2 -translate-x-1/2 top-[68px] sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[calc(100dvh-68px)] sm:max-h-[92vh] pb-10 sm:pb-6"
-          : "inset-0 flex flex-col items-center justify-center"
+          ? "left-1/2 -translate-x-1/2 top-3 sm:top-1/2 sm:-translate-y-1/2 overflow-y-auto max-h-[calc(100dvh-12px)] sm:max-h-[92vh] pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-6"
+          : "inset-0 flex flex-col items-center justify-center pb-[env(safe-area-inset-bottom,0px)]"
       )}>
         <div className="flex flex-col items-center gap-3 sm:gap-6 max-w-2xl mx-auto w-full">
 
-          {/* Scrambled title */}
-          <ScrambledTitle />
+          {/* Scrambled title — hidden on mobile when result is showing */}
+          <div className={result ? 'hidden sm:block' : ''}>
+            <ScrambledTitle />
+          </div>
 
           {/* Input box */}
           <div className="w-full">
@@ -939,9 +941,9 @@ const RainingLetters: React.FC = () => {
             {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
             {/* Trust badge */}
-            <div className="flex items-center justify-center gap-3 mt-1 mb-1">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1 mb-1">
               <p className="font-mono text-center text-[10px] text-white/25">
-                Free to use · Messages are not stored · No account needed
+                Free to use · Not stored · No account needed
               </p>
               {!serverReady && (
                 <span className="flex items-center gap-1 text-[10px] text-white/20 font-mono shrink-0">
@@ -954,7 +956,8 @@ const RainingLetters: React.FC = () => {
             {/* Conversation mode hint */}
             {conversationMode && (
               <p className="font-mono text-center text-[10px] text-white/30 mb-1">
-                Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation
+                <span className="sm:hidden">Paste a chat thread — AI scans the full conversation</span>
+                <span className="hidden sm:inline">Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation</span>
               </p>
             )}
 
@@ -973,10 +976,15 @@ const RainingLetters: React.FC = () => {
                   }
                 }}
                 placeholder={conversationMode
-                  ? 'Paste a full conversation thread here (or upload a .txt file)...'
-                  : 'Paste any suspicious message here (min. 20 characters)...'}
+                  ? 'Paste a conversation thread here...'
+                  : 'Paste any suspicious message here...'}
                 rows={conversationMode ? 5 : 3}
-                className="font-mono w-full resize-none rounded-t-2xl bg-black/60 border border-white/10 border-b-0 text-white placeholder:text-white/30 outline-none focus:ring-0 backdrop-blur-md px-4 py-3 text-sm"
+                inputMode="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                className="font-mono w-full resize-none rounded-t-2xl bg-black/60 border border-white/10 border-b-0 text-white placeholder:text-white/30 outline-none focus:ring-0 backdrop-blur-md px-4 py-3 text-base sm:text-sm"
               />
               {/* Bottom bar — sits flush under textarea */}
               <div className="flex items-center justify-between gap-2 bg-black/60 border border-white/10 border-t border-t-white/[0.06] rounded-b-2xl px-3 py-2">
@@ -997,8 +1005,8 @@ const RainingLetters: React.FC = () => {
                     >
                       <Paperclip className="w-3.5 h-3.5 shrink-0" />
                       {fileName
-                        ? <span className="text-green-400 max-w-[140px] truncate">{fileName}</span>
-                        : 'Upload file'
+                        ? <span className="text-green-400 max-w-[100px] sm:max-w-[140px] truncate">{fileName}</span>
+                        : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload file</span></>
                       }
                     </button>
                   </>
@@ -1033,7 +1041,10 @@ const RainingLetters: React.FC = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
                 </span>
-                <span className="font-mono text-green-400/80 text-xs">Warming up AI model — first request may take up to 30 seconds…</span>
+                <span className="font-mono text-green-400/80 text-xs">
+                  <span className="sm:hidden">Warming up — may take ~30s…</span>
+                  <span className="hidden sm:inline">Warming up AI model — first request may take up to 30 seconds…</span>
+                </span>
               </motion.div>
             )}
 
