@@ -424,7 +424,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
       >
         {/* Top row: label + close */}
         <div className="flex items-center justify-between px-1">
-          <p className="text-green-400 text-[10px] font-semibold uppercase tracking-widest" style={{ fontFamily: 'monospace' }}>
+          <p className="font-mono text-green-400 text-[10px] font-semibold uppercase tracking-widest">
             Live Demo · {exIdx + 1}/{DEMO_EXAMPLES.length}
           </p>
           <button
@@ -455,7 +455,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
             {/* URL bar */}
             <div className="flex-1 mx-3 flex items-center gap-1.5 rounded-md px-2.5 py-0.5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-green-400/60 shrink-0" />
-              <span className="text-white/35 text-[10px]" style={{ fontFamily: 'monospace' }}>scamradarplus.com</span>
+              <span className="font-mono text-white/35 text-[10px]">scamradarplus.com</span>
             </div>
           </div>
 
@@ -471,18 +471,18 @@ function DemoModal({ onClose }: { onClose: () => void }) {
 
               {/* Mini ScamRadar+ title */}
               <div className="text-center">
-                <p className="text-white font-black text-base tracking-tight leading-none" style={{ fontFamily: 'monospace' }}>
+                <p className="font-mono text-white font-black text-base tracking-tight leading-none">
                   SCAMRADAR<span className="text-green-400">+</span>
                 </p>
-                <p className="text-white/25 text-[9px] mt-0.5" style={{ fontFamily: 'monospace' }}>AI-powered scam detection</p>
+                <p className="font-mono text-white/25 text-[9px] mt-0.5">AI-powered scam detection</p>
               </div>
 
               {/* Mini mode toggle */}
               <div className="flex gap-0.5 rounded-full p-0.5" style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="text-[9px] px-2.5 py-1 rounded-full font-semibold" style={{ fontFamily: 'monospace', background: 'rgba(34,197,94,0.18)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <div className="font-mono text-[9px] px-2.5 py-1 rounded-full font-semibold" style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
                   Single Message
                 </div>
-                <div className="text-[9px] px-2.5 py-1 rounded-full text-white/30" style={{ fontFamily: 'monospace' }}>
+                <div className="font-mono text-[9px] px-2.5 py-1 rounded-full text-white/30">
                   Full Conversation
                 </div>
               </div>
@@ -493,7 +493,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                 boxShadow: typedText.length > 0 ? '0 0 14px rgba(34,197,94,0.18)' : 'none',
               }}>
                 <div className="relative rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '62px' }}>
-                  <p className="text-white/80 text-[10px] leading-relaxed pr-8" style={{ fontFamily: 'monospace' }}>
+                  <p className="font-mono text-white/80 text-[10px] leading-relaxed pr-8">
                     {typedText || <span className="text-white/20">Paste any suspicious message here…</span>}
                     {phase === 'typing' && typedText.length > 0 && (
                       <span className="inline-block w-[1.5px] h-[11px] bg-green-400 ml-[1px] align-text-bottom animate-pulse" />
@@ -523,8 +523,8 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                       <MiniGauge value={ex.confidence} color={color} />
                       {/* Verdict label */}
                       <motion.div
-                        className="flex items-center gap-1.5 font-black text-sm tracking-widest"
-                        style={{ fontFamily: 'monospace', color }}
+                        className="font-mono flex items-center gap-1.5 font-black text-sm tracking-widest"
+                        style={{ color }}
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
                       >
                         {icon}
@@ -547,7 +547,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                         { label: 'Threat',  val: ex.threat },
                       ].map(({ label, val }) => (
                         <div key={label} className="flex flex-col items-center gap-1">
-                          <span className="text-[8px] text-white/30" style={{ fontFamily: 'monospace' }}>{label}</span>
+                          <span className="font-mono text-[8px] text-white/30">{label}</span>
                           <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
                             <motion.div
                               className="h-full rounded-full"
@@ -557,7 +557,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                               transition={{ duration: 0.5, delay: 0.8 }}
                             />
                           </div>
-                          <span className="text-[8px] font-bold" style={{ fontFamily: 'monospace', color: val > 0 ? color : 'rgba(255,255,255,0.2)' }}>
+                          <span className="font-mono text-[8px] font-bold" style={{ color: val > 0 ? color : 'rgba(255,255,255,0.2)' }}>
                             {val}/3
                           </span>
                         </div>
@@ -580,7 +580,7 @@ function DemoModal({ onClose }: { onClose: () => void }) {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
                     </span>
-                    <span className="text-green-400/70 text-[9px]" style={{ fontFamily: 'monospace' }}>Analyzing your message…</span>
+                    <span className="font-mono text-green-400/70 text-[9px]">Analyzing your message…</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -945,7 +945,7 @@ const RainingLetters: React.FC = () => {
 
             {/* Conversation mode hint */}
             {conversationMode && (
-              <p className="text-center text-[10px] text-white/30 mb-1">
+              <p className="font-mono text-center text-[10px] text-white/30 mb-1">
                 Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation
               </p>
             )}
@@ -968,7 +968,7 @@ const RainingLetters: React.FC = () => {
                   ? 'Paste a full conversation thread here (or upload a .txt file)...'
                   : 'Paste any suspicious message here (min. 20 characters)...'}
                 rows={conversationMode ? 5 : 3}
-                className="w-full resize-none rounded-2xl bg-black/60 border border-white/10 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-green-500/30 backdrop-blur-md px-4 py-3 pb-12 text-sm"
+                className="font-mono w-full resize-none rounded-2xl bg-black/60 border border-white/10 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-green-500/30 backdrop-blur-md px-4 py-3 pb-12 text-sm"
               />
               {/* Upload button — conversation mode only */}
               {conversationMode && (
@@ -982,12 +982,12 @@ const RainingLetters: React.FC = () => {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 min-h-[44px] transition-all duration-200"
+                    className="font-mono absolute bottom-3 left-3 flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 border border-white/10 hover:border-green-500/30 bg-black/40 rounded-lg px-2 py-1.5 min-h-[44px] transition-all duration-200"
                     title="Upload .txt, .md, .csv, .log, .json"
                   >
                     <Paperclip className="w-3 h-3" />
                     {fileName ? (
-                      <span className="text-green-400 max-w-[120px] truncate">{fileName}</span>
+                      <span className="font-mono text-green-400 max-w-[120px] truncate">{fileName}</span>
                     ) : (
                       'Upload file'
                     )}
@@ -1004,7 +1004,7 @@ const RainingLetters: React.FC = () => {
               </div>
               {/* Character counter — shown when approaching / below minimum */}
               {prompt.length > 0 && prompt.trim().length < 20 && (
-                <div className="absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none">
+                <div className="font-mono absolute bottom-14 right-3 text-[10px] text-yellow-400/70 pointer-events-none">
                   {prompt.trim().length}/20 min
                 </div>
               )}
@@ -1021,7 +1021,7 @@ const RainingLetters: React.FC = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
                 </span>
-                <span className="text-green-400/80 text-xs">Warming up AI model — first request may take up to 30 seconds…</span>
+                <span className="font-mono text-green-400/80 text-xs">Warming up AI model — first request may take up to 30 seconds…</span>
               </motion.div>
             )}
 
@@ -1134,11 +1134,11 @@ const RainingLetters: React.FC = () => {
                           <div key={url} className="flex items-center justify-between py-1 gap-2">
                             <span className="font-mono text-[11px] text-white/35 truncate">{url}</span>
                             {result.gsb_flagged ? (
-                              <span className="text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
+                              <span className="font-mono text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
                                 <ShieldX className="w-3 h-3" /> Dangerous
                               </span>
                             ) : (
-                              <span className="text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
+                              <span className="font-mono text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
                                 <ShieldCheck className="w-3 h-3" /> Safe
                               </span>
                             )}
