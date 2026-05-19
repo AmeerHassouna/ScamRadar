@@ -539,6 +539,19 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
         verdict  = "SUSPICIOUS"
         conf_pct = max(conf_pct, 55.0)
 
+    # ── 14c. Suspicious URL feature override ─────────────────────────────
+    # A URL with a suspicious TLD (.tk, .xyz …) or a credential-harvesting
+    # keyword (login, verify, secure …) in an untrusted domain cannot
+    # produce a LEGIT verdict — escalate to minimum SUSPICIOUS.
+    # A raw IP address in a URL is also an automatic SUSPICIOUS floor.
+    if verdict == "LEGIT" and urls and not is_all_trusted_domains(urls):
+        if url_feat[0] or url_feat[1]:   # suspicious TLD or phishing keyword
+            verdict  = "SUSPICIOUS"
+            conf_pct = max(conf_pct, 50.0)
+        elif url_feat[2]:                 # raw IP address in URL
+            verdict  = "SUSPICIOUS"
+            conf_pct = max(conf_pct, 55.0)
+
     # ── 15. Why-flagged explanation ───────────────────────────────────────
     # Ordered by severity: most damning evidence first, cap at 3 reasons.
     _why_parts = []
