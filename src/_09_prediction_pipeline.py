@@ -525,6 +525,20 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     else:
         verdict = "LEGIT"
 
+    # ── 14b. URL reputation hard override ────────────────────────────────
+    # A confirmed-dangerous URL is incompatible with a LEGIT verdict.
+    # GSB is authoritative → always SCAM regardless of model score.
+    # VT 2+ engines → SCAM; VT 1 engine → minimum SUSPICIOUS.
+    if gsb_flagged:
+        verdict  = "SCAM"
+        conf_pct = max(conf_pct, 85.0)
+    elif vt_malicious >= 2:
+        verdict  = "SCAM"
+        conf_pct = max(conf_pct, 75.0)
+    elif vt_malicious == 1 and verdict == "LEGIT":
+        verdict  = "SUSPICIOUS"
+        conf_pct = max(conf_pct, 55.0)
+
     # ── 15. Why-flagged explanation ───────────────────────────────────────
     # Ordered by severity: most damning evidence first, cap at 3 reasons.
     _why_parts = []
