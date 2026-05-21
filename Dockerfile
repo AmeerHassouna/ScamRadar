@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the SentenceTransformer model so cold starts don't fetch 80MB
 ENV HF_HOME=/app/.hf_cache
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2'); print('ST model cached')" || echo "ST pre-download skipped"
 
 # Copy all source code and trained models
 COPY . .
