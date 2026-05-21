@@ -31,23 +31,30 @@ ALLOWED_UPLOAD_EXTENSIONS = {'.txt', '.log', '.csv'}
 # ── Pipeline state — populated by background task at startup ──────────────────
 _pipe: dict | None = None
 
+_RETRY_DELAYS = [5, 15, 30]  # seconds between load attempts
+
 
 async def _load_pipeline_bg() -> None:
     global _pipe
-    print('Loading ScamRadar+ pipeline in background...')
-    try:
-        result = await asyncio.to_thread(load_pipeline)
-        _pipe = {
-            'model':      result[0],
-            'tfidf':      result[1],
-            'char_tfidf': result[2],
-            'scaler':     result[3],
-            'scam_index': result[4],
-            'st_model':   result[5],
-        }
-        print('✅ Pipeline ready!')
-    except Exception as exc:
-        print(f'❌ Pipeline load failed: {exc}')
+    for attempt, delay in enumerate(_RETRY_DELAYS + [None], start=1):
+        print(f'Loading ScamRadar+ pipeline (attempt {attempt}/{len(_RETRY_DELAYS) + 1})...')
+        try:
+            result = await asyncio.to_thread(load_pipeline)
+            _pipe = {
+                'model':      result[0],
+                'tfidf':      result[1],
+                'char_tfidf': result[2],
+                'scaler':     result[3],
+                'scam_index': result[4],
+                'st_model':   result[5],
+            }
+            print('✅ Pipeline ready!')
+            return
+        except Exception as exc:
+            print(f'❌ Pipeline load failed (attempt {attempt}): {exc}')
+            if delay is not None:
+                await asyncio.sleep(delay)
+    print('❌ Pipeline failed to load after all attempts — service will return 503.')
 
 
 @asynccontextmanager
@@ -78,14 +85,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
-_raw_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000')
+# Default to "*" so the public API works from any origin when ALLOWED_ORIGINS
+# is not explicitly configured (e.g. on a fresh Render deployment).
+# Set ALLOWED_ORIGINS=https://yourdomain.com to lock down to specific origins.
+_raw_origins = os.environ.get('ALLOWED_ORIGINS', '*')
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(',') if o.strip()]
+_allow_all = ALLOWED_ORIGINS == ['*']
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r'https?://localhost(:\d+)?',
-    allow_credentials=True,
+    # Allow all localhost ports for local development when not in wildcard mode
+    allow_origin_regex=None if _allow_all else r'https?://localhost(:\d+)?',
+    # allow_credentials is incompatible with allow_origins=["*"]
+    allow_credentials=not _allow_all,
     allow_methods=['GET', 'POST', 'OPTIONS'],
     allow_headers=['Content-Type', 'Authorization'],
 )
