@@ -10,8 +10,10 @@ cachetools>=5.3
 numpy
 scipy
 scikit-learn
-faiss-cpu
-sentence-transformers
+# sentence-transformers (PyTorch) exceeds Render free-tier 512MB RAM limit;
+# the pipeline degrades gracefully with proximity_score=0 when absent.
+# faiss-cpu is also omitted for the same reason — it depends on ST for queries.
+
 
 # Feature engineering
 pandas
