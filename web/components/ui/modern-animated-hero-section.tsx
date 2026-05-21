@@ -730,7 +730,11 @@ const RainingLetters: React.FC = () => {
           if (res.ok) {
             const data = await res.json()
             if (data.status === 'ready') {
-              if (!cancelled) setServerReady(true)
+              if (!cancelled) {
+                setServerReady(true)
+                // Fire-and-forget warmup so inference code paths are hot before first real request
+                fetch(`${base}/warmup`).catch(() => {})
+              }
               break
             }
           }

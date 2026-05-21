@@ -706,7 +706,7 @@ def check_url_virustotal(url: str, api_key: str):
     headers = {'x-apikey': api_key}
     r = requests.get(
         f'https://www.virustotal.com/api/v3/urls/{url_id}',
-        headers=headers, timeout=10,
+        headers=headers, timeout=5,
     )
     if r.status_code != 200:
         raise RuntimeError(f"VirusTotal returned HTTP {r.status_code}")

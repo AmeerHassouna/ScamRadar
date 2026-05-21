@@ -102,7 +102,7 @@ def check_url_google_safebrowsing(url, api_key):
         }
     }
     try:
-        response = requests.post(endpoint, json=payload, timeout=10)
+        response = requests.post(endpoint, json=payload, timeout=5)
         if response.status_code == 200:
             data = response.json()
             if 'matches' in data:
@@ -240,12 +240,36 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     except ImportError:
         _url_cache_available = False
 
-    for url in urls[:3]:
-        # Serve from cache when available — avoids redundant external API calls
+    def _check_one_url(url):
+        """Check a single URL via cache → GSB → VT. Returns (gsb, threat, vtm, vts)."""
         if _url_cache_available:
-            cached_rep = get_url_rep(url)
-            if cached_rep is not None:
-                c_gsb, c_threat, c_vtm, c_vts = cached_rep
+            cached = get_url_rep(url)
+            if cached is not None:
+                return cached
+        flagged, threat = check_url_google_safebrowsing(url, _gsb_key)
+        if flagged:
+            result = (True, threat, 0, 0)
+            if _url_cache_available:
+                set_url_rep(url, result)
+            return result
+        c_vtm = c_vts = 0
+        if _vt_key:
+            try:
+                m, s, _ = check_url_virustotal(url, _vt_key)
+                c_vtm, c_vts = m, s
+            except Exception:
+                pass
+        result = (False, None, c_vtm, c_vts)
+        if _url_cache_available:
+            set_url_rep(url, result)
+        return result
+
+    # Run all URL checks concurrently — previously sequential, up to 20s per URL
+    with ThreadPoolExecutor(max_workers=3) as _url_exe:
+        url_futures = {_url_exe.submit(_check_one_url, url): url for url in urls[:3]}
+        for fut in url_futures:
+            try:
+                c_gsb, c_threat, c_vtm, c_vts = fut.result(timeout=12)
                 if c_gsb:
                     gsb_flagged = True
                     gsb_threat_type = c_threat
@@ -255,31 +279,8 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
                     vt_suspicious += c_vts
                     if c_vtm + c_vts > 0:
                         vt_attempted = True
-                continue
-
-        # GSB first
-        flagged, threat = check_url_google_safebrowsing(url, _gsb_key)
-        if flagged:
-            gsb_flagged     = True
-            gsb_threat_type = threat
-            vt_malicious   += 1
-            if _url_cache_available:
-                set_url_rep(url, (True, threat, 0, 0))
-            continue
-
-        # VT fallback (only if GSB returned clean)
-        c_vtm = c_vts = 0
-        if _vt_key:
-            try:
-                m, s, _ = check_url_virustotal(url, _vt_key)
-                vt_malicious  += m
-                vt_suspicious += s
-                vt_attempted   = True
-                c_vtm, c_vts   = m, s
             except Exception:
                 pass
-        if _url_cache_available:
-            set_url_rep(url, (False, None, c_vtm, c_vts))
 
     if urls and not gsb_attempted and not vt_attempted:
         warnings.append("URL reputation checks skipped — no API keys configured.")
