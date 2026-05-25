@@ -203,7 +203,7 @@ function RainingCanvas({ isDark }: { isDark: boolean }) {
       H = window.innerHeight
       canvas.width  = W
       canvas.height = H
-      const count = W < 640 ? 70 : 240
+      const count = W < 640 ? 30 : 80
       particles = Array.from({ length: count }, () => mkP(true))
     }
 
@@ -214,6 +214,7 @@ function RainingCanvas({ isDark }: { isDark: boolean }) {
     let lastFlicker = 0
     let visible = true
     let rafId: number
+    const FRAME_MS = 1000 / 30  // cap at 30fps — invisible for a background animation
 
     const observer = new IntersectionObserver(([e]) => { visible = e.isIntersecting }, { threshold: 0 })
     observer.observe(canvas)
@@ -223,6 +224,7 @@ function RainingCanvas({ isDark }: { isDark: boolean }) {
     const draw = (now: number) => {
       rafId = requestAnimationFrame(draw)
       if (!visible) { lastTime = now; return }
+      if (now - lastTime < FRAME_MS) return
 
       const dt = Math.min((now - lastTime) / 1000, 0.05)
       lastTime = now
@@ -274,7 +276,7 @@ function RainingCanvas({ isDark }: { isDark: boolean }) {
     }
   }, [])
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ willChange: 'contents' }} aria-hidden="true" />
 }
 
 // ─── Demo modal — mini browser window ─────────────────────────────────────────
