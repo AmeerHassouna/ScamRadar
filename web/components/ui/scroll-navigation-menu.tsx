@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion"
-import { Menu, X, Home, Zap, ShieldAlert, Users, HelpCircle, BarChart2 } from "lucide-react"
+import { Menu, X, Home, Zap, ShieldAlert, Users, HelpCircle, BarChart2, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/ui/curtain-theme-toggle"
 
