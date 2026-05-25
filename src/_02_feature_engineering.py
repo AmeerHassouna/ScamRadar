@@ -7,7 +7,6 @@ full adversarial preprocessing pipeline.
 import re
 import unicodedata
 import string
-import pandas as pd
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config import BRAND_NAMES, ACTION_WORDS, SCAM_PHRASES, URL_SHORTENERS
@@ -719,7 +718,8 @@ def check_url_virustotal(url: str, api_key: str):
 #  APPLY TO DATAFRAME
 # ══════════════════════════════════════════════════════════════════════════
 
-def add_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_features(df) -> "pd.DataFrame":
+    import pandas as pd  # noqa: F401 — only needed for training, not inference
     print("Preprocessing text...")
     df['raw_text'] = df['raw_text'].fillna('').apply(preprocess_text)
 
@@ -750,6 +750,7 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 
 # ── MAIN ──────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
+    import pandas as pd
     import sqlite3
     DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'db 4.db')
     conn = sqlite3.connect(DB_PATH)

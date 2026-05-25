@@ -6,8 +6,13 @@ non-English warning, VT error handling, and confidence capping.
 
 import re, pickle, os, sys
 import numpy as np
-import faiss
 from urllib.parse import urlparse
+
+try:
+    import faiss as _faiss
+    _faiss_available = True
+except ImportError:
+    _faiss_available = False
 from scipy.sparse import hstack, csr_matrix
 from concurrent.futures import ThreadPoolExecutor
 
@@ -147,7 +152,7 @@ def load_pipeline():
         f_tfidf      = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'tfidf_vectorizer.pkl'))
         f_char_tfidf = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'char_vectorizer.pkl'))
         f_scaler     = exe.submit(_load_pkl, os.path.join(MODELS_PATH, 'scaler.pkl'))
-        f_scam_idx   = exe.submit(faiss.read_index, scam_index_path) if _st_available else None
+        f_scam_idx   = exe.submit(_faiss.read_index, scam_index_path) if (_st_available and _faiss_available) else None
 
         payload    = f_payload.result()
         tfidf      = f_tfidf.result()
@@ -303,7 +308,7 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     # ── 9. FAISS scam proximity ───────────────────────────────────────────
     if st_model is not None and scam_index is not None:
         emb = st_model.encode([text_norm], convert_to_numpy=True).astype('float32')
-        faiss.normalize_L2(emb)
+        _faiss.normalize_L2(emb)
         D_scam, _ = scam_index.search(emb, k=FAISS_K_SCAM)
         prox_scam = float(D_scam[0].mean())
     else:
