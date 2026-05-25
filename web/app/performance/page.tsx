@@ -368,7 +368,7 @@ export default function PerformancePage() {
         {/* ── Back button ───────────────────────────────────────────────── */}
         <div>
           <Link
-            href="/#performance"
+            href="/"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-white/50 text-xs font-semibold uppercase tracking-widest hover:border-green-400/40 hover:text-green-400 transition-colors"
             style={{ fontFamily: "monospace" }}
           >

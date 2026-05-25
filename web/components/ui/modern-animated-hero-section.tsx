@@ -675,6 +675,9 @@ function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType
           <span className="font-mono text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]">
             CONFIDENCE
           </span>
+          <span className="font-mono text-[7px] text-white/15 mt-0.5 px-2 text-center leading-tight">
+            {count >= 85 ? 'Strong signal' : count >= 65 ? 'Moderate signal' : 'Weak signal'}
+          </span>
         </div>
       </motion.div>
 
@@ -1043,21 +1046,35 @@ const RainingLetters: React.FC = () => {
               </div>
             </div>
 
-            {/* Warming-up banner */}
+            {/* Warming-up banner with progress bar */}
             {warmingUp && (
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl border border-green-400/20 bg-green-400/5"
+                className="mt-2 px-3 py-2.5 rounded-xl border border-green-400/20 bg-green-400/5 space-y-2"
               >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
-                </span>
-                <span className="font-mono text-green-400/80 text-xs">
-                  <span className="sm:hidden">Warming up — may take ~30s…</span>
-                  <span className="hidden sm:inline">Warming up AI model — first request may take up to 30 seconds…</span>
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                    </span>
+                    <span className="font-mono text-green-400/80 text-xs">AI model starting up…</span>
+                  </span>
+                  <span className="font-mono text-white/25 text-[10px]">~30s</span>
+                </div>
+                {/* Animated progress bar — fills to 90% in 30s, final push happens on success */}
+                <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-green-700 to-green-400"
+                    initial={{ width: '4%' }}
+                    animate={{ width: '90%' }}
+                    transition={{ duration: 30, ease: 'linear' }}
+                  />
+                </div>
+                <p className="font-mono text-white/25 text-[10px]">
+                  Cold start — server was idle. This only happens once.
+                </p>
               </motion.div>
             )}
 
@@ -1078,6 +1095,23 @@ const RainingLetters: React.FC = () => {
                   >
                     {ex.label}
                   </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Verdict legend — only shown before first scan */}
+            {!result && (
+              <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
+                {[
+                  { dot: '#EF4444', label: 'SCAM',       desc: 'Do not engage' },
+                  { dot: '#F59E0B', label: 'SUSPICIOUS',  desc: 'Proceed carefully' },
+                  { dot: '#22C55E', label: 'LEGIT',       desc: 'Appears safe' },
+                ].map(({ dot, label, desc }) => (
+                  <span key={label} className="flex items-center gap-1.5 font-mono text-[10px] text-white/30">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot, opacity: 0.7 }} />
+                    <span style={{ color: dot, opacity: 0.6 }}>{label}</span>
+                    <span className="text-white/20">— {desc}</span>
+                  </span>
                 ))}
               </div>
             )}
