@@ -303,7 +303,7 @@ const landingItems: AccordionData[] = [
     step: '05',
     title: 'Instant Verdict',
     description: 'A calibrated confidence score lands as SCAM, SUSPICIOUS, or LEGIT — with a full breakdown of which signals triggered the decision, so you know exactly why.',
-    imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/q_auto:best,f_auto/v1778711055/ScamDetector-2_bhqxya.png',
+    imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1780008637/-9_g704kr.jpg',
     icon: ShieldCheck,
   },
 ]
