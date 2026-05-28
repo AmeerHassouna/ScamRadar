@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, Globe } from "lucide-react"
+import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, Globe, X } from "lucide-react"
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
@@ -723,6 +723,14 @@ const RainingLetters: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultRef = useRef<HTMLDivElement>(null)
 
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false)
+  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false)
+
+  useEffect(() => {
+    setDisclaimerAgreed(localStorage.getItem('scamradar_disclaimer_agreed') === '1')
+  }, [])
+
   // Poll /health on page load until the pipeline is ready, then keep warm every 9 min
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -788,8 +796,7 @@ const RainingLetters: React.FC = () => {
     { label: 'Safe OTP', icon: CheckCircle, text: 'Your WhatsApp code is 847-291. Do not share this code with anyone.' },
   ]
 
-  const handleAnalyse = async () => {
-    if (!prompt.trim()) return
+  const runAnalysis = async () => {
     setIsAnalysing(true)
     setWarmingUp(false)
     setResult(null)
@@ -888,6 +895,11 @@ const RainingLetters: React.FC = () => {
     }
   }
 
+  const handleAnalyse = () => {
+    if (!prompt.trim()) return
+    if (!disclaimerAgreed) { setShowDisclaimer(true); return }
+    runAnalysis()
+  }
 
   return (
     <div className="relative w-full min-h-[100dvh] bg-black overflow-hidden">
@@ -1511,6 +1523,131 @@ const RainingLetters: React.FC = () => {
 
         </div>
       </div>
+
+      {/* ── DISCLAIMER MODAL ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showDisclaimer && (
+          <>
+            <motion.div
+              key="disclaimer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[80]"
+              onClick={() => setShowDisclaimer(false)}
+            />
+            <motion.div
+              key="disclaimer-panel"
+              initial={{ opacity: 0, scale: 0.92, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: -12 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[90] w-[92vw] max-w-md"
+            >
+              <div
+                className="relative bg-black/95 border border-white/10 rounded-3xl p-7 shadow-[0_8px_64px_rgba(0,0,0,0.9)]"
+                style={{ boxShadow: "0 8px 64px rgba(0,0,0,0.9), 0 0 60px rgba(34,197,94,0.07)" }}
+              >
+                {/* Close */}
+                <button
+                  onClick={() => setShowDisclaimer(false)}
+                  className="absolute top-4 right-4 p-1.5 text-white/30 hover:text-white/70 rounded-full hover:bg-white/8 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/25 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-green-400 text-[10px] font-semibold uppercase tracking-widest font-mono">Before you continue</p>
+                    <h2 className="text-white font-black text-sm uppercase tracking-wider font-mono">Use at Your Own Risk</h2>
+                  </div>
+                </div>
+
+                {/* Points */}
+                <ul className="flex flex-col gap-3 mb-6">
+                  {[
+                    { icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />, text: "97.76% accurate — 1 in 40 predictions may be wrong. Don't rely on this alone for financial or safety decisions." },
+                    { icon: <ShieldX className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />, text: "Not legal or financial advice. Verdicts are model outputs, not legal determinations." },
+                    { icon: <AlertCircle className="w-3.5 h-3.5 text-white/40 mt-0.5 shrink-0" />, text: "No liability for any loss from a missed or incorrect verdict. Academic project — no commercial guarantees." },
+                  ].map((item, i) => (
+                    <li key={i} className="flex gap-2.5 text-white/50 text-xs leading-relaxed font-mono">
+                      {item.icon}
+                      <span>{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Checkbox */}
+                <label className="flex items-start gap-3 cursor-pointer mb-5 group">
+                  <div className="relative mt-0.5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={disclaimerChecked}
+                      onChange={e => setDisclaimerChecked(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={cn(
+                      "w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center",
+                      disclaimerChecked
+                        ? "bg-green-400 border-green-400"
+                        : "bg-transparent border-white/25 group-hover:border-green-400/50"
+                    )}>
+                      {disclaimerChecked && (
+                        <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 10 10">
+                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-white/40 text-xs font-mono leading-relaxed group-hover:text-white/60 transition-colors select-none">
+                    I understand and accept these limitations.
+                  </span>
+                </label>
+
+                {/* Actions */}
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => setShowDisclaimer(false)}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest font-mono text-white/40 hover:text-white/60 bg-white/5 hover:bg-white/8 border border-white/10 transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!disclaimerChecked}
+                    onClick={() => {
+                      localStorage.setItem('scamradar_disclaimer_agreed', '1')
+                      setDisclaimerAgreed(true)
+                      setShowDisclaimer(false)
+                      setDisclaimerChecked(false)
+                      runAnalysis()
+                    }}
+                    className={cn(
+                      "flex-[2] py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest font-mono transition-all duration-200",
+                      disclaimerChecked
+                        ? "bg-green-400 text-black hover:bg-green-300 shadow-[0_0_20px_rgba(74,222,128,0.3)]"
+                        : "bg-white/5 text-white/20 border border-white/8 cursor-not-allowed"
+                    )}
+                  >
+                    I Agree — Analyse
+                  </button>
+                </div>
+
+                {/* Pulsing dot */}
+                <motion.div
+                  className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-amber-400 rounded-full"
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
 <style dangerouslySetInnerHTML={{ __html: `.dud { color: #0f0; opacity: 0.7; }` }} />
       <Toast toasts={toasts} dismiss={dismissToast} />
