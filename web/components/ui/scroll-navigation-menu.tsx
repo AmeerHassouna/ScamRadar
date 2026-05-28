@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion"
-import { Menu, X, Home, Zap, ShieldAlert, Users, HelpCircle, BarChart2, ShieldCheck } from "lucide-react"
+import { Menu, X, Home, Zap, ShieldAlert, HelpCircle, BarChart2, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/ui/curtain-theme-toggle"
@@ -14,7 +14,6 @@ const navItems = [
   { id: 1, name: "Home",         href: "/#home",         icon: <Home className="w-5 h-5" /> },
   { id: 2, name: "How It Works", href: "/#how-it-works", icon: <Zap className="w-5 h-5" /> },
   { id: 3, name: "Threats",      href: "/#threats",      icon: <ShieldAlert className="w-5 h-5" /> },
-  { id: 4, name: "Team",         href: "/team",          icon: <Users className="w-5 h-5" /> },
   { id: 5, name: "Stats",        href: "/performance",   icon: <BarChart2 className="w-5 h-5" /> },
   { id: 6, name: "FAQ",          href: "/#faq",          icon: <HelpCircle className="w-5 h-5" /> },
 ]
