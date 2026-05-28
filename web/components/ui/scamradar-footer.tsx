@@ -118,6 +118,24 @@ export function ScamRadarFooter({ className }: FooterProps) {
                   </button>
                 ))}
               </div>
+
+              {/* Legal links */}
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-semibold uppercase tracking-widest text-white/20 mt-3">
+                <Link
+                  href="/privacy"
+                  className="hover:text-green-400 transition-colors duration-300"
+                  style={{ fontFamily: "monospace" }}
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="hover:text-green-400 transition-colors duration-300"
+                  style={{ fontFamily: "monospace" }}
+                >
+                  Terms of Use
+                </Link>
+              </div>
             </div>
           </div>
 
