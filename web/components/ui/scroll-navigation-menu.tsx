@@ -5,6 +5,7 @@ import { useState } from "react"
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion"
 import { Menu, X, Home, Zap, ShieldAlert, Users, HelpCircle, BarChart2, ShieldCheck } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/ui/curtain-theme-toggle"
 
 const MONO: React.CSSProperties = { fontFamily: "monospace" }
@@ -62,6 +63,7 @@ export function AnimatedNavFramer() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
 
+  const router = useRouter()
   const { scrollY } = useScroll()
 
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -84,7 +86,10 @@ export function AnimatedNavFramer() {
 
   const handleLinkClick = (href: string) => {
     setIsMenuOpen(false)
-    if (!href.startsWith("/#")) return  // page routes are handled by <Link>
+    if (!href.startsWith("/#")) {
+      router.push(href)
+      return
+    }
     const hash = href.replace("/", "")
     setTimeout(() => {
       document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" })
