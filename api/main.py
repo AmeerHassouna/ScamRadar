@@ -337,7 +337,7 @@ async def login(request: Request):
 async def health(request: Request):
     if _pipe is None:
         return JSONResponse(status_code=200, content={'status': 'loading'})
-    return {'status': 'ready', 'model': 'ScamRadar+ v5', **cache_info()}
+    return {'status': 'ready', 'model': 'ScamRadar+ v1.3', **cache_info()}
 
 
 @app.get('/warmup')
@@ -351,17 +351,26 @@ async def warmup(request: Request):
 @app.get('/stats')
 @limiter.limit("30/minute")
 async def stats(request: Request):
+    # All metric values below are from the frozen v1.3 external evaluation
+    # (400 items, SHA-1 verified zero overlap with training corpus).
+    # See outputs/intervention_log.md and outputs/final_comparison_report.md.
     return {
-        'total_messages': 46360,
-        'scam_messages':  22164,
-        'legit_messages': 24196,
-        'channels':       4,
-        'accuracy':       97.39,
-        'precision':      97.47,
-        'recall':         97.12,
-        'f1':             97.30,
-        'auc':            99.58,
-        'scam_types':     17,
-        'features':       25,
+        'deployed_model':        'v1.3',
+        'model_architecture':    'Isotonic-calibrated Random Forest (200 trees)',
+        'training_corpus_raw':   47493,   # 46,360 DB rows + 1,133 external additions
+        'training_corpus_dedup': 22546,   # after SHA-1 dedup on normalised text
+        'channels':              4,
+        'scam_types':            17,
+        'features':              25,
+        'external_eval_size':    400,
+        'external_accuracy':     0.850,
+        'external_precision':    0.924,
+        'external_recall':       0.828,
+        'external_f1':           0.873,
+        'external_roc_auc':      0.971,
+        'external_pr_auc':       0.984,
+        'internal_test_f1':      0.942,
+        'evaluation_note':       ('External metrics measured on 400 held-out messages '
+                                  'with SHA-1 verified zero overlap with training corpus.'),
         **cache_info(),
     }

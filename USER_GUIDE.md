@@ -119,18 +119,19 @@ Content-Type: application/json
 
 ```json
 {
-  "label": "SCAM",
-  "confidence": 0.97,
-  "score": 94.2,
-  "threat_type": "Phishing",
-  "signals": {
-    "urgency": true,
-    "url_risk": true,
-    "tone_fear": true,
-    "vector_proximity": 0.91
-  }
+  "verdict": "SCAM",
+  "confidence": 87.4,
+  "threshold_used": 0.4,
+  "scam_type": "credential_phishing",
+  "tone_urgency": 2, "tone_fear": 1, "tone_reward": 0, "tone_threat": 0,
+  "url_suspicious_tld": 1, "url_suspicious_keyword": 1,
+  "urls_found": ["http://paypa1-support.com"],
+  "why_flagged": "Suspicious URL keyword + urgency language + brand impersonation",
+  "warnings": []
 }
 ```
+
+Note: `confidence` is the model's scam probability as a percentage (0–100), capped at [2, 98] for display readability. `verdict` is one of `SCAM`, `SUSPICIOUS`, `LEGIT`, or `TOO_SHORT`.
 
 **cURL example**
 
@@ -216,10 +217,14 @@ curl https://scamradar-api-l2vv.onrender.com/health
 
 ```json
 {
-  "status": "ok",
-  "model": "ScamRadar+ v5",
-  "cache_hits": 142,
-  "cache_size": 38
+  "status": "ready",
+  "model": "ScamRadar+ v1.3",
+  "predict_cached": 142,
+  "predict_maxsize": 10000,
+  "predict_ttl_s": 3600,
+  "url_cached": 22,
+  "url_maxsize": 50000,
+  "url_ttl_s": 86400
 }
 ```
 
@@ -227,7 +232,7 @@ curl https://scamradar-api-l2vv.onrender.com/health
 
 ### GET /stats
 
-Returns dataset statistics used to train the model.
+Returns training corpus statistics and the deployed model's external-validation metrics.
 
 ```bash
 curl https://scamradar-api-l2vv.onrender.com/stats
@@ -235,10 +240,18 @@ curl https://scamradar-api-l2vv.onrender.com/stats
 
 ```json
 {
-  "total_messages": 45851,
-  "scam_messages": 21955,
-  "legit_messages": 23896,
-  "channels": 4
+  "deployed_model":        "v1.3",
+  "training_corpus_raw":   47493,
+  "training_corpus_dedup": 22546,
+  "channels":              4,
+  "external_eval_size":    400,
+  "external_f1":           0.873,
+  "external_precision":    0.924,
+  "external_recall":       0.828,
+  "external_roc_auc":      0.971,
+  "external_pr_auc":       0.984,
+  "internal_test_f1":      0.942,
+  "evaluation_note":       "External metrics measured on 400 held-out messages with SHA-1 verified zero overlap with training corpus."
 }
 ```
 
@@ -296,4 +309,7 @@ Yes — the API is public and unauthenticated. Please respect the rate limits. F
 See [README.md](README.md) for full local setup instructions.
 
 **Q: The result seems wrong — what should I do?**
-The model has a 97.76% accuracy on its test set, which means roughly 1 in 40 predictions may be incorrect. For borderline cases (score 40–60), treat the result as a prompt to investigate further rather than a definitive verdict.
+The deployed v1.3 model achieves F1 = 0.87 on an independent external validation set of 400 messages, which means it does miss some scams and occasionally flags legitimate messages. For borderline cases (score 30–50), treat the result as a prompt to investigate further rather than a definitive verdict. This tool is designed to *assist* your judgement, not replace it.
+
+**Q: What are the deployed model's honest performance limits?**
+On the leakage-free external validation set: recall = 0.83 (misses roughly 17% of scams) and precision = 0.92 (roughly 8% of items flagged as scam are actually legitimate). Full evaluation methodology is documented in the repository's `outputs/intervention_log.md` and `outputs/final_comparison_report.md`.

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, Globe, X } from "lucide-react"
+import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, X } from "lucide-react"
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
@@ -20,14 +20,6 @@ const safeNum = (v: unknown, fallback = 0): number => {
 }
 
 const KNOWN_VERDICTS = new Set(["SCAM", "SUSPICIOUS", "LEGIT"])
-
-const LANG_NAMES: Record<string, string> = {
-  ar: 'Arabic', zh: 'Chinese', fr: 'French', de: 'German', hi: 'Hindi',
-  id: 'Indonesian', it: 'Italian', ja: 'Japanese', ko: 'Korean', ms: 'Malay',
-  nl: 'Dutch', pl: 'Polish', pt: 'Portuguese', ro: 'Romanian', ru: 'Russian',
-  es: 'Spanish', sv: 'Swedish', th: 'Thai', tr: 'Turkish', uk: 'Ukrainian',
-  ur: 'Urdu', vi: 'Vietnamese',
-}
 
 // Pydantic 422 errors return detail as an array of objects — extract a readable string
 const detailToString = (detail: unknown): string => {
@@ -1263,17 +1255,6 @@ const RainingLetters: React.FC = () => {
                     >
                       <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
-                        {result.was_translated && result.detected_language && (
-                          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]" style={{ background: 'rgba(99,102,241,0.07)' }}>
-                            <Globe className="w-3 h-3 text-indigo-400/80 shrink-0" />
-                            <span className="font-mono text-[11px] text-white/55">
-                              Translated from{' '}
-                              <span className="text-white/80">{LANG_NAMES[result.detected_language] ?? result.detected_language.toUpperCase()}</span>
-                            </span>
-                            <span className="ml-auto font-mono text-[10px] text-white/25 shrink-0">auto-detected</span>
-                          </div>
-                        )}
-
                         {/* Gauge */}
                         <ConfidenceGauge
                           displayConf={displayConf}
@@ -1413,17 +1394,6 @@ const RainingLetters: React.FC = () => {
                     style={{ border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
-
-                      {result.was_translated && result.detected_language && (
-                        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]" style={{ background: 'rgba(99,102,241,0.07)' }}>
-                          <Globe className="w-3 h-3 text-indigo-400/80 shrink-0" />
-                          <span className="font-mono text-[11px] text-white/55">
-                            Translated from{' '}
-                            <span className="text-white/80">{LANG_NAMES[result.detected_language] ?? result.detected_language.toUpperCase()}</span>
-                          </span>
-                          <span className="ml-auto font-mono text-[10px] text-white/25 shrink-0">auto-detected</span>
-                        </div>
-                      )}
 
                       {/* Gauge */}
                       <ConfidenceGauge
@@ -1571,7 +1541,7 @@ const RainingLetters: React.FC = () => {
                 {/* Points */}
                 <ul className="flex flex-col gap-3 mb-6">
                   {[
-                    { icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />, text: "97.76% accurate — 1 in 40 predictions may be wrong. Don't rely on this alone for financial or safety decisions." },
+                    { icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />, text: "F1 = 0.87 on independent external validation — the model can still miss scams or flag legitimate messages. Don't rely on this alone for financial or safety decisions." },
                     { icon: <ShieldX className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />, text: "Not legal or financial advice. Verdicts are model outputs, not legal determinations." },
                     { icon: <AlertCircle className="w-3.5 h-3.5 text-white/40 mt-0.5 shrink-0" />, text: "No liability for any loss from a missed or incorrect verdict. Academic project — no commercial guarantees." },
                   ].map((item, i) => (

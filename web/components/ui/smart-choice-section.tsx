@@ -8,9 +8,9 @@ import { ScannerCardStream } from "@/components/ui/scanner-card-stream"
 const features = [
   {
     icon: <Cpu className="size-5 text-green-400" />,
-    stat: "97.4%",
-    title: "Detection Accuracy",
-    description: "F1 score across 9,272 held-out real messages",
+    stat: "0.87 F1",
+    title: "External Validation",
+    description: "Leakage-free evaluation on 400 unseen messages",
   },
   {
     icon: <Zap className="size-5 text-green-400" />,

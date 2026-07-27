@@ -20,7 +20,7 @@ const FEATURES: { Icon: LucideIcon; title: string; description: string }[] = [
     Icon: ShieldCheck,
     title: "AI Scam Detection",
     description:
-      "A Calibrated Logistic Regression model trained on 46,360 real messages scores every input and returns an instant scam or ham verdict.",
+      "An isotonic-calibrated Random Forest trained on 22,546 deduplicated real messages scores every input and returns an instant scam, suspicious or legit verdict.",
   },
   {
     Icon: Link2,

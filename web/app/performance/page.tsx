@@ -19,97 +19,101 @@ const MONO: React.CSSProperties = { fontFamily: "monospace" };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fmt = (fn: (v: number, name: string) => [string, string]) => (v: any, name: any) => fn(+v, String(name)) as [string, string];
 
-// ─── Real model data ──────────────────────────────────────────────────────────
+// ─── Real model data (frozen v1.3 baseline, external validation) ─────────────
+// Sources:
+//   outputs/eval/final_comparison.json          — v1.0 vs v1.3 on 400 external items
+//   outputs/eval/v1.3_candidate.json            — rung-1 unseen bucket per-source
+//   outputs/eval/v1.3_candidate_external.json   — rung-3 external evaluation
+//   outputs/intervention_log.md                  — version evolution + methodology
 
-// ROC curve approximation — AUC 0.9958
+// ROC curve approximation for v1.3 on external set — AUC 0.9714
 const rocData = [
-  { fpr: 0, tpr: 0 }, { fpr: 0.001, tpr: 0.22 }, { fpr: 0.003, tpr: 0.52 },
-  { fpr: 0.006, tpr: 0.74 }, { fpr: 0.010, tpr: 0.86 }, { fpr: 0.018, tpr: 0.92 },
-  { fpr: 0.028, tpr: 0.95 }, { fpr: 0.042, tpr: 0.963 }, { fpr: 0.060, tpr: 0.971 },
-  { fpr: 0.085, tpr: 0.977 }, { fpr: 0.12, tpr: 0.981 }, { fpr: 0.17, tpr: 0.985 },
-  { fpr: 0.23, tpr: 0.988 }, { fpr: 0.31, tpr: 0.991 }, { fpr: 0.42, tpr: 0.993 },
-  { fpr: 0.55, tpr: 0.995 }, { fpr: 0.70, tpr: 0.997 }, { fpr: 0.85, tpr: 0.999 },
-  { fpr: 1, tpr: 1 },
+  { fpr: 0, tpr: 0 }, { fpr: 0.007, tpr: 0.35 }, { fpr: 0.013, tpr: 0.58 },
+  { fpr: 0.020, tpr: 0.71 }, { fpr: 0.033, tpr: 0.79 }, { fpr: 0.047, tpr: 0.83 },
+  { fpr: 0.067, tpr: 0.87 }, { fpr: 0.090, tpr: 0.90 }, { fpr: 0.113, tpr: 0.92 },
+  { fpr: 0.15, tpr: 0.94 }, { fpr: 0.20, tpr: 0.96 }, { fpr: 0.28, tpr: 0.97 },
+  { fpr: 0.38, tpr: 0.98 }, { fpr: 0.50, tpr: 0.99 }, { fpr: 0.65, tpr: 0.994 },
+  { fpr: 0.80, tpr: 0.997 }, { fpr: 0.92, tpr: 0.999 }, { fpr: 1, tpr: 1 },
 ];
 const randomLine = [{ fpr: 0, tpr: 0 }, { fpr: 1, tpr: 1 }];
 
-// Confusion matrix (test set: 9,272 samples; threshold = 0.47)
-// Accuracy 97.39%, Precision 97.47%, Recall 97.12%
-const CM = { tp: 4356, fn: 129, fp: 112, tn: 4675 };
+// Confusion matrix — v1.3 on external validation set (400 items, threshold=0.40)
+// Accuracy 0.850, Precision 0.924, Recall 0.828, F1 0.873
+const CM = { tp: 207, fn: 43, fp: 17, tn: 133 };
 
-// Per-channel (from training run output)
+// Per-source F1 on the rung-1 unseen bucket of v1.3 (values from
+// outputs/eval/v1.3_candidate.json). These are not per-channel — they
+// are per-corpus F1 measurements for the deduplicated training sources.
 const channelData = [
-  { channel: "Email", acc: 99.53, f1: 99.54, precision: 99.65, recall: 99.43 },
-  { channel: "URL", acc: 99.24, f1: 99.25, precision: 99.10, recall: 99.41 },
-  { channel: "SMS", acc: 99.65, f1: 99.13, precision: 99.60, recall: 98.67 },
-  { channel: "Reddit", acc: 99.75, f1: 99.74, precision: 100.0, recall: 99.48 },
+  { channel: "Reddit",       acc: 97.8, f1: 97.6, precision: 100.0, recall: 95.3 },
+  { channel: "SMS-Spam",     acc: 90.2, f1: 90.3, precision: 88.1,  recall: 92.7 },
+  { channel: "Enron",        acc: 86.6, f1: 86.8, precision: 87.1,  recall: 86.5 },
+  { channel: "SpamAssassin", acc: 78.9, f1: 76.4, precision: 89.7,  recall: 66.5 },
 ];
 
-// Model evolution v1 → v5
+// Model evolution v1.0 → v1.3 (all values are HONEST rung-1 unseen F1
+// after evaluation-integrity fixes, plus external F1 where measured).
+// Sourced from outputs/intervention_log.md.
 const versionData = [
-  { version: "v1\nBaseline", acc: 81.0, f1: 84.0, auc: 88.7, features: "8 num." },
-  { version: "v2\n+TF-IDF", acc: 95.32, f1: 95.5, auc: 98.66, features: "+5 000" },
-  { version: "v3\n+Char", acc: 96.27, f1: 96.3, auc: 98.64, features: "+3 000" },
-  { version: "v4\n+Proximity", acc: 97.76, f1: 97.8, auc: 99.57, features: "+FAISS" },
-  { version: "v5\nCurrent", acc: 97.39, f1: 97.3, auc: 99.58, features: "+17 types" },
+  { version: "v1.0\nOriginal",   acc: 88.8, f1: 87.7, auc: 77.1, features: "leaked eval" },
+  { version: "v1.0.5\nAblation", acc: 88.4, f1: 82.4, auc: 88.2, features: "leakage fix only" },
+  { version: "v1.1\nDedup+Fit",  acc: 84.2, f1: 81.8, auc: 89.5, features: "cluster split" },
+  { version: "v1.2\nTuned RF",   acc: 84.5, f1: 82.7, auc: 90.1, features: "hp search" },
+  { version: "v1.3\nCurrent",    acc: 85.0, f1: 87.3, auc: 97.1, features: "+ external" },
 ];
 
-// Feature importance (top 10 — scaled 0-100)
+// Feature importance — top numerical features from v1.1 RF inspection
+// (proximity_scam_score dominated at 17.2% of total feature mass; the
+// remaining top features shown here have importance normalised to 100)
 const featureData = [
-  { name: "scam_phrase_score", imp: 100 },
-  { name: "proximity_scam_score", imp: 86 },
-  { name: "tone_reward", imp: 71 },
-  { name: "sender_impersonation", imp: 65 },
-  { name: "url_suspicious_kw", imp: 59 },
-  { name: "tone_urgency", imp: 53 },
-  { name: "tone_fear", imp: 48 },
-  { name: "capitalized_words", imp: 38 },
-  { name: "url_suspicious_tld", imp: 34 },
-  { name: "tone_threat", imp: 29 },
+  { name: "proximity_scam_score",     imp: 100 },
+  { name: "digit_ratio",              imp: 13 },
+  { name: "uppercase_ratio",          imp: 5 },
+  { name: "unique_word_ratio",        imp: 4 },
+  { name: "currency_symbol_count",    imp: 3 },
+  { name: "avg_word_length",          imp: 3 },
+  { name: "exclamation_count",        imp: 3 },
+  { name: "readability_score",        imp: 2 },
+  { name: "punctuation_density",      imp: 2 },
+  { name: "word_count",               imp: 2 },
 ];
 
-// Scam type radar (17 types — detection confidence %)
+// Per-scam-type recall on v1.3 rung-1 unseen bucket (illustrative — see
+// note below the table about small per-category sample sizes).
 const scamRadarData = [
-  { type: "Phishing", score: 98 },
-  { type: "Credential", score: 97 },
-  { type: "Prize Fraud", score: 99 },
-  { type: "Bank Imp.", score: 97 },
-  { type: "Job Scam", score: 96 },
-  { type: "Investment", score: 98 },
-  { type: "Romance", score: 95 },
-  { type: "Advance Fee", score: 98 },
-  { type: "Delivery", score: 99 },
-  { type: "Social Media", score: 97 },
-  { type: "Emergency", score: 98 },
-  { type: "Threat", score: 97 },
-  { type: "Pig Butcher", score: 95 },
-  { type: "QR Phishing", score: 98 },
-  { type: "Refund Scam", score: 98 },
-  { type: "SIM Swap", score: 98 },
+  { type: "General Spam", score: 84 },
+  { type: "Phishing",     score: 100 },
+  { type: "Prize Fraud",  score: 100 },
+  { type: "Credential",   score: 100 },
+  { type: "Job Scam",     score: 100 },
+  { type: "QR Phishing",  score: 100 },
+  { type: "Social Media", score: 100 },
+  { type: "Romance",      score: 68 },
 ];
 
-// Dataset composition
+// Dataset composition — v1.3 training corpus after SHA-1 dedup on
+// normalised text (from scripts/build_splits.py + train_v1_3.py output).
 const datasetData = [
-  { source: "SpamAssassin", scam: 0, legit: 4150 },
-  { source: "Enron Email",  scam: 0, legit: 16545 },
-  { source: "PhishTank",    scam: 11012, legit: 0 },
-  { source: "SMS Spam",     scam: 747, legit: 3621 },
-  { source: "Reddit",       scam: 509, legit: 671 },
-  { source: "Augmented",    scam: 10156, legit: 2949 },
+  { source: "Enron Email",         scam: 3835,  legit: 6548 },
+  { source: "SpamAssassin",        scam: 0,     legit: 5846 },
+  { source: "SMS Spam (UCI)",      scam: 634,   legit: 2949 },
+  { source: "Reddit",              scam: 575,   legit: 605 },
+  { source: "phishing_email",      scam: 197,   legit: 1 },
+  { source: "External Additions",  scam: 633,   legit: 500 },
 ];
 
-// Precision-Recall sparkline (threshold sweep 0.1 → 0.9)
+// Precision-Recall sparkline — v1.3 threshold sweep on external set
+// (illustrative curve; the winning production threshold is t=0.40)
 const prData = [
-  { t: 0.10, precision: 78, recall: 99.8 },
-  { t: 0.20, precision: 88, recall: 99.1 },
-  { t: 0.30, precision: 93, recall: 98.5 },
-  { t: 0.40, precision: 96, recall: 98.0 },
-  { t: 0.47, precision: 97.5, recall: 97.1 },
-  { t: 0.50, precision: 98, recall: 96.4 },
-  { t: 0.60, precision: 98.8, recall: 94.2 },
-  { t: 0.70, precision: 99.2, recall: 89.0 },
-  { t: 0.80, precision: 99.5, recall: 78.0 },
-  { t: 0.90, precision: 99.8, recall: 55.0 },
+  { t: 0.10, precision: 68,   recall: 99.6 },
+  { t: 0.20, precision: 79,   recall: 97.2 },
+  { t: 0.30, precision: 87,   recall: 93.6 },
+  { t: 0.40, precision: 92.4, recall: 82.8 },
+  { t: 0.50, precision: 95,   recall: 74.0 },
+  { t: 0.60, precision: 97,   recall: 62.0 },
+  { t: 0.70, precision: 98.5, recall: 47.0 },
+  { t: 0.80, precision: 99,   recall: 30.0 },
+  { t: 0.90, precision: 99.5, recall: 12.0 },
 ];
 
 // Confidence distribution sparkline (how model scores distribute)
@@ -196,7 +200,7 @@ function ConfusionMatrix() {
         </div>
       </div>
       <p className="text-white/25 text-xs text-center mt-1" style={MONO}>
-        Test set · {total.toLocaleString()} messages · threshold = 0.47
+        External validation set · {total.toLocaleString()} messages · threshold = 0.40
       </p>
     </div>
   );
@@ -205,10 +209,13 @@ function ConfusionMatrix() {
 // ─── Metrics Table ─────────────────────────────────────────────────────────────
 
 function ModelComparisonTable() {
+  // v1.3 (RF) tuned via RandomizedSearchCV — winning configuration from
+  // outputs/intervention_log.md. All values are internal test F1 on the
+  // deduplicated 15% held-out cluster split (not the biased original split).
   const models = [
-    { name: "Logistic Regression", acc: 97.39, prec: 97.47, rec: 97.12, f1: 97.30, auc: 99.58, best: true },
-    { name: "Random Forest", acc: 97.09, prec: 97.01, rec: 96.97, f1: 96.99, auc: 99.32, best: false },
-    { name: "Decision Tree", acc: 95.91, prec: 95.91, rec: 95.63, f1: 95.77, auc: 95.90, best: false },
+    { name: "Random Forest (v1.3)",  acc: 94.98, prec: 95.69, rec: 92.81, f1: 94.23, auc: 99.00, best: true },
+    { name: "Logistic Regression",   acc: 93.84, prec: 97.05, rec: 88.74, f1: 92.71, auc: 98.50, best: false },
+    { name: "Decision Tree",         acc: 90.22, prec: 92.84, rec: 84.36, f1: 88.40, auc: 89.61, best: false },
   ];
   const cols = ["Accuracy", "Precision", "Recall", "F1", "AUC-ROC"];
   return (
@@ -248,24 +255,29 @@ function ModelComparisonTable() {
 // ─── Scam Type Table ───────────────────────────────────────────────────────────
 
 function ScamTypeTable() {
+  // "Coverage" below indicates the categories the model can identify via its
+  // rule-based scam-type classifier + trained model. Where per-category
+  // recall numbers were measurable on the rung-1 unseen bucket (small samples,
+  // shown in the radar chart above), those numbers are shown; where per-category
+  // samples were too small to be statistically meaningful, an em-dash appears.
   const types = [
-    { type: "Phishing", channel: "Email / URL", examples: "Brand impersonation + verify/login lures", detection: 98 },
-    { type: "Credential Phishing", channel: "Email", examples: "IT dept. spear-phish, student portal spoofs", detection: 97 },
-    { type: "Prize Fraud", channel: "SMS / Email", examples: "Lottery winners, gift card prizes", detection: 99 },
-    { type: "Bank Impersonation", channel: "SMS / Email", examples: "IRS threats, refund claims", detection: 97 },
-    { type: "Job Scam", channel: "Email / SMS", examples: "WFH offers, $500/week no experience", detection: 96 },
-    { type: "Investment Scam", channel: "SMS / Email", examples: "Crypto bots, guaranteed returns", detection: 98 },
-    { type: "Romance Scam", channel: "SMS", examples: "Military catfish, dating app grooming", detection: 95 },
-    { type: "Advance Fee", channel: "Email", examples: "Nigerian prince, inheritance funds", detection: 98 },
-    { type: "Delivery Scam", channel: "SMS", examples: "USPS/DHL customs fee lures", detection: 99 },
-    { type: "Social Media", channel: "SMS / Email", examples: "Link in bio, passive income schemes", detection: 97 },
-    { type: "Emergency Scam", channel: "SMS", examples: "Grandparent scam, bail money", detection: 98 },
-    { type: "Threat Scam", channel: "Email", examples: "Sextortion, IRS arrest warrants", detection: 97 },
-    { type: "Pig Butchering", channel: "SMS", examples: "Slow crypto grooming + withdrawal trap", detection: 95 },
-    { type: "QR Phishing", channel: "SMS", examples: "Scan QR to verify / pay / login", detection: 98 },
-    { type: "Refund Scam", channel: "Email / SMS", examples: "Overpayment → gift card return demand", detection: 98 },
-    { type: "SIM Swap", channel: "SMS", examples: "Social engineering to extract OTP codes", detection: 98 },
-    { type: "General Spam", channel: "All", examples: "Low-confidence catch-all", detection: 89 },
+    { type: "Phishing", channel: "Email / URL", examples: "Brand impersonation + verify/login lures", detection: 100 },
+    { type: "Credential Phishing", channel: "Email", examples: "IT dept. spear-phish, student portal spoofs", detection: 100 },
+    { type: "Prize Fraud", channel: "SMS / Email", examples: "Lottery winners, gift card prizes", detection: 100 },
+    { type: "Bank Impersonation", channel: "SMS / Email", examples: "IRS threats, refund claims", detection: 0 },
+    { type: "Job Scam", channel: "Email / SMS", examples: "WFH offers, $500/week no experience", detection: 100 },
+    { type: "Investment Scam", channel: "SMS / Email", examples: "Crypto bots, guaranteed returns", detection: 0 },
+    { type: "Romance Scam", channel: "SMS", examples: "Military catfish, dating app grooming", detection: 68 },
+    { type: "Advance Fee", channel: "Email", examples: "Nigerian prince, inheritance funds", detection: 0 },
+    { type: "Delivery Scam", channel: "SMS", examples: "USPS/DHL customs fee lures", detection: 0 },
+    { type: "Social Media", channel: "SMS / Email", examples: "Link in bio, passive income schemes", detection: 100 },
+    { type: "Emergency Scam", channel: "SMS", examples: "Grandparent scam, bail money", detection: 0 },
+    { type: "Threat Scam", channel: "Email", examples: "Sextortion, IRS arrest warrants", detection: 0 },
+    { type: "Pig Butchering", channel: "SMS", examples: "Slow crypto grooming + withdrawal trap", detection: 0 },
+    { type: "QR Phishing", channel: "SMS", examples: "Scan QR to verify / pay / login", detection: 100 },
+    { type: "Refund Scam", channel: "Email / SMS", examples: "Overpayment → gift card return demand", detection: 0 },
+    { type: "SIM Swap", channel: "SMS", examples: "Social engineering to extract OTP codes", detection: 0 },
+    { type: "General Spam", channel: "All", examples: "Low-confidence catch-all bucket", detection: 84 },
   ];
 
   const [filter, setFilter] = useState<"all" | "new">("all");
@@ -380,10 +392,24 @@ export default function PerformancePage() {
         {/* ── 1. Top-line metrics ────────────────────────────────────────── */}
         <section>
           <SectionHeader
-            label="Model Metrics · v5 Production"
+            label="Model Metrics · v1.3 Production"
             title="PERFORMANCE"
-            sub="Calibrated Logistic Regression · 46,360 messages · 8,026 features · threshold = 0.47"
+            sub="Calibrated Random Forest · 22,546 deduplicated clusters · 8,026 features · threshold = 0.40"
           />
+
+          {/* Evaluation methodology callout — replaces silent leakage assumption */}
+          <div className="mx-auto mb-8 max-w-3xl border border-green-400/20 bg-green-400/5 rounded-xl p-4">
+            <p className="text-green-400 text-xs font-bold mb-1.5 uppercase tracking-wider" style={MONO}>
+              About these numbers
+            </p>
+            <p className="text-white/60 text-xs leading-relaxed" style={MONO}>
+              Headline metrics below are from an <span className="text-white">independent external validation set of
+              400 messages</span> with SHA-1 verified zero overlap against the training corpus. Early experiments
+              on this project reported inflated results (~97% F1) that were later found to be affected by train/test
+              near-duplicate leakage; the numbers shown here reflect the corrected, leakage-free methodology.
+            </p>
+          </div>
+
           {/* Plain-language metric glossary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 text-center">
             {[
@@ -399,17 +425,17 @@ export default function PerformancePage() {
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard title="Accuracy" value={97.39} change={16.39} changeDescription="v1 baseline"
+            <StatCard title="Accuracy" value={85.0} change={7.25} changeDescription="vs honest v1.0"
               icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} />
-            <StatCard title="F1 Score" value={97.30} change={13.30} changeDescription="v1 baseline"
+            <StatCard title="F1 Score" value={87.3} change={24.9} changeDescription="vs honest v1.0"
               icon={<Target className="h-4 w-4 text-green-400" />} />
-            <StatCard title="AUC-ROC" value={99.58} change={10.88} changeDescription="v1 baseline"
+            <StatCard title="AUC-ROC" value={97.1} change={20.1} changeDescription="vs honest v1.0"
               icon={<Activity className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Precision" value={97.47} change={2.47} changeDescription="target"
+            <StatCard title="Precision" value={92.4} change={5.9} changeDescription="vs honest v1.0"
               icon={<ShieldCheck className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Recall" value={97.12} change={2.12} changeDescription="target"
+            <StatCard title="Recall" value={82.8} change={34.0} changeDescription="vs honest v1.0"
               icon={<Zap className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Scam Types" value={17} change={4} changeDescription="v4"
+            <StatCard title="Scam Types" value={17} change={0} changeDescription="covered"
               icon={<BarChart2 className="h-4 w-4 text-green-400" />} />
           </div>
         </section>
@@ -441,7 +467,7 @@ export default function PerformancePage() {
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={prData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                   <YAxis domain={[50, 100]} hide />
-                  <ReferenceLine x={0.47} stroke={G} strokeDasharray="3 3" strokeWidth={1} />
+                  <ReferenceLine x={0.40} stroke={G} strokeDasharray="3 3" strokeWidth={1} />
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
                     formatter={fmt((v, name) => [`${v.toFixed(1)}%`, name])}
@@ -460,7 +486,7 @@ export default function PerformancePage() {
                 <span className="text-[10px] text-blue-400 flex items-center gap-1" style={MONO}>
                   <span className="w-3 h-0.5 bg-blue-400 inline-block" /> Recall
                 </span>
-                <span className="text-[10px] text-white/40 ml-auto" style={MONO}>▲ optimal @ 0.47</span>
+                <span className="text-[10px] text-white/40 ml-auto" style={MONO}>▲ optimal @ 0.40</span>
               </div>
             </ChartCard>
 
@@ -492,12 +518,12 @@ export default function PerformancePage() {
 
             {/* Cross-channel F1 */}
             <ChartCard
-              title="F1 Score by Channel"
-              sub="Detection quality across email, URL, SMS, Reddit"
+              title="F1 Score by Source"
+              sub="Rung-1 unseen F1 per training source (Reddit, SMS-Spam, Enron, SpamAssassin)"
             >
               <ResponsiveContainer width="100%" height={130}>
                 <BarChart data={channelSparkData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                  <YAxis domain={[94, 100]} hide />
+                  <YAxis domain={[70, 100]} hide />
                   <XAxis dataKey="ch" tick={{ fill: TICK, fontSize: 10, fontFamily: "monospace" }}
                     axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE}
@@ -507,11 +533,11 @@ export default function PerformancePage() {
                       <Cell key={i} fill={G} fillOpacity={0.6 + i * 0.1} />
                     ))}
                   </Bar>
-                  <ReferenceLine y={97.39} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
+                  <ReferenceLine y={87.3} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-[10px] text-white/25 mt-2" style={MONO}>
-                Dashed line = overall accuracy · All channels ≥ 99%
+                Dashed line = external F1 (0.87) · Per-source rung-1 unseen F1
               </p>
             </ChartCard>
           </div>
@@ -565,7 +591,7 @@ export default function PerformancePage() {
             </ChartCard>
 
             {/* Confusion Matrix */}
-            <ChartCard title="Confusion Matrix" sub="Predictions on held-out test set (9,272 messages)">
+            <ChartCard title="Confusion Matrix" sub="Predictions on external validation set (400 messages)">
               <ConfusionMatrix />
             </ChartCard>
           </div>
@@ -642,7 +668,7 @@ export default function PerformancePage() {
             </ChartCard>
 
             {/* Dataset Composition */}
-            <ChartCard title="Training Dataset Composition" sub="46,360 messages across 8 data sources — scam vs legit split">
+            <ChartCard title="Training Dataset Composition" sub="22,546 deduplicated clusters across 6 data sources — scam vs legit split">
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={datasetData} margin={{ top: 0, right: 20, left: -5, bottom: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
@@ -664,9 +690,9 @@ export default function PerformancePage() {
         {/* ── 7. Model Evolution ─────────────────────────────────────────── */}
         <section>
           <SectionHeader
-            label="Iterative Improvement · v1 → v5"
+            label="Iterative Improvement · v1.0 → v1.3"
             title="MODEL EVOLUTION"
-            sub="How each pipeline upgrade compounded into a 16.4pp accuracy gain over the baseline"
+            sub="Honest rung-1 F1 across the four intervention steps — from leaked evaluation to leakage-free external validation"
           />
           <ChartCard title="Accuracy & AUC-ROC Progression" sub="Each version adds a new feature tier to the previous one">
             <ResponsiveContainer width="100%" height={280}>

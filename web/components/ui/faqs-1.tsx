@@ -53,7 +53,7 @@ const questions = [
         id: 'item-1',
         title: 'How accurate is ScamRadar+?',
         content:
-            'Our Calibrated Logistic Regression model achieves 97.39% accuracy, 97.47% precision, and 97.12% recall on a held-out test set of 9,272 messages drawn from the full 46,360-message corpus across SMS, email, URL, and Reddit channels.',
+            'The deployed v1.3 model achieves F1 = 0.87 (precision 0.92, recall 0.83, ROC-AUC 0.97) on an independent external validation set of 400 messages with SHA-1 verified zero overlap with the training corpus. Full evaluation methodology, including a discovered train/test leakage issue in earlier experiments and the corrective methodology used for the final numbers, is documented in the project repository.',
     },
     {
         id: 'item-2',
