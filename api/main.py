@@ -17,11 +17,35 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src._09_prediction_pipeline import load_pipeline, predict_message
 from api.cache import get_prediction, set_prediction, cache_info
-from api.translate import detect_and_translate
 from config import (
     GOOGLE_SAFEBROWSING_API_KEY, VIRUSTOTAL_API_KEY,
     MIN_MESSAGE_LENGTH, MAX_MESSAGE_LENGTH,
 )
+
+# Deterministic language detection
+try:
+    from langdetect import detect as _lang_detect, DetectorFactory, LangDetectException
+    DetectorFactory.seed = 42
+    _LANGDETECT_OK = True
+except ImportError:
+    _LANGDETECT_OK = False
+
+ENGLISH_ONLY_MESSAGE = (
+    "Only English messages are supported. Translated text can lose scam-signal "
+    "context, so please paste your message in English."
+)
+
+
+def _ensure_english(text: str) -> None:
+    """Raise HTTP 400 if the message isn't English. Silent no-op if detection fails."""
+    if not _LANGDETECT_OK:
+        return
+    try:
+        if _lang_detect(text) != 'en':
+            raise HTTPException(status_code=400, detail=ENGLISH_ONLY_MESSAGE)
+    except LangDetectException:
+        # No detectable letters (all URLs/numbers/symbols) — let the pipeline handle it
+        return
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 MAX_CONVERSATION_LENGTH   = 100_000    # 100 KB of plain text
@@ -140,21 +164,14 @@ async def _predict(text: str, *, with_url_checks: bool = True) -> dict:
     if cached is not None:
         return cached
 
-    # Translate non-English input before model inference (non-blocking)
-    translated_text, detected_lang = await asyncio.to_thread(detect_and_translate, text)
-
     result = await asyncio.to_thread(
         predict_message,
-        translated_text,
+        text,
         _pipe['model'], _pipe['tfidf'], _pipe['char_tfidf'],
         _pipe['scaler'], _pipe['scam_index'], _pipe['st_model'],
         vt_api_key=VIRUSTOTAL_API_KEY  if with_url_checks else None,
         gsb_api_key=GOOGLE_SAFEBROWSING_API_KEY if with_url_checks else None,
     )
-
-    if detected_lang:
-        result['detected_language'] = detected_lang
-        result['was_translated'] = True
 
     set_prediction(text, result)
     return result
@@ -188,12 +205,14 @@ def parse_conversation(text: str) -> list:
 @app.post('/predict')
 @limiter.limit("30/minute")
 async def predict(request: Request, body: MessageRequest):
+    _ensure_english(body.text)
     return await _predict(body.text)
 
 
 @app.post('/analyze-conversation')
 @limiter.limit("20/minute")
 async def analyze_conversation(request: Request, body: ConversationRequest):
+    _ensure_english(body.text)
     messages = parse_conversation(body.text)
     if not messages:
         raise HTTPException(status_code=400, detail='No messages found in conversation')

@@ -1,4 +1,17 @@
-# API server
+# ══════════════════════════════════════════════════════════════════════════════
+# ScamRadar+ requirements.txt
+#
+# All ML-critical dependencies are pinned to the exact versions used to
+# produce the frozen v1.3 baseline (models/v1.3_baseline/). Do not upgrade
+# scikit-learn, numpy, scipy, or pandas without retraining the model.
+#
+# sentence-transformers (PyTorch) and faiss-cpu are intentionally omitted:
+# they exceed Render's 512 MB free-tier RAM limit. The pipeline degrades
+# gracefully with proximity_scam_score=0 when absent — this was verified
+# to have no negative effect on v1.3 external F1.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── API server ─────────────────────────────────────────────────────────────────
 fastapi==0.115.12
 uvicorn[standard]==0.34.3
 python-multipart==0.0.20
@@ -6,22 +19,17 @@ slowapi==0.1.9
 python-dotenv==1.2.2
 cachetools>=5.3
 
-# ML inference
-numpy
-scipy
-scikit-learn
-# sentence-transformers (PyTorch) exceeds Render free-tier 512MB RAM limit;
-# the pipeline degrades gracefully with proximity_score=0 when absent.
-# faiss-cpu is also omitted for the same reason — it depends on ST for queries.
+# ── ML inference (pinned to v1.3 training environment) ─────────────────────────
+scikit-learn==1.8.0
+numpy==2.4.4
+scipy==1.17.1
+pandas==3.0.2
 
-
-# Feature engineering
-pandas
+# ── Feature engineering ────────────────────────────────────────────────────────
 vaderSentiment==3.3.2
-requests
-python-whois
-regex
+requests==2.34.2
+python-whois==0.9.6
+regex==2026.4.4
 
-# Auto-translation
+# ── Language detection (English-only enforcement) ──────────────────────────────
 langdetect==1.0.9
-deep-translator==1.11.4

@@ -23,6 +23,18 @@ env/
 data/
 outputs/
 
+# Model development artefacts (frozen baselines + intermediate candidates)
+# Kept locally for reproducibility; not shipped to production.
+models/v1.0_frozen/
+models/v1.0.5_candidate/
+models/v1.1_candidate/
+models/v1.2_baseline/
+models/v1.2_candidate/
+models/v1.3_baseline/
+models/v1.3_candidate/
+# embeddings.npy is a training artefact, not loaded at inference.
+models/embeddings.npy
+
 # OS
 .DS_Store
 Thumbs.db

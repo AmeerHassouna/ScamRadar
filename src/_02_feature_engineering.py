@@ -35,20 +35,25 @@ _URL_SHORTENER_RE = re.compile(
 )
 
 
+_CHAR_SPACED_RE = re.compile(r'\b((?:[a-zA-Z] ){3,}[a-zA-Z])\b')
+
+
 def preprocess_text(text: str) -> str:
     """Full adversarial preprocessing pipeline."""
     if not isinstance(text, str):
         return ''
     # 1. Unicode normalisation (NFKC catches lookalike chars, e.g. а→a)
     text = unicodedata.normalize('NFKC', text)
-    # 2. Replace emojis with text tokens
+    # 2. Collapse adversarial character-spacing: "Y o u r" → "Your"
+    text = _CHAR_SPACED_RE.sub(lambda m: m.group(0).replace(' ', ''), text)
+    # 3. Replace emojis with text tokens
     for emoji, token in _EMOJI_MAP.items():
         text = text.replace(emoji, token)
-    # 3. Strip HTML tags
+    # 4. Strip HTML tags
     text = _HTML_TAG_RE.sub(' ', text)
-    # 4. Mark URL shorteners before URL extraction
+    # 5. Mark URL shorteners before URL extraction
     text = _URL_SHORTENER_RE.sub(' SHORTURL ', text)
-    # 5. Collapse extra whitespace
+    # 6. Collapse extra whitespace
     text = _MULTI_SPACE_RE.sub(' ', text).strip()
     return text
 
@@ -61,15 +66,29 @@ _LEET_MAP = {
     '0': 'o', '1': 'i', '3': 'e', '4': 'a',
     '5': 's', '6': 'g', '7': 't', '8': 'b',
     '@': 'a', '$': 's',
+    # Unicode look-alikes commonly used in modern hype spam
+    'ƒ': 'f', 'ϵ': 'e', 'ℓ': 'l', 'ǿ': 'o', 'ǫ': 'o',
+    'ς': 's', 'ʍ': 'm', 'ά': 'a', 'ί': 'i', 'κ': 'k',
+    'Ϯ': 't', 'ʟ': 'l', 'Ϯ': 't',
     # '+' intentionally omitted — maps to 't' in leet but breaks percentage
     # patterns like "20%+" which are common in investment scam messages
 }
+
+# Multi-char leet patterns applied BEFORE single-char map.
+# @@ and 00 visually represent "oo" (as in L@@k / L00k) not "aa"/"oo".
+_LEET_MULTI = [
+    (re.compile(r'@@'), 'oo'),
+    (re.compile(r'00(?=[a-zA-Z])'), 'oo'),
+]
 
 
 def normalize_leet(text: str) -> str:
     if not isinstance(text, str):
         return text
-    return ''.join(_LEET_MAP.get(c, c) for c in text.lower())
+    text = text.lower()
+    for pat, repl in _LEET_MULTI:
+        text = pat.sub(repl, text)
+    return ''.join(_LEET_MAP.get(c, c) for c in text)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -255,6 +274,7 @@ def detect_lookalike_domain(url: str) -> bool:
 # ══════════════════════════════════════════════════════════════════════════
 
 _URL_P1 = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
+_TRAILING_PUNCT = str.maketrans('', '', '.,;:!?)>')
 _URL_P2 = re.compile(
     r'(?<!@)\b(?:[a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(?:com|org|net|gov|edu|io|co\.uk|ac\.il)'
     r'(?:/[^\s]*)?\b',
@@ -271,7 +291,8 @@ def extract_urls(text: str) -> list:
     if not isinstance(text, str):
         return []
 
-    found_p1 = _URL_P1.findall(text)
+    # Strip trailing sentence punctuation (.,;:!?>) that regex captures but isn't part of URL
+    found_p1 = [u.rstrip('.,;:!?)>') for u in _URL_P1.findall(text)]
     found_p2 = _URL_P2.findall(text)
 
     # Build final list: start with explicit URLs, then add bare domains
@@ -387,6 +408,22 @@ LEGIT_PHRASES = [
     # Security — "if this was you" combos are already in LEGIT_PHRASES but
     # security alert phrasing needs explicit entries
     'if this was not you', 'no action needed', 'no action is needed',
+    # Marketing / CAN-SPAM compliance — opt-out presence means legitimate sender
+    'unsubscribe', 'to unsubscribe', 'reply stop', 'text stop',
+    'opt out', 'to opt out', 'manage your preferences',
+    'email preferences', 'update your preferences',
+    # Retail / local business promotion signals
+    'show this text', 'show this message', 'show in store',
+    'use code', 'promo code', 'discount code', 'coupon code',
+    'valid until', 'valid through', 'offer expires',
+    # Appointment / scheduling — strong legitimate context
+    'have an appointment', 'to reschedule', 'your booking', 'your reservation',
+    # Notification boilerplate
+    'you are receiving this because', 'you received this because',
+    'you are receiving this email because',
+    # Newsletter / editorial disclaimers
+    'no get-rich-quick', 'not financial advice', 'this is not financial advice',
+    'not a financial advisor', 'past performance',
 ]
 
 

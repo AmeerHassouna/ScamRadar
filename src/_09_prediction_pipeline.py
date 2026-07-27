@@ -365,6 +365,13 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
             _all_tone_zero and _all_url_clean and _no_scam_phrases and
             vt_malicious == 0):
         prob = min(prob, 0.30)
+    # Extended: multiple legit signals + at most mild urgency (no fear/reward/threat)
+    # Catches retail promotions that say "today only" etc. but are clearly legitimate
+    elif (new_feat.get('legit_phrase_score', 0) >= 2 and
+            tone[0] <= 1 and tone[1] == 0 and tone[2] == 0 and tone[3] == 0 and
+            _all_url_clean and _no_scam_phrases and
+            vt_malicious == 0 and not gsb_flagged):
+        prob = min(prob, 0.35)
 
     # ── 12c. Investment-scam floor ────────────────────────────────────────
     #  ≥2 reward-pattern hits AND ≥2 currency symbols is an unambiguous
@@ -518,6 +525,53 @@ def predict_message(text, model, tfidf, char_tfidf, scaler,
     elif (_soft_invest_score >= 2
             and prob < 0.45
             and not is_all_trusted_domains(urls)):
+        prob = max(prob, 0.45)
+
+    # ── 12h. Marketing opt-out override ──────────────────────────────────
+    #  Legitimate marketers must include opt-out instructions (CAN-SPAM / GDPR).
+    #  Scammers never do. Caps probability on compliant messages that have no
+    #  fear / reward / threat tone and no confirmed scam phrases or bad URLs.
+    _OPTOUT_MARKERS = ('unsubscribe', 'reply stop', 'text stop',
+                       'opt out', 'to opt out', 'opt-out')
+    _has_optout = any(m in text_clean.lower() for m in _OPTOUT_MARKERS)
+    if (_has_optout
+            and _no_scam_phrases
+            and tone[1] == 0 and tone[2] == 0 and tone[3] == 0
+            and url_feat[2] == 0
+            and new_feat.get('sender_impersonation_score', 0) < 2
+            and vt_malicious == 0 and not gsb_flagged):
+        prob = min(prob, 0.35)
+
+    # ── 12i. Modern hype-spam floor ──────────────────────────────────────
+    #  Catches 2015+ social-media hype spam ("you won't believe", "peeps",
+    #  "LIT", "🔥🔥🔥") that the training data (2002-era) doesn't cover.
+    #  Combines emoji clusters, excessive punctuation, and hype vocabulary.
+    _hype_vocab = ('peeps', ' fam ', 'gotchu', 'socmed', 'influencers',
+                   'coolest', 'boring', 'epic news', 'blow your mind',
+                   'lit right now', "won't believe", "wont believe")
+    _hype_vocab_hits = sum(1 for w in _hype_vocab if w in text_clean.lower())
+    # 3+ same emoji in a row (🔥🔥🔥, 🤑🤑🤑, etc.) — very strong hype signal
+    _emoji_cluster = len(re.findall(
+        r'([\U0001F300-\U0001FAFF\U00002600-\U000027BF])\1{2,}', text_clean))
+    # Excessive punctuation clusters (!!!, ???, ??!!, !!?, etc.)
+    _excl_clusters = len(re.findall(r'[!?]{3,}', text_clean))
+    # Multiple ALL-CAPS runs of 4+ chars
+    _caps_runs = len(re.findall(r'\b[A-Z]{4,}\b', text_clean))
+
+    _hype_score = (_hype_vocab_hits +
+                   _emoji_cluster * 2 +
+                   (1 if _excl_clusters >= 2 else 0) +
+                   (1 if _caps_runs >= 3 else 0))
+
+    if (_hype_score >= 3
+            and not is_all_trusted_domains(urls)
+            and not _legit_is_strong
+            and vt_malicious == 0 and not gsb_flagged):
+        prob = max(prob, 0.72)
+    elif (_hype_score >= 2
+            and prob < 0.45
+            and not is_all_trusted_domains(urls)
+            and not _legit_is_strong):
         prob = max(prob, 0.45)
 
     # ── 13. Confidence capping (never show 0 % or 100 %) ─────────────────
