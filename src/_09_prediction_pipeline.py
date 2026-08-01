@@ -143,7 +143,7 @@ def load_pipeline():
     scam_index_path = os.path.join(MODELS_PATH, 'scam_faiss.index')
     if not os.path.exists(scam_index_path):
         raise FileNotFoundError(
-            "Model files not found. Please run main.py first to train the models."
+            "Model files not found. Please run legacy/main.py first to train the models."
         )
 
     print("Loading ScamRadar+ pipeline (parallel)...")
@@ -785,3 +785,73 @@ if __name__ == '__main__':
         print(f"Message : {msg[:80]}")
         print(f"Verdict : {r['verdict']} ({r['confidence']:.1f}%)  |  Type: {r['scam_type']}")
         print(f"Prox    : {r['proximity_score']:.3f}")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# E5 MIGRATION SHIM  (ScamRadar+ 2.0 — added 2026-08-01)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# The names `load_pipeline` and `predict_message` are rebound below to
+# delegators for the standalone E5 pipeline defined in `src/e5_inference.py`.
+# Python honours the last binding, so external imports such as
+#   `from src._09_prediction_pipeline import load_pipeline, predict_message`
+# (used by `api/main.py`) receive the E5 versions.
+#
+# The legacy implementations above are preserved in place (no-delete rule)
+# but are unreachable via the public module names once this shim executes.
+#
+# Parity contract (see src/e5_inference.py):
+#   * The E5 pipeline receives the RAW TEXT — no legacy preprocessing.
+#   * The threshold is E5_THRESHOLD (0.59), never DEFAULT_THRESHOLD (0.40).
+#   * NO rule floors, NO probability boosts, NO URL-based verdict escalation.
+#   * Given the same input, this shim produces the same probability and
+#     verdict as the standalone E5 model.
+# ──────────────────────────────────────────────────────────────────────────
+
+from src.e5_inference import load_e5_pipeline as _load_e5_pipeline
+from src.e5_inference import predict_e5 as _predict_e5
+from config import E5_THRESHOLD as _E5_THRESHOLD
+
+
+def load_pipeline():                                              # noqa: F811
+    """E5 shim: loads models/e5_bundle.joblib.
+
+    Returns a 6-tuple `(model, tfidf, char_tfidf, scaler, scam_index, st_model)`
+    matching the legacy return signature so `api/main.py` keeps working
+    without any change. Legacy slots after `model` are `None` — E5's
+    bundle is self-contained.
+    """
+    bundle = _load_e5_pipeline()
+    return (
+        bundle['model'],     # E5 sklearn Pipeline (FeatureUnion → LogReg)
+        None,                # was: tfidf
+        None,                # was: char_tfidf
+        None,                # was: scaler
+        None,                # was: scam_index (FAISS)
+        None,                # was: st_model (sentence-transformer)
+    )
+
+
+def predict_message(text, model, tfidf=None, char_tfidf=None, scaler=None,   # noqa: F811
+                    scam_idx=None, st_model=None,
+                    threshold=None, vt_api_key=None, gsb_api_key=None,
+                    **_ignored_kwargs):
+    """E5 shim: accepts the legacy positional signature but delegates to
+    `src.e5_inference.predict_e5`. Legacy artifact args
+    (`tfidf`/`char_tfidf`/`scaler`/`scam_idx`/`st_model`) are ignored —
+    E5's bundle is self-contained.
+
+    Threshold defaults to E5_THRESHOLD (0.59). Any caller-supplied
+    threshold is honoured, but DEFAULT_THRESHOLD (0.40) is never used
+    by this path.
+    """
+    pipe = {
+        'model':     model,
+        'threshold': float(threshold) if threshold is not None else float(_E5_THRESHOLD),
+    }
+    return _predict_e5(
+        text, pipe,
+        threshold=pipe['threshold'],
+        vt_api_key=vt_api_key,
+        gsb_api_key=gsb_api_key,
+    )

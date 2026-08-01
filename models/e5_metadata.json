@@ -1,0 +1,321 @@
+{
+  "e4_best_params": {
+    "C": 5.968425624989058,
+    "penalty": "l2",
+    "class_weight": "balanced",
+    "word_ngram_range": [
+      1,
+      2
+    ],
+    "word_min_df": 3,
+    "word_max_df": 0.9462114758401128,
+    "word_max_features": 200000,
+    "char_ngram_range": [
+      3,
+      6
+    ],
+    "char_min_df": 4,
+    "char_max_features": 300000,
+    "sublinear_tf": true
+  },
+  "e5_calibration_winner": "none",
+  "e5_calibration_report": {
+    "none": {
+      "val_pr_auc": 0.9840973955406025,
+      "val_roc_auc": 0.9964045823950167,
+      "val_ece": 0.011193677146635057,
+      "val_brier": 0.011800669562103655
+    },
+    "platt": {
+      "val_pr_auc": 0.9667486078162663,
+      "val_roc_auc": 0.993100441328412,
+      "val_ece": 0.07570257907835008,
+      "val_brier": 0.03456988378254001
+    },
+    "isotonic": {
+      "val_pr_auc": 0.9635225339611585,
+      "val_roc_auc": 0.9924571516259626,
+      "val_ece": 0.07099393731996015,
+      "val_brier": 0.03360988004091457
+    }
+  },
+  "e5_thresholds": {
+    "F1_max": 0.59,
+    "precision_floor_0.98": 0.77
+  },
+  "test_internal": {
+    "n": 34194,
+    "threshold": 0.59,
+    "accuracy": 0.9855822658946014,
+    "precision": 0.9564407174470068,
+    "recall": 0.9306436990027198,
+    "f1": 0.943365881677197,
+    "roc_auc": 0.9966714760684973,
+    "pr_auc": 0.9842883463754518,
+    "ece": 0.011970677273699739,
+    "brier": 0.01212646947860263,
+    "confusion": {
+      "tn": 29595,
+      "fp": 187,
+      "fn": 306,
+      "tp": 4106
+    }
+  },
+  "external": {
+    "n": 25306,
+    "threshold": 0.59,
+    "accuracy": 0.979411997154825,
+    "precision": 0.9605323542909592,
+    "recall": 0.9230429988974642,
+    "f1": 0.9414145957494658,
+    "roc_auc": 0.994952826530629,
+    "pr_auc": 0.9839067428356049,
+    "ece": 0.007774500062519506,
+    "brier": 0.016676945073161732,
+    "confusion": {
+      "tn": 20599,
+      "fp": 172,
+      "fn": 349,
+      "tp": 4186
+    }
+  },
+  "per_category_test": {
+    "advance_fee_fraud": {
+      "n": 478,
+      "recall": 0.8242677824267782
+    },
+    "bec_ceo_fraud": {
+      "n": 63,
+      "recall": 1.0
+    },
+    "email_phishing": {
+      "n": 2075,
+      "recall": 0.9628915662650602
+    },
+    "email_spam": {
+      "n": 1633,
+      "recall": 0.9406001224739743
+    },
+    "ham_chat": {
+      "n": 23177,
+      "fp_rate": 0.0003020235578375113
+    },
+    "ham_email": {
+      "n": 4394,
+      "fp_rate": 0.035958124715521164
+    },
+    "ham_job_posting": {
+      "n": 1431,
+      "fp_rate": 0.006289308176100629
+    },
+    "ham_sms": {
+      "n": 780,
+      "fp_rate": 0.016666666666666666
+    },
+    "marketplace_delivery_scam": {
+      "n": 11,
+      "recall": 1.0
+    },
+    "recruitment_scam": {
+      "n": 70,
+      "recall": 0.5428571428571428
+    },
+    "romance_scam": {
+      "n": 17,
+      "recall": 1.0
+    },
+    "smishing": {
+      "n": 65,
+      "recall": 0.7538461538461538
+    }
+  },
+  "per_source_test": {
+    "dailydialog": {
+      "n": 10252,
+      "fp_rate": 0.0006827936012485369
+    },
+    "emscad_job_scams": {
+      "n": 1501,
+      "precision": 0.8085106382978723,
+      "recall": 0.5428571428571428,
+      "f1": 0.6495726495726496
+    },
+    "enron_ham_sample": {
+      "n": 3585,
+      "precision": 0.9764780673871583,
+      "recall": 0.9406001224739743,
+      "f1": 0.958203368683718
+    },
+    "mendeley_sms_phishing_2022": {
+      "n": 96,
+      "precision": 0.96,
+      "recall": 0.8571428571428571,
+      "f1": 0.9056603773584906
+    },
+    "multiwoz_v22": {
+      "n": 12925,
+      "fp_rate": 0.0
+    },
+    "sms_spam_collection": {
+      "n": 749,
+      "precision": 0.6756756756756757,
+      "recall": 0.6756756756756757,
+      "f1": 0.6756756756756757
+    },
+    "spamassassin_ham": {
+      "n": 356,
+      "fp_rate": 0.0898876404494382
+    },
+    "synthetic_v1": {
+      "n": 91,
+      "recall": 1.0
+    },
+    "zenodo_champa_ceas08": {
+      "n": 3757,
+      "precision": 0.9489678899082569,
+      "recall": 0.9898325358851675,
+      "f1": 0.9689695550351288
+    },
+    "zenodo_champa_nazario_legacy": {
+      "n": 217,
+      "recall": 0.9769585253456221
+    },
+    "zenodo_champa_nazario_modern": {
+      "n": 185,
+      "recall": 0.7081081081081081
+    },
+    "zenodo_champa_nigerian_fraud_legacy": {
+      "n": 265,
+      "recall": 0.9886792452830189
+    },
+    "zenodo_champa_nigerian_fraud_modern": {
+      "n": 213,
+      "recall": 0.6197183098591549
+    },
+    "zenodo_miltchev_phishing_2024": {
+      "n": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "per_category_external": {
+    "advance_fee_fraud": {
+      "n": 489,
+      "recall": 0.8118609406952966
+    },
+    "email_phishing": {
+      "n": 2178,
+      "recall": 0.9573002754820936
+    },
+    "email_spam": {
+      "n": 1719,
+      "recall": 0.9342641070389761
+    },
+    "ham_chat": {
+      "n": 13794,
+      "fp_rate": 7.24952878062926e-05
+    },
+    "ham_email": {
+      "n": 4652,
+      "fp_rate": 0.03224419604471195
+    },
+    "ham_job_posting": {
+      "n": 1523,
+      "fp_rate": 0.007222586999343401
+    },
+    "ham_sms": {
+      "n": 802,
+      "fp_rate": 0.012468827930174564
+    },
+    "recruitment_scam": {
+      "n": 81,
+      "recall": 0.49382716049382713
+    },
+    "smishing": {
+      "n": 68,
+      "recall": 0.8529411764705882
+    }
+  },
+  "per_source_external": {
+    "emscad_job_scams": {
+      "n": 1604,
+      "precision": 0.7843137254901961,
+      "recall": 0.49382716049382713,
+      "f1": 0.6060606060606061
+    },
+    "enron_ham_sample": {
+      "n": 3886,
+      "precision": 0.9751062537947783,
+      "recall": 0.9342641070389761,
+      "f1": 0.954248366013072
+    },
+    "mendeley_sms_phishing_2022": {
+      "n": 92,
+      "precision": 1.0,
+      "recall": 0.7586206896551724,
+      "f1": 0.8627450980392157
+    },
+    "multiwoz_v22": {
+      "n": 13794,
+      "fp_rate": 7.24952878062926e-05
+    },
+    "sms_spam_collection": {
+      "n": 778,
+      "precision": 0.782608695652174,
+      "recall": 0.9230769230769231,
+      "f1": 0.8470588235294118
+    },
+    "spamassassin_ham": {
+      "n": 369,
+      "fp_rate": 0.10298102981029811
+    },
+    "zenodo_champa_ceas08": {
+      "n": 3904,
+      "precision": 0.9615592853275582,
+      "recall": 0.9932885906040269,
+      "f1": 0.9771664374140303
+    },
+    "zenodo_champa_nazario_legacy": {
+      "n": 197,
+      "recall": 0.9746192893401016
+    },
+    "zenodo_champa_nazario_modern": {
+      "n": 192,
+      "recall": 0.6041666666666666
+    },
+    "zenodo_champa_nigerian_fraud_legacy": {
+      "n": 293,
+      "recall": 0.9965870307167235
+    },
+    "zenodo_champa_nigerian_fraud_modern": {
+      "n": 196,
+      "recall": 0.5357142857142857
+    },
+    "zenodo_miltchev_phishing_2024": {
+      "n": 1,
+      "recall": 1.0
+    }
+  },
+  "model_size_bytes": 22629135,
+  "latency_ms": {
+    "batch_1_mean": 0.681,
+    "batch_1_p95": 1.862,
+    "batch_32_mean": 11.752,
+    "batch_32_p95": 28.837
+  },
+  "memory": {
+    "process_rss_before_bytes": 2568880128,
+    "process_rss_after_bytes": 2569994240,
+    "tracemalloc_peak_bytes_during_predict_100": 2135193
+  },
+  "e3_baseline_reference": {
+    "model_bundle": "experiments/E2_F3_with_synth.joblib",
+    "val_pr_auc": 0.979,
+    "test_pr_auc": 0.9789,
+    "test_f1": 0.9303,
+    "ext_pr_auc": 0.9791,
+    "ext_f1": 0.9318,
+    "ext_ece": 0.028
+  }
+}

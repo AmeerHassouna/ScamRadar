@@ -28,6 +28,16 @@ GOOGLE_SAFEBROWSING_API_KEY = os.environ.get('GOOGLE_SAFEBROWSING_API_KEY', '')
 
 # ── Decision threshold ─────────────────────────────────────────────────────
 DEFAULT_THRESHOLD = 0.40  # overwritten by threshold optimisation; never goes below 0.40
+                          # LEGACY — used only by the pre-E5 code path. Do NOT
+                          # use this for the E5 inference path.
+
+# ── E5 (ScamRadar+ 2.0) production model ──────────────────────────────────
+# Self-contained sklearn Pipeline (word+char TF-IDF → LogReg), trained by
+# ScamRadar+ 2.0 (Project B). Behaviorally identical to the standalone E5
+# candidate that produced the final benchmark metrics.
+E5_BUNDLE_PATH = os.path.join(MODELS_PATH, 'e5_bundle.joblib')
+E5_THRESHOLD   = 0.59  # F1-max threshold selected during E5 (bundle['threshold_f1']).
+                       # DO NOT substitute DEFAULT_THRESHOLD (0.40) here.
 
 # ── Input validation ───────────────────────────────────────────────────────
 MIN_MESSAGE_LENGTH = 20

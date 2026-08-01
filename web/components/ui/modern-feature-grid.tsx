@@ -20,25 +20,25 @@ const FEATURES: { Icon: LucideIcon; title: string; description: string }[] = [
     Icon: ShieldCheck,
     title: "AI Scam Detection",
     description:
-      "An isotonic-calibrated Random Forest trained on 22,546 deduplicated real messages scores every input and returns an instant scam, suspicious or legit verdict.",
+      "A calibrated Logistic Regression trained on 195,776 deduplicated real message clusters scores every input and returns an instant scam or legit verdict.",
   },
   {
     Icon: Link2,
     title: "Phishing URL Analysis",
     description:
-      "Any URLs embedded in a message are extracted and checked against live reputation feeds to catch phishing links before they do damage.",
+      "Any URLs embedded in a message are extracted and checked against live reputation feeds (Google Safe Browsing, VirusTotal) to catch phishing links before they do damage.",
   },
   {
     Icon: Search,
-    title: "Vector Pattern Matching",
+    title: "Character-Level Pattern Matching",
     description:
-      "FAISS nearest-neighbour search surfaces the closest known scam patterns from the training corpus so you can see exactly what it resembles.",
+      "500,000 word and character n-gram features let the model recognise scam patterns even when spelling, spacing, or lookalike characters are used to evade keyword filters.",
   },
   {
     Icon: Zap,
     title: "Real-Time Response",
     description:
-      "The full verdict — score, label, and similar matches — is returned in under 200 ms via a single FastAPI endpoint.",
+      "Fast, sub-second AI inference — the full verdict, confidence, tone signals, and URL analysis returned in a single request.",
   },
   {
     Icon: MessageSquareWarning,

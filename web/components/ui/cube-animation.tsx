@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 
 /* 50 repeats → seamless loop when translateX(-50%) is used */
-const SEG = "Every message carries a signal  ·  ScamRadar+ reads the [intent] behind the words  ·  the [urgency] engineered to rush you  ·  [fake trust] through social proof  ·  22,546 deduplicated real messages  ·  verdict in [200ms]  ·  protection [before you act]  ·  "
+const SEG = "Every message carries a signal  ·  ScamRadar+ reads the [intent] behind the words  ·  the [urgency] engineered to rush you  ·  [fake trust] through social proof  ·  195,776 deduplicated real messages  ·  [sub-second] AI inference  ·  protection [before you act]  ·  "
 const SEG_PARTS = SEG.split(/\[([^\]]+)\]/)
 
 function FaceText() {

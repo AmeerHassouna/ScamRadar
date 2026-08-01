@@ -145,7 +145,7 @@ export function ScamRadarFooter({ className }: FooterProps) {
               className="text-xs text-white/25 text-center md:text-left"
               style={{ fontFamily: "monospace" }}
             >
-              © {new Date().getFullYear()} ScamRadar+. All rights reserved. · Built with Next.js, scikit-learn & FAISS.
+              © {new Date().getFullYear()} ScamRadar+. All rights reserved. · Built with Next.js, FastAPI & scikit-learn.
             </p>
             <nav className="flex flex-col sm:flex-row gap-1 sm:gap-4 items-center text-center sm:text-left">
               <span className="text-xs text-white/15" style={{ fontFamily: "monospace" }}>

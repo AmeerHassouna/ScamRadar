@@ -294,7 +294,7 @@ const landingItems: AccordionData[] = [
     id: 4,
     step: '04',
     title: 'Matched Against Known Scams',
-    description: 'Your message is compared against 46,360 real scam examples using AI similarity search — surfacing exactly which known attack pattern it most closely resembles.',
+    description: 'Your message is scored against 500,000 word and character n-gram features learned from 195,776 deduplicated real message clusters — recognising scam patterns even when disguised.',
     imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=90',
     icon: Cpu,
   },
@@ -302,7 +302,7 @@ const landingItems: AccordionData[] = [
     id: 5,
     step: '05',
     title: 'Instant Verdict',
-    description: 'A calibrated confidence score lands as SCAM, SUSPICIOUS, or LEGIT — with a full breakdown of which signals triggered the decision, so you know exactly why.',
+    description: 'A calibrated confidence score lands as SCAM or LEGIT — with a full breakdown of tone signals, URL checks, and scam-type classification so you know exactly why.',
     imageUrl: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1780008637/-9_g704kr.jpg',
     icon: ShieldCheck,
   },
@@ -421,8 +421,8 @@ const pipelineItems: AccordionData[] = [
   {
     id: 4,
     step: '04',
-    title: 'AI Vector Search',
-    description: 'AI similarity search retrieves the 10 closest known scam patterns across 8,026 text features, surfacing the nearest real campaign match to explain why a message was flagged.',
+    title: 'TF-IDF Feature Extraction',
+    description: 'Two TF-IDF vectorisers extract 500,000 features — 200,000 word 1-2 grams and 300,000 character 3-6 grams — capturing both semantic content and character-level obfuscation patterns.',
     imageUrl: 'https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&h=600&fit=crop',
     icon: Cpu,
   },
@@ -430,7 +430,7 @@ const pipelineItems: AccordionData[] = [
     id: 5,
     step: '05',
     title: 'Calibrated Verdict',
-    description: 'A calibrated Logistic Regression (isotonic regression) converts raw scores to a true probability — returning SCAM, SUSPICIOUS, or LEGIT with a confidence percentage.',
+    description: 'A Logistic Regression trained on 195,776 real message clusters converts features to a scam probability — returning SCAM or LEGIT at the F1-optimal threshold of 0.59, with a confidence percentage.',
     imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop',
     icon: ShieldCheck,
   },
@@ -448,12 +448,12 @@ export function HowItWorksAccordion() {
           System Architecture
         </p>
         <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-5" style={MONO}>
-          9-STAGE<br />
+          5-STAGE<br />
           <span className="text-green-400">INFERENCE PIPELINE</span>
         </h2>
         <p className="text-white/45 text-sm sm:text-base leading-relaxed mb-6 max-w-md mx-auto lg:mx-0" style={MONO}>
-          From raw text to calibrated verdict in milliseconds. Every message passes through
-          preprocessing, tone scoring, URL analysis, and FAISS vector search before a
+          From raw text to calibrated verdict in under a second. Every message passes through
+          preprocessing, tone scoring, URL analysis, and TF-IDF feature extraction before a
           Logistic Regression model issues its final confidence-weighted verdict.
         </p>
 

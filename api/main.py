@@ -337,7 +337,7 @@ async def login(request: Request):
 async def health(request: Request):
     if _pipe is None:
         return JSONResponse(status_code=200, content={'status': 'loading'})
-    return {'status': 'ready', 'model': 'ScamRadar+ v1.3', **cache_info()}
+    return {'status': 'ready', 'model': 'ScamRadar+ 2.0 (E5)', **cache_info()}
 
 
 @app.get('/warmup')
@@ -351,26 +351,29 @@ async def warmup(request: Request):
 @app.get('/stats')
 @limiter.limit("30/minute")
 async def stats(request: Request):
-    # All metric values below are from the frozen v1.3 external evaluation
-    # (400 items, SHA-1 verified zero overlap with training corpus).
-    # See outputs/intervention_log.md and outputs/final_comparison_report.md.
+    # All metric values below are verified from the E5 production evaluation.
+    # Source: models/e5_metadata.json (test_internal + external + latency_ms).
+    # The external benchmark is locked / write-once — see the research repo's
+    # data/external_benchmark/LOCK.json for the write manifest.
     return {
-        'deployed_model':        'v1.3',
-        'model_architecture':    'Isotonic-calibrated Random Forest (200 trees)',
-        'training_corpus_raw':   47493,   # 46,360 DB rows + 1,133 external additions
-        'training_corpus_dedup': 22546,   # after SHA-1 dedup on normalised text
-        'channels':              4,
-        'scam_types':            17,
-        'features':              25,
-        'external_eval_size':    400,
-        'external_accuracy':     0.850,
-        'external_precision':    0.924,
-        'external_recall':       0.828,
-        'external_f1':           0.873,
-        'external_roc_auc':      0.971,
-        'external_pr_auc':       0.984,
-        'internal_test_f1':      0.942,
-        'evaluation_note':       ('External metrics measured on 400 held-out messages '
-                                  'with SHA-1 verified zero overlap with training corpus.'),
+        'deployed_model':        'ScamRadar+ 2.0 (E5)',
+        'model_architecture':    'Calibrated Logistic Regression on word + character TF-IDF (500k features)',
+        'training_corpus_raw':   253264,  # total messages before dedup (dataset_audit.totals.n)
+        'training_corpus_dedup': 195776,  # unique clusters after SHA-1 + MinHash dedup
+        'channels':              4,       # email · SMS · chat · job_posting
+        'scam_types':            12,      # categories tracked in the E5 external eval
+        'features':              500000,  # word 1-2 gram (200k) + char 3-6 gram (300k) TF-IDF
+        'external_eval_size':    25306,
+        'external_accuracy':     0.9794,
+        'external_precision':    0.9605,
+        'external_recall':       0.9230,
+        'external_f1':           0.9414,
+        'external_roc_auc':      0.9950,
+        'external_pr_auc':       0.9839,
+        'internal_test_f1':      0.9434,
+        'threshold':             0.59,    # F1-max on validation
+        'evaluation_note':       ('External metrics measured on a locked one-shot benchmark of '
+                                  '25,306 messages held out from all model selection, tuning, '
+                                  'and threshold optimisation.'),
         **cache_info(),
     }

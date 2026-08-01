@@ -53,25 +53,25 @@ const questions = [
         id: 'item-1',
         title: 'How accurate is ScamRadar+?',
         content:
-            'The deployed v1.3 model achieves F1 = 0.87 (precision 0.92, recall 0.83, ROC-AUC 0.97) on an independent external validation set of 400 messages with SHA-1 verified zero overlap with the training corpus. Full evaluation methodology, including a discovered train/test leakage issue in earlier experiments and the corrective methodology used for the final numbers, is documented in the project repository.',
+            'The production model achieves F1 = 0.941 (precision 0.961, recall 0.923, ROC-AUC 0.995, PR-AUC 0.984) on a locked one-shot external benchmark of 25,306 messages that was held out from all model selection, tuning, and threshold optimisation. Every scoring event on that benchmark is recorded in the research repository. Full metrics and hyperparameters are published in models/e5_metadata.json.',
     },
     {
         id: 'item-2',
         title: 'What types of scams can it detect?',
         content:
-            'SMS phishing, email phishing, WhatsApp scams, crypto fraud, fake delivery alerts, advance-fee fraud, romance scams, pig-butchering, investment scams, job offer scams, OTP theft, impersonation, and social engineering attacks — 17 scam categories in total.',
+            'Email phishing, SMS phishing (smishing), advance-fee fraud (419-style), email spam, recruitment scams, romance scams, marketplace and delivery scams, business-email compromise, impersonation, and general social engineering — 12 scam categories in the E5 evaluation. Recruitment scams are the weakest single class (recall 0.494); every other scam class exceeds 0.81 recall on external benchmark.',
     },
     {
         id: 'item-3',
         title: 'How fast is the analysis?',
         content:
-            'The full verdict — confidence score, label, flagged URLs, and tone signals — is returned in under 200 ms for cached results. First-time requests on a warm server take around 300–500 ms. Note: the API runs on Render\'s free tier and may take up to 60 seconds to wake after a period of inactivity.',
+            'Fast real-time analysis — sub-second on a warm server. The classifier itself takes under a millisecond; the rest of the wall-clock time is network round-trip and (if the message contains URLs) live URL-reputation checks against Google Safe Browsing and VirusTotal. The API runs on Render\'s free tier and may take up to 60 seconds to wake after a period of inactivity — subsequent requests are fast.',
     },
     {
         id: 'item-4',
-        title: 'What is vector pattern matching?',
+        title: 'What does the model actually look at?',
         content:
-            'We use FAISS nearest-neighbour search on Sentence Transformer embeddings to surface the closest known scam patterns from our training corpus, giving real context on why a message was flagged rather than just a binary label.',
+            'The classifier reads word and character n-grams of the message text — 500,000 features in total, produced by two TF-IDF vectorisers (word 1-2 grams + character 3-6 grams). A Logistic Regression trained on 195,776 unique message clusters converts those features into a scam probability. Alongside the model verdict, the API returns tone signals, URL reputation, and a scam-type label to help you understand why the message was flagged.',
     },
     {
         id: 'item-5',
@@ -101,7 +101,7 @@ const questions = [
         id: 'item-9',
         title: 'What does the confidence score mean?',
         content:
-            'A 0–100 score showing how confident the model is in its verdict. Higher always means more certain — 95% means very confident, 60% means leaning that way but less sure. The score reflects certainty in the current verdict regardless of whether it is SCAM, SUSPICIOUS, or LEGIT. Scores above 85% are reliable; 60–85% is worth double-checking.',
+            'A 0–100 score showing the model\'s scam probability. Messages with confidence ≥ 59 are labelled SCAM; below 59 they are labelled LEGIT. Higher scores mean more certainty — a score of 95 is a very confident scam call, a score of 5 is a very confident legit call. Confidence between 40 and 75 is borderline and worth double-checking.',
     },
     {
         id: 'item-10',
