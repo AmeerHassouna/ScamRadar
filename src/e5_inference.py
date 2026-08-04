@@ -144,8 +144,9 @@ class _E7P1Adapter:
         self.scaler = bundle['scaler']
         self.feature_cols = bundle['feature_cols']
         self.variant = bundle.get('variant', 'e7_p1_unknown')
-        # Numerical feature computation lives in the training script; import lazily.
-        from scripts.training.train_e7_p1 import compute_all_numerical
+        # Runtime-only version — mirrors scripts/training/train_e7_p1.py byte-for-byte
+        # but lives in src/ so the deployed image doesn't need the training script.
+        from src.rule_engine.numerical_features import compute_all_numerical
         self._compute = compute_all_numerical
 
     def predict_proba(self, texts):
