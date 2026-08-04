@@ -32,27 +32,74 @@ def has_credential_request(text: str) -> bool:
 
 
 # ── OTP theft (asks user to send/reply/forward a code) ───────────────────
-OTP_THEFT_RE = re.compile(
-    r'\b(?:reply|send|forward|share|text|dm|give|tell|read)\s+'
-    r'(?:us|me|back|this|it|out|to\s+us|to\s+me)?\s*'
-    r'(?:with)?\s*(?:the\s+|your\s+)?'
-    r'(?:verification\s+code|otp|passcode|'
-    r'one[- ]time\s+(?:code|password|passcode)|'
+# Loosened 2026-08-04 — the old strict regex required an OTP keyword to
+# appear IMMEDIATELY after the request verb (e.g. "reply with verification
+# code"). Modern OTP-theft messages routinely say "reply to this message
+# with the code" (with intervening words) or "read the code back" (using
+# bare "the code" rather than "verification code"). New design:
+#   * OTP_KEYWORD_RE  — indicates the message is ABOUT a one-time code
+#                       (verification/one-time/security/access/2fa/OTP/
+#                        passcode, or "a code was sent to your phone" pattern)
+#   * OTP_ASK_RE      — indicates a request TO SEND the code back
+#                       (reply with, forward it, read it back, etc.)
+# has_otp_theft() fires only when BOTH match — so we don't false-fire on
+# code-review or discount-code messages that mention "the code" without
+# any OTP context.
+OTP_KEYWORD_RE = re.compile(
+    r'\b(?:verification\s+code|one[- ]time\s+(?:code|password|passcode|pin)|'
     r'security\s+code|access\s+code|2fa\s+code|auth(?:entication)?\s+code|'
-    r'confirmation\s+code|sms\s+code|text\s+code)\b',
+    r'confirmation\s+code|sms\s+code|text\s+code|'
+    r'otp|passcode|'
+    r'\d\s*-?\s*digit\s+(?:verification\s+|security\s+)?code|'
+    r'(?:a|the)\s+code\s+(?:was|has\s+been)\s+(?:sent|messaged|texted))\b',
     re.IGNORECASE,
 )
-OTP_THEFT_ALT_RE = re.compile(
-    r'\b(?:please\s+)?(?:confirm|share|provide|give\s+us)\s+'
-    r'(?:the\s+|your\s+)?(?:code|otp|passcode)\b',
+OTP_ASK_RE = re.compile(
+    r'\b(?:'
+    # Direct verb + directional pattern
+    r'reply\s+(?:with|to|us|me|now|back)|'
+    r'send\s+(?:it|us|me|back|the\s+code)|'
+    r'forward\s+(?:it|us|me|the\s+code)|'
+    r'share\s+(?:it|us|me|the\s+code)\b|'
+    r'text\s+(?:us|me|back|it)|'
+    r'read\s+(?:it|the\s+code|back)|'
+    r'give\s+(?:us|me)\s+the\b|'
+    r'tell\s+(?:us|me)\s+the\b|'
+    r'dm\s+(?:us|me)|'
+    # Explicit please-provide patterns
+    r'please\s+(?:provide|share|forward|reply\s+with)|'
+    # Direct question forms
+    r'what\'?s\s+(?:the|your)\s+(?:code|pin|otp)|'
+    r'confirm\s+the\s+(?:code|pin|otp)\b'
+    r')\b',
+    re.IGNORECASE,
+)
+
+# Kept for backward compat — the strict originals are now unused
+OTP_THEFT_RE = OTP_KEYWORD_RE
+OTP_THEFT_ALT_RE = OTP_ASK_RE
+
+
+_OTP_NEGATION_RE = re.compile(
+    r'\b(?:never|do\s+not|don\'?t|will\s+never|are\s+not\s+to|please\s+do\s+not)\s+'
+    r'(?:reply|send|forward|share|text|read|give|tell|dm)\b',
     re.IGNORECASE,
 )
 
 
 def has_otp_theft(text: str) -> bool:
+    """Fires when the text both (a) contains an OTP-context keyword AND
+    (b) contains a request-to-send-the-code verb pattern AND (c) is NOT
+    a negated warning like 'Never share it' / 'Do not forward the code'."""
     if not text:
         return False
-    return bool(OTP_THEFT_RE.search(text) or OTP_THEFT_ALT_RE.search(text))
+    if not (OTP_KEYWORD_RE.search(text) and OTP_ASK_RE.search(text)):
+        return False
+    # Negation guard — legit OTP messages routinely say "Never share it"
+    # or "Do not forward the code". Those must not force-scam.
+    if _OTP_NEGATION_RE.search(text):
+        return False
+    return True
 
 
 # ── Gift card payment demand ─────────────────────────────────────────────

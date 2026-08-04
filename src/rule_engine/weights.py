@@ -31,6 +31,9 @@ RULE_WEIGHTS: dict = {
     'A6_REMOTE_ACCESS_SOFTWARE':           1.0,
     # A7 removed (see critical.py)
     # A8 removed (see critical.py)
+    'A9_INVESTMENT_TYPE_FLOOR':            1.0,
+    'A10_ROMANCE_TYPE_FLOOR':              1.0,
+    'A11_THREAT_TYPE_FLOOR':               1.0,
 
     # ── B — Strong (INCREASE) ─────────────────────────────────────────────
     'B1_URL_SHORTENER_ACTION':             0.25,
@@ -65,6 +68,9 @@ RULE_PRIORITIES: dict = {
     'A6_REMOTE_ACCESS_SOFTWARE':            80,
     # A7 removed
     # A8 removed
+    'A9_INVESTMENT_TYPE_FLOOR':             73,
+    'A10_ROMANCE_TYPE_FLOOR':               71,
+    'A11_THREAT_TYPE_FLOOR':                69,
 
     # ── B — Strong (70 → 50) ──────────────────────────────────────────────
     'B1_URL_SHORTENER_ACTION':              70,

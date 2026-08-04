@@ -223,15 +223,30 @@ class ThreatImmediatePaymentRule(Rule):
 # The hostname contains a brand name as a subdomain OR non-official TLD
 # (e.g. "amazon-support.xyz", "paypal-secure.top", "apple.verify-id.com").
 _BRAND_TOKENS = (
+    # Consumer / banking / finance
     'amazon', 'paypal', 'apple', 'microsoft', 'google', 'netflix',
     'facebook', 'instagram', 'linkedin', 'fedex', 'ups', 'dhl', 'usps',
     'chase', 'wellsfargo', 'bankofamerica', 'hsbc', 'stripe', 'venmo',
     'zelle', 'coinbase', 'binance', 'irs',
+    # Modern SaaS / dev tooling (added 2026-08-04 — the E8-P6 recall
+    # analysis showed brand-lookalike phishing for these was missed
+    # because they weren't in _BRAND_TOKENS)
+    'notion', 'vercel', 'cloudflare', 'substack', 'github', 'gitlab',
+    'discord', 'slack', 'zoom', 'figma', 'canva', 'adobe', 'dropbox',
+    'spotify', 'uber', 'lyft', 'doordash', 'ubereats', 'airbnb', 'booking',
+    'expedia', 'revolut', 'monzo', 'wise', 'anthropic', 'openai',
+    'twitter', 'youtube', 'whatsapp', 'tiktok', 'reddit',
 )
 _SUSPICIOUS_TLDS = {
     'xyz', 'top', 'tk', 'ml', 'ga', 'cf', 'gq', 'click', 'link', 'work',
     'buzz', 'zip', 'rest', 'monster', 'cyou', 'quest', 'cam', 'shop',
     'icu', 'live', 'online',
+    # Added 2026-08-04 — .co is heavily used in brand-lookalike phishing
+    # (notion-billing-restore.co, coinbase-secure.co, etc.). B6 requires
+    # a brand-token root, so this fires only on genuine brand-lookalike
+    # domains — not on legit .co-using services (e.g. t.co is Twitter's
+    # root 't', not a brand).
+    'co',
 }
 
 

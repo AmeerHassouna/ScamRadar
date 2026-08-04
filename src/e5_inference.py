@@ -180,11 +180,13 @@ def load_e5_pipeline(bundle_path: str | None = None) -> dict:
     Returns a dict whose shape is compatible with `api/main.py`'s existing
     `_pipe[...]` access pattern.
     """
-    # Production default: E8-P6 (E7-P1-full retrained with E8-P2 + E8-P6
-    # synthetic legit, spamassassin_ham removed, mailing-list mislabels
-    # cleaned). Any env-var override (e.g. `e7_p1_full` or empty-string
-    # to fall back to the E5 bundle) takes precedence.
-    override = os.environ.get('SCAMRADAR_LOCAL_MODEL', 'e7_p1_full_e8p6').strip()
+    # Production default: E8-P9 (E8-P6 base + 14,669 synthetic scam + 1,109
+    # paired legit twins targeting weak-recall categories). Rule engine
+    # extended with A9/A10/A11 type-floors (investment/romance/threat) and
+    # A3 OTP-theft loosened with a negation guard. Any env-var override
+    # (e.g. `e7_p1_full_e8p6` to roll back, or empty-string to fall back to
+    # the E5 bundle) takes precedence.
+    override = os.environ.get('SCAMRADAR_LOCAL_MODEL', 'e7_p1_full_e8p9').strip()
     if override.startswith('e7_p1_'):
         # Research variant — different bundle schema; wrap in adapter
         variant_path = os.path.join(
@@ -408,6 +410,7 @@ def predict_e5(
             tone=tone,
             scam_phrase_score=new_feat.get('scam_phrase_score', 0),
             sender_impersonation_score=new_feat.get('sender_impersonation_score', 0),
+            scam_type=scam_type,
             gsb_flagged=gsb_flagged,
             gsb_threat_type=gsb_threat_type,
             vt_malicious=vt_malicious,

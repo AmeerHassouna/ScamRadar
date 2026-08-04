@@ -22,6 +22,8 @@ from src.rule_engine.patterns import (
     CRED_REQUEST_RE,
     OTP_THEFT_RE,
     OTP_THEFT_ALT_RE,
+    OTP_KEYWORD_RE,
+    OTP_ASK_RE,
     GIFT_CARD_RE,
     GIFT_CARD_PAYMENT_CTX_RE,
     CRYPTO_SECRET_RE,
@@ -124,13 +126,21 @@ class OtpTheftRule(Rule):
     default_action = RuleAction.FORCE_SCAM
 
     def evaluate(self, ctx: RuleContext) -> RuleResult | None:
-        m = OTP_THEFT_RE.search(ctx.text) or OTP_THEFT_ALT_RE.search(ctx.text)
-        if not m:
+        # Use the has_otp_theft() helper — requires BOTH an OTP-context
+        # keyword AND a request-to-send verb pattern. Prevents FPs on
+        # legit OTP notifications ("do not share this code") and on
+        # non-OTP messages that mention codes ("share the code review").
+        if not has_otp_theft(ctx.text):
             return None
+        kw = OTP_KEYWORD_RE.search(ctx.text)
+        ask = OTP_ASK_RE.search(ctx.text)
         return self._make_result(
             explanation=('Requests the user to hand over a verification / '
                          'one-time code.'),
-            evidence={'match': m.group(0)},
+            evidence={
+                'keyword_match': kw.group(0) if kw else None,
+                'request_match': ask.group(0) if ask else None,
+            },
         )
 
 
@@ -344,6 +354,86 @@ class BrandImpersonationWithActionRule(Rule):
         )
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# A9 / A10 / A11 — Type-specific FORCE_SCAM floors (ported from v1.x)
+# ══════════════════════════════════════════════════════════════════════════
+# v1.x had ~100% recall on romance / investment / threat scams because it
+# force-lifted probability to 0.72 whenever classify_scam_type() identified
+# a matching type AND a supporting signal was present. FP-safe because
+# classify_scam_type() only returns these specific labels when its regex
+# patterns match — legitimate transactional messages (Netflix receipts,
+# Amazon orders, etc.) always classify as 'general_spam' and never trigger.
+
+class InvestmentScamTypeFloorRule(Rule):
+    id = 'A9_INVESTMENT_TYPE_FLOOR'
+    name = 'Investment scam type + reward tone'
+    description = ('classify_scam_type() identified investment/crypto '
+                   'scam patterns AND the message has reward-tone or '
+                   'scam-phrase signals. Ported from v1.x.')
+    category = Category.CRITICAL
+    severity = Severity.CRITICAL
+    default_action = RuleAction.FORCE_SCAM
+
+    def evaluate(self, ctx: RuleContext) -> RuleResult | None:
+        if ctx.scam_type != 'investment_scam':
+            return None
+        if ctx.tone_reward < 1 and ctx.scam_phrase_score < 1:
+            return None
+        return self._make_result(
+            explanation=('Message pattern classified as investment scam '
+                         'with supporting reward-tone / scam-phrase signal.'),
+            evidence={'scam_type': ctx.scam_type,
+                      'tone_reward': ctx.tone_reward,
+                      'phrase_score': ctx.scam_phrase_score},
+        )
+
+
+class RomanceScamTypeFloorRule(Rule):
+    id = 'A10_ROMANCE_TYPE_FLOOR'
+    name = 'Romance scam type + phrase signal'
+    description = ('classify_scam_type() identified romance-scam patterns '
+                   'AND phrase-score >= 1. Ported from v1.x.')
+    category = Category.CRITICAL
+    severity = Severity.CRITICAL
+    default_action = RuleAction.FORCE_SCAM
+
+    def evaluate(self, ctx: RuleContext) -> RuleResult | None:
+        if ctx.scam_type != 'romance_scam':
+            return None
+        if ctx.scam_phrase_score < 1:
+            return None
+        return self._make_result(
+            explanation=('Message pattern classified as romance scam with '
+                         'supporting scam-phrase signal.'),
+            evidence={'scam_type': ctx.scam_type,
+                      'phrase_score': ctx.scam_phrase_score},
+        )
+
+
+class ThreatScamTypeFloorRule(Rule):
+    id = 'A11_THREAT_TYPE_FLOOR'
+    name = 'Threat/authority scam type + phrase signal'
+    description = ('classify_scam_type() identified threat/authority scam '
+                   'patterns (police, court, IRS, arrest) AND phrase-'
+                   'score >= 1 OR tone_threat >= 1. Ported from v1.x.')
+    category = Category.CRITICAL
+    severity = Severity.CRITICAL
+    default_action = RuleAction.FORCE_SCAM
+
+    def evaluate(self, ctx: RuleContext) -> RuleResult | None:
+        if ctx.scam_type != 'threat_scam':
+            return None
+        if ctx.scam_phrase_score < 1 and ctx.tone_threat < 1:
+            return None
+        return self._make_result(
+            explanation=('Message pattern classified as threat/authority '
+                         'scam with supporting phrase or threat-tone signal.'),
+            evidence={'scam_type': ctx.scam_type,
+                      'phrase_score': ctx.scam_phrase_score,
+                      'tone_threat': ctx.tone_threat},
+        )
+
+
 # ── Public rule list (order-in-list irrelevant; engine sorts by priority) ─
 # A8 (BrandImpersonationWithActionRule) removed 2026-08-03 — misfired on
 # 43 legit ham_email items in the external benchmark (43/237 = 18% of
@@ -357,4 +447,7 @@ CRITICAL_RULES = [
     GiftCardPaymentRule(),
     CryptoSeedPhraseRule(),
     RemoteAccessRule(),
+    InvestmentScamTypeFloorRule(),
+    RomanceScamTypeFloorRule(),
+    ThreatScamTypeFloorRule(),
 ]

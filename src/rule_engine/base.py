@@ -74,6 +74,7 @@ class RuleContext:
     tone_threat: int
     scam_phrase_score: int
     sender_impersonation_score: int
+    scam_type: str                  # from classify_scam_type() — e.g. 'romance_scam'
     ml_probability: float           # untouched classifier output
     ml_threshold: float             # verdict threshold (e.g. 0.59)
     # Optional payload for rules that want raw feature dicts:

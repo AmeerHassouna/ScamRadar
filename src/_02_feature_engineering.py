@@ -276,7 +276,11 @@ def detect_lookalike_domain(url: str) -> bool:
 _URL_P1 = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
 _TRAILING_PUNCT = str.maketrans('', '', '.,;:!?)>')
 _URL_P2 = re.compile(
-    r'(?<!@)\b(?:[a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(?:com|org|net|gov|edu|io|co\.uk|ac\.il)'
+    r'(?<!@)\b(?:[a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.'
+    r'(?:com|org|net|gov|edu|io|co\.uk|ac\.il|'
+    # Modern generic + country TLDs common in modern brand-lookalike phishing
+    r'co|dev|app|ai|xyz|top|tk|ml|ga|cf|gq|click|link|work|buzz|zip|'
+    r'rest|monster|cyou|quest|cam|shop|icu|live|online|country|space)'
     r'(?:/[^\s]*)?\b',
     re.IGNORECASE,
 )
