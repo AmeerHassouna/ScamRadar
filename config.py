@@ -43,27 +43,58 @@ E5_THRESHOLD   = 0.59  # F1-max threshold selected during E5 (bundle['threshold_
 MIN_MESSAGE_LENGTH = 20
 MAX_MESSAGE_LENGTH = 5_000
 
-# ── Trusted domains — all-trusted URL set caps scam prob at 0.35 ──────────
+# ── Trusted domains — all-trusted URL set qualifies for the safety-net ───
+# eTLD+1 exact-match set. Used by the E7-P2 safety net layer to cap scam
+# probability at E7_P2_SAFETY_NET_CAP when a message contains URLs and ALL
+# of them point to a domain in this set (or a subdomain of one). Also used
+# by the legacy v1.x rule floors (still present in code but not active
+# in the E5/E7 code path).
 TRUSTED_DOMAINS = {
     # Banking / finance
     'bankofamerica.com', 'chase.com', 'wellsfargo.com', 'citibank.com',
-    'hsbc.com', 'barclays.com', 'americanexpress.com',
-    'visa.com', 'mastercard.com', 'stripe.com', 'squareup.com', 'paypal.com',
-    # Big tech
-    'google.com', 'apple.com', 'microsoft.com', 'amazon.com',
-    'meta.com', 'yahoo.com', 'adobe.com', 'icloud.com', 'dropbox.com',
-    'github.com', 'youtube.com',
+    'hsbc.com', 'hsbc.co.uk', 'barclays.com', 'barclays.co.uk',
+    'lloyds.co.uk', 'natwest.com', 'monzo.com', 'starlingbank.com',
+    'revolut.com', 'wise.com', 'venmo.com', 'cash.app',
+    'americanexpress.com', 'visa.com', 'mastercard.com',
+    'stripe.com', 'squareup.com', 'paypal.com',
+    # Big tech consumer accounts
+    'google.com', 'googlemail.com', 'gmail.com',
+    'apple.com', 'icloud.com',
+    'microsoft.com', 'outlook.com', 'live.com', 'hotmail.com', 'onedrive.com',
+    'amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.fr',
+    'amazon.co.jp', 'amazon.it', 'amazon.es', 'amazon.ca',
+    'meta.com', 'yahoo.com', 'adobe.com', 'dropbox.com',
+    'github.com', 'gitlab.com', 'youtube.com',
     # Social / streaming
-    'linkedin.com', 'twitter.com', 'instagram.com', 'facebook.com', 'tiktok.com',
+    'linkedin.com', 'twitter.com', 'x.com',
+    'instagram.com', 'facebook.com', 'tiktok.com',
     'netflix.com', 'spotify.com', 'hulu.com', 'disneyplus.com', 'playstation.com',
-    # Shopping
-    'ebay.com', 'etsy.com', 'shopify.com',
-    # Amazon regional
-    'amazon.co.uk', 'amazon.de', 'amazon.fr', 'amazon.co.jp',
-    # Messaging / conferencing
+    # Shopping / marketplaces
+    'ebay.com', 'ebay.co.uk', 'etsy.com', 'shopify.com',
+    # Shipping / logistics
+    'dhl.com', 'ups.com', 'fedex.com', 'usps.com',
+    'royalmail.com', 'parcelforce.com', 'dpd.com', 'dpd.co.uk',
+    'evri.com', 'hermesworld.com', 'aramex.com', 'tnt.com',
+    # Ride hail / travel
+    'uber.com', 'lyft.com', 'bolt.eu',
+    'booking.com', 'airbnb.com', 'expedia.com', 'hotels.com',
+    # Messaging / conferencing / dev tools
     'whatsapp.com', 'wa.me', 't.me', 'zoom.us', 'webex.com',
     'teams.microsoft.com', 'meet.google.com',
+    'discord.com', 'slack.com', 'anthropic.com', 'openai.com',
 }
+
+# ── E7-P2 safety-net layer ─────────────────────────────────────────────────
+# POST-classification cap on scam probability: applied ONLY when
+#   (a) the message contains at least one URL,
+#   (b) EVERY URL resolves (eTLD+1) to a domain in TRUSTED_DOMAINS, AND
+#   (c) Google Safe Browsing returns no threat for any URL
+#       (or GSB isn't called — treated as clean; the trusted-domain check
+#       is the strong constraint).
+# When active, scam probability is capped at E7_P2_SAFETY_NET_CAP (never
+# raised). The classifier's verdict passes through unchanged in every
+# other case. Enabled by env var SCAMRADAR_SAFETY_NET_ON=true.
+E7_P2_SAFETY_NET_CAP = 0.50  # matches the LEGIT-below-0.59 threshold band
 
 # ── Brand / action word lists used by impersonation scorer ────────────────
 BRAND_NAMES   = ['paypal', 'amazon', 'apple', 'microsoft', 'netflix',

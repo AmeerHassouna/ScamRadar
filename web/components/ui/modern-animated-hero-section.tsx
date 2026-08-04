@@ -344,13 +344,7 @@ function MiniGauge({ value, color }: { value: number; color: string }) {
         animate={{ pathLength: value / 100 }}
         transition={{ duration: 1.1, ease: 'easeOut', delay: 0.15 }}
       />
-      {/* Value */}
-      <motion.text x="60" y="56" textAnchor="middle" fill={color}
-        fontSize="20" fontWeight="900" fontFamily="monospace"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-      >
-        {value}%
-      </motion.text>
+      {/* Numeric value intentionally hidden — verdict word is shown separately */}
     </svg>
   )
 }
@@ -616,81 +610,103 @@ function DemoModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ─── Circular confidence gauge ────────────────────────────────────────────────
+// ─── Verdict banner ────────────────────────────────────────────────────────────
+// Replaces the old circular gauge. Uses the site's minimal-mono-terminal
+// aesthetic: colored left stripe, subtle diagonal color tint, pulsing status
+// dot, tiny uppercase labels, chip badge for scam type. No numeric confidence
+// is exposed to the user (kept in the API response for other uses).
 
-function ConfidenceGauge({ displayConf, vColor, vLabel, vIcon, isLegit, scamType }: {
-  displayConf: number
+function ConfidenceGauge({ displayConf: _displayConf, vColor, vLabel, vIcon, isLegit, scamType }: {
+  displayConf: number      // still accepted for backward compat; unused
   vColor: string
   vLabel: string
   vIcon: React.ReactNode
   isLegit: boolean
   scamType?: string
 }) {
-  // Spring drives the count-up number; gaugeValue triggers the CSS arc transition
-  const mv = useMotionValue(0)
-  const spring = useSpring(mv, { damping: 52, stiffness: 85 })
-  const [count, setCount] = useState(0)
-  const [gaugeValue, setGaugeValue] = useState(0)
-
-  useEffect(() => {
-    const unsub = spring.on('change', v => setCount(Math.round(v)))
-    const t = setTimeout(() => {
-      mv.set(displayConf)
-      setGaugeValue(displayConf)
-    }, 130)
-    return () => { unsub(); clearTimeout(t) }
-  }, [displayConf, mv, spring])
+  const showScamType = !isLegit
+    && typeof scamType === 'string'
+    && scamType.length > 0
+    && scamType !== 'general_spam'
 
   return (
-    <div className="flex flex-col items-center pt-4 sm:pt-5 pb-2">
-      <motion.div
-        className="relative w-36 sm:w-44 aspect-square"
-        initial={{ opacity: 0, scale: 0.88 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <Gauge
-          size="100%"
-          value={gaugeValue}
-          primary={vColor}
-          secondary="rgba(255,255,255,0.07)"
-          strokeWidth={10}
-          gapPercent={4}
-          showValue={false}
-          transition={{ length: 950, delay: 0 }}
+    <motion.div
+      className="relative flex flex-col items-center text-center px-4 sm:px-5 py-6 sm:py-7"
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        // Symmetric radial tint — centred, not left-anchored
+        background: `radial-gradient(circle at 50% 30%, ${vColor}14 0%, transparent 65%)`,
+      }}
+    >
+      {/* Top row — pulsing status dot + VERDICT label, centred */}
+      <div className="flex items-center gap-2">
+        <motion.span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: vColor, boxShadow: `0 0 10px ${vColor}` }}
+          animate={{ opacity: [0.55, 1, 0.55] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
-        {/* Overlaid number + label */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="font-mono text-3xl sm:text-4xl font-black leading-none tabular-nums" style={{ color: vColor }}>
-            {count}%
-          </span>
-          <span className="font-mono text-[7px] sm:text-[8px] text-white/25 mt-1.5 uppercase tracking-[2.5px]">
-            CONFIDENCE
-          </span>
-          <span className="font-mono text-[7px] text-white/15 mt-0.5 px-2 text-center leading-tight">
-            {count >= 85 ? 'Strong signal' : count >= 65 ? 'Moderate signal' : 'Weak signal'}
-          </span>
+        <p className="font-mono text-[10px] text-white/40 uppercase tracking-[2.5px] font-semibold">
+          Verdict
+        </p>
+      </div>
+
+      {/* Iconised tile — centred below the label */}
+      <motion.div
+        className="mt-4 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center"
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        style={{
+          background: `${vColor}16`,
+          border: `1px solid ${vColor}33`,
+        }}
+      >
+        <div className="scale-[1.7] sm:scale-[1.95]" style={{ color: vColor }}>
+          {vIcon}
         </div>
       </motion.div>
 
-      {/* Verdict label */}
-      <motion.div
-        className="flex items-center flex-wrap justify-center gap-x-2 gap-y-0.5 mt-3 px-4 text-center"
-        initial={{ opacity: 0, y: 6 }}
+      {/* Big verdict word */}
+      <motion.p
+        className="font-mono mt-4 text-3xl sm:text-4xl font-black tracking-[0.18em] leading-none"
+        style={{ color: vColor }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.32, duration: 0.3, ease: 'easeOut' }}
+        transition={{ delay: 0.14, duration: 0.32, ease: 'easeOut' }}
       >
-        <div className="flex items-center gap-2">
-          {vIcon}
-          <p className="font-mono text-sm font-black text-white">{vLabel}</p>
-        </div>
-        {!isLegit && scamType && typeof scamType === 'string' && (
-          <p className="font-mono text-[8px] text-white/25 uppercase tracking-widest">
-            {scamType.replace(/_/g, ' ')}
-          </p>
-        )}
-      </motion.div>
-    </div>
+        {isLegit ? 'LEGIT' : 'SCAM'}
+      </motion.p>
+
+      {/* Descriptive tagline */}
+      <motion.p
+        className="font-mono text-[11px] sm:text-xs text-white/55 mt-3 max-w-[280px] leading-snug"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.3 }}
+      >
+        {vLabel}
+      </motion.p>
+
+      {/* Scam-type chip — centred below the tagline (only for non-legit) */}
+      {showScamType && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.42, duration: 0.3 }}
+          className="mt-3 font-mono text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-md"
+          style={{
+            color: vColor,
+            background: `${vColor}18`,
+            border: `1px solid ${vColor}30`,
+          }}
+        >
+          {scamType!.replace(/_/g, ' ')}
+        </motion.p>
+      )}
+    </motion.div>
   )
 }
 
@@ -1466,10 +1482,12 @@ const RainingLetters: React.FC = () => {
                       {/* Shared: why flagged, warning signals, link safety */}
                       {sharedSections}
 
-                      {/* Borderline note */}
+                      {/* Borderline note — trigger uses the model's confidence
+                          (kept in the API response), but the wording no longer
+                          exposes any numeric confidence to the user. */}
                       {!isLegit && safeNum(result.confidence) < 90 && (
                         <p className="font-mono text-[10px] text-white/28 text-center px-4 pt-3 leading-relaxed">
-                          Confidence below 90% — worth a second look. Legitimate security alerts can sometimes be flagged.
+                          This one is borderline — worth a second look. Legitimate security alerts can sometimes be flagged.
                         </p>
                       )}
 

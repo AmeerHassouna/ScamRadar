@@ -812,15 +812,41 @@ from src.e5_inference import load_e5_pipeline as _load_e5_pipeline
 from src.e5_inference import predict_e5 as _predict_e5
 from config import E5_THRESHOLD as _E5_THRESHOLD
 
+# Preserve references to the LEGACY (v1.x / 11866bb-era) implementations
+# BEFORE the shim below rebinds their names. Callers that opt in via env
+# var SCAMRADAR_LOCAL_MODEL=original get the untouched original pipeline
+# with all its rule floors, FAISS proximity, three-tier verdict, etc.
+_legacy_load_pipeline    = load_pipeline
+_legacy_predict_message  = predict_message
+
+
+def _load_original_v1x():
+    """Load the original v1.x pipeline from old_models/backups/pre_v1.7_experiment/.
+    Temporarily monkey-patches this module's MODELS_PATH so the legacy loader
+    (which reads MODELS_PATH from module globals) picks up the correct dir."""
+    override_dir = os.environ.get(
+        'SCAMRADAR_ORIGINAL_PATH',
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     'old_models', 'backups', 'pre_v1.7_experiment')
+    )
+    if not os.path.isdir(override_dir):
+        raise FileNotFoundError(f'Original v1.x model dir not found: {override_dir}')
+    saved = globals()['MODELS_PATH']
+    globals()['MODELS_PATH'] = override_dir
+    try:
+        print(f'[legacy loader] loading original v1.x model from {override_dir}', flush=True)
+        return _legacy_load_pipeline()
+    finally:
+        globals()['MODELS_PATH'] = saved
+
 
 def load_pipeline():                                              # noqa: F811
-    """E5 shim: loads models/e5_bundle.joblib.
-
-    Returns a 6-tuple `(model, tfidf, char_tfidf, scaler, scam_index, st_model)`
-    matching the legacy return signature so `api/main.py` keeps working
-    without any change. Legacy slots after `model` are `None` — E5's
-    bundle is self-contained.
+    """Shim: default E5. If SCAMRADAR_LOCAL_MODEL=original, routes to the
+    preserved legacy v1.x loader against old_models/backups/pre_v1.7_experiment/.
+    Returns a 6-tuple `(model, tfidf, char_tfidf, scaler, scam_index, st_model)`.
     """
+    if os.environ.get('SCAMRADAR_LOCAL_MODEL', '').strip() == 'original':
+        return _load_original_v1x()
     bundle = _load_e5_pipeline()
     return (
         bundle['model'],     # E5 sklearn Pipeline (FeatureUnion → LogReg)
@@ -836,15 +862,17 @@ def predict_message(text, model, tfidf=None, char_tfidf=None, scaler=None,   # n
                     scam_idx=None, st_model=None,
                     threshold=None, vt_api_key=None, gsb_api_key=None,
                     **_ignored_kwargs):
-    """E5 shim: accepts the legacy positional signature but delegates to
-    `src.e5_inference.predict_e5`. Legacy artifact args
-    (`tfidf`/`char_tfidf`/`scaler`/`scam_idx`/`st_model`) are ignored —
-    E5's bundle is self-contained.
-
-    Threshold defaults to E5_THRESHOLD (0.59). Any caller-supplied
-    threshold is honoured, but DEFAULT_THRESHOLD (0.40) is never used
-    by this path.
-    """
+    """Shim: default E5. If SCAMRADAR_LOCAL_MODEL=original, delegates to the
+    preserved legacy predict_message (rule floors, three-tier verdict, FAISS
+    proximity — everything the v1.x pipeline did)."""
+    if os.environ.get('SCAMRADAR_LOCAL_MODEL', '').strip() == 'original':
+        return _legacy_predict_message(
+            text, model, tfidf, char_tfidf, scaler,
+            scam_idx, st_model,
+            threshold=threshold if threshold is not None else DEFAULT_THRESHOLD,
+            vt_api_key=vt_api_key,
+            gsb_api_key=gsb_api_key,
+        )
     pipe = {
         'model':     model,
         'threshold': float(threshold) if threshold is not None else float(_E5_THRESHOLD),

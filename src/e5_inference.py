@@ -43,11 +43,74 @@ _ROOT = os.path.dirname(_HERE)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+import re
+
 from config import (
     E5_BUNDLE_PATH,
     E5_THRESHOLD,
+    E7_P2_SAFETY_NET_CAP,
     MIN_MESSAGE_LENGTH,
 )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Rule A — "Pure OTP" pattern detector
+# ══════════════════════════════════════════════════════════════════════════
+# Recognises the very tight structural pattern of a legitimate OTP / MFA
+# verification message. Enabled by env var SCAMRADAR_OTP_RULE_ON=true.
+#
+# When ALL of the following hold, we treat the message as a pure OTP and
+# cap scam probability to E7_P2_SAFETY_NET_CAP (below the 0.59 threshold,
+# i.e. verdict flips to LEGIT):
+#   - length < 350 chars
+#   - contains an OTP-related keyword (code / verification / OTP / passcode)
+#   - contains a 3-8 digit code somewhere in the text
+#   - contains NO URLs (http://, https://, www.)
+#   - contains NO phone-length digit runs (>8 consecutive digits after
+#     stripping separators)
+#   - contains NO information-request phrases (please provide/forward/reply
+#     with/send us/confirm your)
+#
+# A scammer cannot exploit this rule: a message with no URL, no phone
+# number, and no request has no attack surface — they'd have nowhere to
+# send the victim.
+# ══════════════════════════════════════════════════════════════════════════
+
+_OTP_KEYWORD_RE   = re.compile(r'\b(?:verification\s*code|one[- ]time\s*(?:code|passcode|password)|passcode|otp|verify\s*code|security\s*code|access\s*code)\b|(?:^|\s)code\s+is\s+\d', re.I)
+_OTP_CODE_RE      = re.compile(r'\b\d{3,8}\b')
+_URL_ANY_RE       = re.compile(r'https?://|www\.', re.I)
+_PHONE_LONG_RE    = re.compile(r'\+?\d[\d\s\-().]{7,}\d')  # 9+ digits with separators
+_REQUEST_RE       = re.compile(
+    r'\b(?:please\s+(?:provide|confirm|reply|forward|send|share|enter\s+at|call|contact|click)'
+    r'|reply\s+(?:with|to\s+us|now)'
+    r'|forward\s+(?:me|us|to)'
+    r'|send\s+(?:me|us|it\s+to)'
+    r'|share\s+(?:this|it)\s+with\s+(?:us|our|support))\b',
+    re.I,
+)
+
+
+def _is_pure_otp(text: str) -> bool:
+    """True if `text` matches the pure-OTP structural pattern."""
+    if not text or len(text) > 350:
+        return False
+    if not _OTP_KEYWORD_RE.search(text):
+        return False
+    if not _OTP_CODE_RE.search(text):
+        return False
+    if _URL_ANY_RE.search(text):
+        return False
+    if _REQUEST_RE.search(text):
+        return False
+    # Phone number check — allow the code itself, reject longer runs
+    max_run = 0
+    for m in _PHONE_LONG_RE.finditer(text):
+        digits_only = re.sub(r'\D', '', m.group(0))
+        if len(digits_only) > max_run:
+            max_run = len(digits_only)
+    if max_run > 8:  # 9+ consecutive digits → likely a phone number
+        return False
+    return True
 from src._02_feature_engineering import (
     preprocess_text,
     classify_scam_type,
@@ -63,35 +126,103 @@ from src._02_feature_engineering import (
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# E7-P1 ADAPTER  (local research-mode only — never active in production)
+# ══════════════════════════════════════════════════════════════════════════
+# Presents the same `.predict_proba(list_of_texts)` interface as an sklearn
+# Pipeline, so the rest of the E5 code path continues to work unchanged
+# when the SCAMRADAR_LOCAL_MODEL env var selects a research variant.
+# ══════════════════════════════════════════════════════════════════════════
+
+class _E7P1Adapter:
+    """Wraps an e7_p1_* bundle (LR + word_vec + char_vec + scaler +
+    feature_cols) to present the same predict_proba([texts]) interface
+    that E5's Pipeline provides."""
+    def __init__(self, bundle: dict):
+        self.lr = bundle['lr']
+        self.word_vec = bundle['word_vec']
+        self.char_vec = bundle['char_vec']
+        self.scaler = bundle['scaler']
+        self.feature_cols = bundle['feature_cols']
+        self.variant = bundle.get('variant', 'e7_p1_unknown')
+        # Numerical feature computation lives in the training script; import lazily.
+        from scripts.training.train_e7_p1 import compute_all_numerical
+        self._compute = compute_all_numerical
+
+    def predict_proba(self, texts):
+        import numpy as np
+        from scipy.sparse import hstack, csr_matrix
+        Xw = self.word_vec.transform(texts)
+        Xc = self.char_vec.transform(texts)
+        num_rows = []
+        for t in texts:
+            feats = self._compute(t)
+            num_rows.append([feats.get(c, 0) for c in self.feature_cols])
+        Xn = np.array(num_rows, dtype=np.float64)
+        Xn = self.scaler.transform(Xn)
+        Xn = np.clip(Xn, -8.0, 8.0)          # matches training-time hygiene
+        X = hstack([Xw, Xc, csr_matrix(Xn)]).tocsr()
+        return self.lr.predict_proba(X)
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # LOADER
 # ══════════════════════════════════════════════════════════════════════════
 
 def load_e5_pipeline(bundle_path: str | None = None) -> dict:
-    """Load the E5 joblib bundle.
+    """Load the E5 joblib bundle by default.
+
+    Local research override: set env var `SCAMRADAR_LOCAL_MODEL=e7_p1_full`
+    (or any other e7_p1_* variant) to load that research bundle instead.
+    This ONLY affects the local process — the E5 bundle file on disk is
+    untouched, and production Render deployment stays on E5.
 
     Returns a dict whose shape is compatible with `api/main.py`'s existing
-    `_pipe[...]` access pattern. Legacy keys (`tfidf`, `char_tfidf`,
-    `scaler`, `scam_index`, `st_model`) are populated with `None` because
-    the E5 bundle is entirely self-contained.
+    `_pipe[...]` access pattern.
     """
-    path = bundle_path or E5_BUNDLE_PATH
-    # Silence sklearn 1.5→1.8 version-mismatch warnings; we verified
-    # loading works and predictions are correct in the parity harness.
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        bundle = joblib.load(path)
-    return {
-        # Core E5 artifact — sklearn Pipeline(FeatureUnion(word,char) → LogReg)
-        'model':        bundle['model'],
-        'threshold':    float(bundle.get('threshold_f1', E5_THRESHOLD)),
-        'metadata': {
+    # Production default: E8-P6 (E7-P1-full retrained with E8-P2 + E8-P6
+    # synthetic legit, spamassassin_ham removed, mailing-list mislabels
+    # cleaned). Any env-var override (e.g. `e7_p1_full` or empty-string
+    # to fall back to the E5 bundle) takes precedence.
+    override = os.environ.get('SCAMRADAR_LOCAL_MODEL', 'e7_p1_full_e8p6').strip()
+    if override.startswith('e7_p1_'):
+        # Research variant — different bundle schema; wrap in adapter
+        variant_path = os.path.join(
+            os.path.dirname(E5_BUNDLE_PATH),
+            'e7_p1_variants', f'{override}.joblib'
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            bundle = joblib.load(variant_path)
+        model = _E7P1Adapter(bundle)
+        threshold = float(bundle.get('threshold', E5_THRESHOLD))
+        metadata = {
+            'variant': override,
+            'feature_cols': bundle.get('feature_cols'),
+            'converged': bundle.get('converged'),
+            'note': bundle.get('note'),
+        }
+        print(f'[e5_inference] LOCAL OVERRIDE ACTIVE: loaded {override} '
+              f'from {variant_path} (threshold={threshold})')
+    else:
+        path = bundle_path or E5_BUNDLE_PATH
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            bundle = joblib.load(path)
+        model = bundle['model']
+        threshold = float(bundle.get('threshold_f1', E5_THRESHOLD))
+        metadata = {
             'feature_set':               bundle.get('feature_set'),
             'model_name':                bundle.get('model_name'),
             'calibration':               bundle.get('calibration'),
             'hpo_params':                bundle.get('hpo_params'),
             'threshold_f1':              bundle.get('threshold_f1'),
             'threshold_precision_floor': bundle.get('threshold_precision_floor'),
-        },
+        }
+
+    return {
+        'model':        model,
+        'threshold':    threshold,
+        'metadata':     metadata,
         # Legacy positional-arg slots kept as None so the existing
         # api/main.py call site keeps working without any change.
         'tfidf':        None,
@@ -181,9 +312,7 @@ def predict_e5(
         threshold = float(pipe.get('threshold', E5_THRESHOLD))
 
     # === E5 CORE — parity-critical, do not modify ===
-    prob = _e5_probability(text, pipe)
-    verdict = 'SCAM' if prob >= threshold else 'LEGIT'
-    confidence_pct = round(prob * 100, 2)
+    prob_raw = _e5_probability(text, pipe)
     # === END E5 CORE ===
 
     # --- Ancillary analysis (populates display fields, no verdict impact) ---
@@ -240,6 +369,83 @@ def predict_e5(
                 except Exception:
                     pass
 
+    # ══════════════════════════════════════════════════════════════════════
+    # POST-CLASSIFICATION LAYER
+    # ══════════════════════════════════════════════════════════════════════
+    # Modular Rule Engine (opt-in via SCAMRADAR_RULE_ENGINE_ON=true) fully
+    # replaces the legacy Rule A / URL safety-net blocks. When active it
+    # can FORCE_SCAM (Category A), INCREASE (Category B), or DECREASE
+    # (Category C) the probability. When inactive the legacy Rule A + URL
+    # safety-net path is used (unchanged behaviour for existing E7-P2).
+    # ══════════════════════════════════════════════════════════════════════
+    # Production default: rule engine ON. Explicit env-var override wins.
+    rule_engine_active = os.environ.get('SCAMRADAR_RULE_ENGINE_ON', 'true').lower() in ('true','1','yes','on')
+    otp_rule_active = os.environ.get('SCAMRADAR_OTP_RULE_ON', '').lower() in ('true','1','yes','on')
+    safety_net_active = os.environ.get('SCAMRADAR_SAFETY_NET_ON', '').lower() in ('true','1','yes','on')
+
+    prob = prob_raw
+    otp_rule_capped = False
+    safety_net_capped = False
+    rule_engine_result: dict | None = None
+
+    if rule_engine_active:
+        from src.rule_engine import build_context, build_default_engine
+        # Cache the engine on the module so we don't rebuild the rule list
+        # on every call. (Rules are stateless, cheap to build, but this
+        # avoids the small per-call construction cost.)
+        engine = globals().get('_RULE_ENGINE_SINGLETON')
+        if engine is None:
+            engine = build_default_engine()
+            globals()['_RULE_ENGINE_SINGLETON'] = engine
+
+        ctx = build_context(
+            text=text,
+            ml_probability=prob_raw,
+            ml_threshold=threshold,
+            text_norm=text_norm,
+            urls=urls,
+            tone=tone,
+            scam_phrase_score=new_feat.get('scam_phrase_score', 0),
+            sender_impersonation_score=new_feat.get('sender_impersonation_score', 0),
+            gsb_flagged=gsb_flagged,
+            gsb_threat_type=gsb_threat_type,
+            vt_malicious=vt_malicious,
+            vt_suspicious=vt_suspicious,
+        )
+        rule_engine_result = engine.run(ctx)
+        prob = float(rule_engine_result['final_probability'])
+        if rule_engine_result['triggered_rules']:
+            warnings_list.append(
+                f'rule_engine_applied_prob:{prob_raw:.4f}_to_{prob:.4f}_'
+                f'rules:{len(rule_engine_result["triggered_rules"])}'
+            )
+    else:
+        # Legacy Rule A: Pure-OTP structural pattern
+        if otp_rule_active and prob > E7_P2_SAFETY_NET_CAP and _is_pure_otp(text):
+            prob = E7_P2_SAFETY_NET_CAP
+            otp_rule_capped = True
+            warnings_list.append(
+                f'otp_rule_capped_prob:{prob_raw:.4f}_to_{prob:.4f}_reason_pure_otp'
+            )
+
+        # Legacy Rule B (URL safety net): all URLs trusted + GSB clean → cap
+        if safety_net_active and not otp_rule_capped and urls and prob > E7_P2_SAFETY_NET_CAP:
+            from src._09_prediction_pipeline import is_all_trusted_domains
+            try:
+                all_trusted = is_all_trusted_domains(urls)
+            except Exception:
+                all_trusted = False
+            gsb_ok = not gsb_flagged
+            if all_trusted and gsb_ok:
+                prob = E7_P2_SAFETY_NET_CAP
+                safety_net_capped = True
+                warnings_list.append(
+                    f'safety_net_capped_prob:{prob_raw:.4f}_to_{prob:.4f}_reason_all_urls_trusted'
+                )
+
+    verdict = 'SCAM' if prob >= threshold else 'LEGIT'
+    confidence_pct = round(prob * 100, 2)
+
     # why_flagged — short human-readable rationale from ancillary signals.
     # This is for display only; does not affect verdict/confidence.
     why_parts: list[str] = []
@@ -289,4 +495,24 @@ def predict_e5(
         'normalized_text':        text_norm,
         'feature_contributions':  {},           # E5 has 500k TF-IDF coeffs, no per-name map
         'warnings':               warnings_list,
+        # E7-P2 safety-net telemetry (extra fields; frontend ignores unknown keys)
+        'safety_net_active':      safety_net_active,
+        'safety_net_capped':      safety_net_capped,
+        'otp_rule_active':        otp_rule_active,
+        'otp_rule_capped':        otp_rule_capped,
+        'raw_probability':        round(float(prob_raw), 4),
+        # Rule Engine explainability (only populated when engine active).
+        # Fields:
+        #   ml_probability   — untouched classifier output
+        #   final_probability — post-engine probability used for the verdict
+        #   triggered_rules   — list[{rule_id, name, category, severity,
+        #                       action, adjustment, explanation, evidence}]
+        #   adjustments       — {'A': ..., 'B': ..., 'C': ...} per-category deltas
+        #   forced_scam       — bool
+        #   explanation       — short human-readable rationale
+        'rule_engine_active':     rule_engine_active,
+        'rule_engine':            rule_engine_result,
+        'ml_probability':         round(float(prob_raw), 4),
+        'final_probability':      round(float(prob), 4),
+        'triggered_rules':        (rule_engine_result or {}).get('triggered_rules', []),
     }
