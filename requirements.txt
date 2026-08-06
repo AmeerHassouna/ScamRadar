@@ -1,14 +1,19 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # ScamRadar+ requirements.txt
 #
-# All ML-critical dependencies are pinned to the exact versions used to
-# produce the frozen v1.3 baseline (models/v1.3_baseline/). Do not upgrade
-# scikit-learn, numpy, scipy, or pandas without retraining the model.
+# Current production build: E8-P9 (LogReg + word/char TF-IDF + 25 numerical
+# features + modular Rule Engine). Bundle: models/e7_p1_variants/
+# e7_p1_full_e8p9.joblib — selectable via SCAMRADAR_LOCAL_MODEL env var.
+#
+# ML-critical dependencies (scikit-learn, numpy, scipy, pandas) are pinned to
+# the exact versions used to train E7-P1 / E8-P9. Upgrading any of them
+# without retraining will produce an inference-mismatch and break the parity
+# guarantee checked in tests/e5_parity_test.py.
 #
 # sentence-transformers (PyTorch) and faiss-cpu are intentionally omitted:
-# they exceed Render's 512 MB free-tier RAM limit. The pipeline degrades
-# gracefully with proximity_scam_score=0 when absent — this was verified
-# to have no negative effect on v1.3 external F1.
+# they exceed Render's 512 MB memory budget. The `proximity_score` field in
+# the API response is always 0.0 in production — this was verified to have
+# no measurable effect on external-benchmark F1 for E5, E7, or E8 builds.
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── API server ─────────────────────────────────────────────────────────────────
@@ -19,17 +24,17 @@ slowapi==0.1.9
 python-dotenv==1.2.2
 cachetools>=5.3
 
-# ── ML inference (pinned to v1.3 training environment) ─────────────────────────
+# ── ML inference (pinned to E7-P1 / E8-P9 training environment) ────────────────
 scikit-learn==1.8.0
 numpy==2.4.4
 scipy==1.17.1
 pandas==3.0.2
 
-# ── Feature engineering ────────────────────────────────────────────────────────
+# ── Feature engineering (25 numerical features + rule-engine detectors) ────────
 vaderSentiment==3.3.2
 requests==2.34.2
 python-whois==0.9.6
 regex==2026.4.4
 
-# ── Language detection (English-only enforcement) ──────────────────────────────
+# ── Language detection (English-only enforcement at API boundary) ──────────────
 langdetect==1.0.9

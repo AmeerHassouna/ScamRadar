@@ -337,7 +337,7 @@ async def login(request: Request):
 async def health(request: Request):
     if _pipe is None:
         return JSONResponse(status_code=200, content={'status': 'loading'})
-    return {'status': 'ready', 'model': 'ScamRadar+ 2.0 (E5)', **cache_info()}
+    return {'status': 'ready', 'model': 'ScamRadar+ 2.0 (E8-P9)', **cache_info()}
 
 
 @app.get('/warmup')
@@ -351,29 +351,39 @@ async def warmup(request: Request):
 @app.get('/stats')
 @limiter.limit("30/minute")
 async def stats(request: Request):
-    # All metric values below are verified from the E5 production evaluation.
-    # Source: models/e5_metadata.json (test_internal + external + latency_ms).
-    # The external benchmark is locked / write-once — see the research repo's
-    # data/external_benchmark/LOCK.json for the write manifest.
+    # Baseline (`external_baseline_*`) is the pure ML classifier's score on the
+    # locked external benchmark — source: outputs/eval/e7_p1_results.json
+    # (results.e5.external.primary_threshold_0.59). Production (`external_*`)
+    # is the full E8-P9 pipeline (classifier + rule engine + safety net) on the
+    # same benchmark — source: outputs/eval/e8p9_per_item.parquet. The delta is
+    # a deliberate tradeoff: modern conversational / investment / romance / threat
+    # scams the 2008-era benchmark doesn't measure vs. a small precision loss on
+    # legacy legit email. See README.md → Performance for the explanation.
     return {
-        'deployed_model':        'ScamRadar+ 2.0 (E5)',
-        'model_architecture':    'Calibrated Logistic Regression on word + character TF-IDF (500k features)',
-        'training_corpus_raw':   253264,  # total messages before dedup (dataset_audit.totals.n)
-        'training_corpus_dedup': 195776,  # unique clusters after SHA-1 + MinHash dedup
+        'deployed_model':        'ScamRadar+ 2.0 (E8-P9)',
+        'model_architecture':    ('Logistic Regression + word/char TF-IDF (500,000 text features) + '
+                                  '25 numerical features + modular Rule Engine'),
+        'training_corpus_raw':   283501,  # E8-P6 base (267,723) + E8-P8 scam+pairs (15,778)
+        'training_corpus_dedup': 195776,  # unique clusters after SHA-1 + MinHash dedup (E5 base)
         'channels':              4,       # email · SMS · chat · job_posting
-        'scam_types':            12,      # categories tracked in the E5 external eval
-        'features':              500000,  # word 1-2 gram (200k) + char 3-6 gram (300k) TF-IDF
+        'scam_types':            12,      # categories tracked in the external eval
+        'features':              500025,  # 200k word + 300k char TF-IDF + 25 numerical
         'external_eval_size':    25306,
-        'external_accuracy':     0.9794,
-        'external_precision':    0.9605,
-        'external_recall':       0.9230,
-        'external_f1':           0.9414,
-        'external_roc_auc':      0.9950,
-        'external_pr_auc':       0.9839,
-        'internal_test_f1':      0.9434,
-        'threshold':             0.59,    # F1-max on validation
+        # Production pipeline metrics (classifier + rule engine, end-to-end)
+        'external_accuracy':     0.9687,
+        'external_precision':    0.9102,
+        'external_recall':       0.9160,
+        'external_f1':           0.9131,
+        # Baseline metrics (pure E5-style classifier, for comparison)
+        'external_baseline_f1':        0.9414,
+        'external_baseline_precision': 0.9605,
+        'external_baseline_recall':    0.9230,
+        'external_baseline_roc_auc':   0.9950,
+        'external_baseline_pr_auc':    0.9839,
+        'threshold':             0.59,    # F1-max on validation, inherited from E5
         'evaluation_note':       ('External metrics measured on a locked one-shot benchmark of '
                                   '25,306 messages held out from all model selection, tuning, '
-                                  'and threshold optimisation.'),
+                                  'and threshold optimisation. Production numbers include the Rule '
+                                  'Engine; baseline numbers are the pure classifier for reference.'),
         **cache_info(),
     }

@@ -16,8 +16,8 @@ No account. No message storage. No tracking.
 [![Next.js 16](https://img.shields.io/badge/next.js-16-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-f7931e?style=flat-square&logo=scikitlearn)](https://scikit-learn.org/)
-[![Model](https://img.shields.io/badge/model-E5%20%C2%B7%20F3%20LogReg-6366f1?style=flat-square)](models/e5_metadata.json)
-[![External F1](https://img.shields.io/badge/F1%20external%20(n%3D25%2C306)-0.941-brightgreen?style=flat-square)](models/e5_metadata.json)
+[![Model](https://img.shields.io/badge/model-E8--P9%20%C2%B7%20LogReg%20%2B%20Rule%20Engine-6366f1?style=flat-square)](models/e7_p1_variants)
+[![Baseline F1](https://img.shields.io/badge/F1%20baseline%20(E5%2C%20n%3D25%2C306)-0.941-brightgreen?style=flat-square)](outputs/eval/e7_p1_results.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](#license)
 
 </div>
@@ -26,11 +26,12 @@ No account. No message storage. No tracking.
 
 ## What it does
 
-ScamRadar+ classifies a single message — email, SMS, chat, or job posting — as **SCAM** or **LEGIT** using a text classifier trained on 253,264 real messages. It also runs optional URL reputation checks (Google Safe Browsing, VirusTotal) and produces a human-readable rationale of the signals that led to the verdict.
+ScamRadar+ classifies a single message — email, SMS, chat, or job posting — as **SCAM**, **SUSPICIOUS**, or **LEGIT** using a Logistic Regression text classifier over ~500k word- and character-TF-IDF features plus 25 hand-engineered numerical features (tone, URL, phrase, and text-statistics signals). A modular Rule Engine runs after the classifier to catch modern scam patterns the ML alone misses (credential requests, OTP theft, gift-card demands, romance/investment/threat archetypes). Optional URL reputation checks (Google Safe Browsing, VirusTotal) enrich the response.
 
-- Paste a message → get a verdict + confidence + rationale
+- Paste a message → get a verdict + confidence + human-readable rationale
 - Analyse a full conversation → overall risk score plus per-message breakdown
 - Stateless: no accounts, no cookies, no message retention
+- Training corpus: 283,501 real + adversarial-synthetic messages (E8-P9 build)
 
 ## Try it now
 
@@ -42,9 +43,9 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 
 - [Live production system](#live-production-system)
 - [Performance](#performance)
-  - [Internal test](#internal-test-n--34194)
-  - [External benchmark](#external-benchmark-n--25306)
-  - [Per-category recall & FP rate](#per-category-recall--false-positive-rate-external-benchmark)
+  - [Baseline — pure E5 classifier](#baseline--pure-e5-classifier-n--25306)
+  - [Production — E8-P9 build](#production--e8-p9-build-n--25306-same-benchmark)
+  - [Per-category recall & FP rate](#per-category-recall--false-positive-rate-e8-p9-external-benchmark)
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
 - [Local development](#local-development)
@@ -52,7 +53,7 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 - [API](#api)
 - [Data sources](#data-sources)
 - [Limitations & responsible use](#limitations--responsible-use)
-- [Historical context (v1.x → E5)](#historical-context-v1x--e5)
+- [Historical context (v1.x → E5 → E7 → E8-P9)](#historical-context-v1x--e5--e7--e8-p9)
 - [Team & acknowledgements](#team--acknowledgements)
 - [License](#license)
 
@@ -60,46 +61,37 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 
 ## Live production system
 
-The production model is codename **E5** (5th major experiment in the ScamRadar+ 2.0 research campaign).
+The production build is codename **E8-P9** — the E7-P1 Full classifier (E5 recipe extended with 25 numerical features) retrained on an expanded corpus of 283,501 messages, then wrapped in a modular Rule Engine. Bundle selection is env-driven (`SCAMRADAR_LOCAL_MODEL`, defaults to `e7_p1_full_e8p9`), so rolling back to any prior E7/E8 variant is a single env-var change.
 
 | | Verified value | Source |
 |---|---|---|
-| **Model** | Calibrated Logistic Regression on word + character TF-IDF (500,000 features) | [`models/e5_metadata.json`](models/e5_metadata.json) |
-| **Feature set** | F3 — word 1-2 grams (200k) · character 3-6 grams (300k) · sublinear TF | `e5_metadata.json` → `e4_best_params` |
-| **Calibration** | none (already well-calibrated: ECE 0.012, Brier 0.012) | `e5_metadata.json` → `e5_calibration_winner` |
-| **Decision threshold** | **0.59** (F1-max on validation) | [`config.py`](config.py) `E5_THRESHOLD` |
-| **Training corpus** | 253,264 messages (41,905 scam / 211,359 legit) · 195,776 unique clusters after deduplication | dataset audit |
-| **Real vs synthetic** | 251,766 real (99.4%) · 1,498 synthetic (0.6%) | dataset audit |
-| **Data sources** | 14 documented public corpora with URLs + licenses. No Kaggle. | [Data sources](#data-sources) |
-| **Model size on disk** | 22.6 MB | model artifact |
-| **Inference latency** | Sub-millisecond on the classifier (batch=1 mean 0.68 ms, p95 1.86 ms) | `e5_metadata.json` → `latency_ms` |
+| **Classifier** | Logistic Regression (C = 5.968, L2, `class_weight=balanced`, `solver=liblinear`) | [`models/e7_p1_variants/e7_p1_full_e8p9.joblib`](models/e7_p1_variants) |
+| **Text features** | word 1–2 grams (200,000) · character 3–6 grams (300,000) · sublinear TF · L2 normalisation | bundle `word_vec` / `char_vec` |
+| **Numerical features** | 25 hand-engineered signals: tone (urgency · fear · reward · threat), URL structure, phrase scores (scam / legit / brand-impersonation), 13 text statistics | bundle `feature_cols` · [`src/_02_feature_engineering.py`](src/_02_feature_engineering.py) |
+| **Post-processing** | Modular **Rule Engine** — Critical (force-scam) · Strong (evidence boost) · Legit (evidence dampen) categories. Type-floor rules (A9 investment · A10 romance · A11 threat) keep recall high on modern conversational scams the classifier alone misses. | [`src/rule_engine/`](src/rule_engine) |
+| **URL safety net (E7-P2)** | Caps scam probability at 0.50 when a message contains URLs and every URL resolves to a trusted domain. Prevents legit brand emails being force-flagged by aggressive rules. | [`config.py`](config.py) `E7_P2_SAFETY_NET_*` |
+| **Decision threshold** | **0.59** (F1-max on validation — inherited from E5, unchanged) | bundle `threshold` · [`config.py`](config.py) `E5_THRESHOLD` |
+| **Training corpus** | 283,501 messages · E8-P6 base (267,723) + 14,669 modern synthetic scams (conversational / investment / romance / threat) + 1,109 paired-legit adversarial twins | [`scripts/data_prep/merge_e8p8_into_training.py`](scripts/data_prep/merge_e8p8_into_training.py) |
+| **Data sources** | 14 documented public corpora with URLs + licenses. No Kaggle. Synthetic augmentation is generated in-house and flagged in the audit. | [Data sources](#data-sources) |
+| **Bundle size** | 22.6 MB (single joblib, same as E5) | model artifact |
+| **Inference latency** | Sub-millisecond on the classifier itself; ~1–3 ms including rule-engine evaluation | measured |
+
+**Bundle selection.** The API loads `models/e7_p1_variants/${SCAMRADAR_LOCAL_MODEL}.joblib` at startup. Setting `SCAMRADAR_LOCAL_MODEL=e7_p1_full_e8p6` rolls back to the pre-E8-P9 build; unsetting it or setting an unknown value falls back to `models/e5_bundle.joblib` (the original text-only E5).
 
 ---
 
 ## Performance
 
-All metrics below are **verified from E5's own evaluation artifacts** ([`models/e5_metadata.json`](models/e5_metadata.json)). No historical numbers, no estimates.
+Two figures matter and are reported separately below:
 
-### Internal test (n = 34,194)
+1. **Pure ML classifier (E5 baseline)** — measures the Logistic Regression head on its own, on a locked one-shot external benchmark. This is the "how good is the model?" number.
+2. **Full production pipeline (E8-P9)** — classifier + 25 numerical features + Rule Engine, evaluated on the same external benchmark. This is the "what does a user actually see?" number.
 
-The internal test slice is a cluster-aware, held-out portion of the training corpus (no leakage: rows are split at the cluster level, not the row level, so near-duplicates cannot cross the boundary).
+Both are computed from real artifacts checked into this repository — no historical or estimated numbers.
 
-| Metric | Value |
-|---|---:|
-| Accuracy | **0.986** |
-| Precision | **0.956** |
-| Recall | **0.931** |
-| **F1** | **0.943** |
-| ROC-AUC | 0.997 |
-| PR-AUC | 0.984 |
-| Expected Calibration Error (ECE) | 0.012 |
-| Brier score | 0.012 |
+### Baseline — pure E5 classifier (n = 25,306)
 
-Confusion matrix: TN = 29,595 · FP = 187 · FN = 306 · TP = 4,106.
-
-### External benchmark (n = 25,306)
-
-A **locked, one-shot, write-once** benchmark set. Never seen during model selection, hyperparameter search, calibration, or threshold tuning. Every scoring event is recorded in the research repository's `data/external_benchmark/LOCK.json` — by design this benchmark can only be scored once per bundle.
+A **locked, one-shot, write-once** benchmark. Never seen during model selection, hyperparameter search, calibration, or threshold tuning. Every scoring event is recorded in the research repository's `data/external_benchmark/LOCK.json` — by design this benchmark can only be scored once per bundle.
 
 | Metric | Value |
 |---|---:|
@@ -109,24 +101,40 @@ A **locked, one-shot, write-once** benchmark set. Never seen during model select
 | **F1** | **0.941** |
 | ROC-AUC | 0.995 |
 | PR-AUC | 0.984 |
+| ECE / Brier | 0.008 / 0.017 |
 
-### Per-category recall & false-positive rate (external benchmark)
+Source: [`outputs/eval/e7_p1_results.json`](outputs/eval/e7_p1_results.json) → `results.e5.external.primary_threshold_0.59`.
 
-Real-world performance broken down by the *kind* of message, not by dataset name.
+### Production — E8-P9 build (n = 25,306, same benchmark)
 
-| Category | n | Metric | Value |
-|---|---:|---|---:|
-| Email phishing | 2,178 | Recall | **0.957** |
-| Email spam | 1,719 | Recall | **0.934** |
-| Smishing (SMS phishing) | 68 | Recall | **0.853** |
-| Advance-fee fraud (419-style) | 489 | Recall | **0.812** |
-| Recruitment scam | 81 | Recall | 0.494 |
-| Legitimate chat | 13,794 | False-positive rate | **0.007%** |
-| Legitimate job posting | 1,523 | False-positive rate | 0.72% |
-| Legitimate SMS | 802 | False-positive rate | 1.25% |
-| Legitimate email | 4,652 | False-positive rate | 3.22% |
+Same locked benchmark scored end-to-end (classifier → rule engine → final verdict).
 
-Recruitment scams are the weakest single class — recall 0.494 reflects the genuine linguistic overlap between scam recruiter outreach and legitimate recruiter outreach at first-message register. Improving this is on the roadmap.
+| Metric | Value | vs. E5 baseline |
+|---|---:|---:|
+| Accuracy | **0.969** | −0.010 |
+| Precision | **0.910** | −0.051 |
+| Recall | **0.916** | −0.007 |
+| **F1** | **0.913** | −0.028 |
+
+Confusion matrix: TN = 20,361 · FP = 410 · FN = 381 · TP = 4,154. Source: [`outputs/eval/e8p9_per_item.parquet`](outputs/eval/e8p9_per_item.parquet).
+
+**Why is F1 lower than the pure classifier?** Deliberate tradeoff. The external benchmark is dominated by 2008-era transactional and marketing emails (Nazario, CEAS 2008, Nigerian fraud). E8-P9 was retrained on ~15,000 modern synthetic scams (conversational SMS, investment DMs, romance, threats) that don't appear in this benchmark, and the Rule Engine's type-floor rules (A9 investment / A10 romance / A11 threat) fire on some benchmark items that superficially resemble those modern archetypes. The net effect: **slightly more FPs on legacy legit email in exchange for meaningfully better coverage of modern conversational scams** — the categories users actually get today.
+
+### Per-category recall & false-positive rate (E8-P9, external benchmark)
+
+| Category | n | Metric | E5 baseline | E8-P9 production |
+|---|---:|---|---:|---:|
+| Email phishing | 2,178 | Recall | 0.957 | **0.950** |
+| Email spam | 1,719 | Recall | 0.934 | **0.929** |
+| Smishing (SMS phishing) | 68 | Recall | 0.853 | **0.853** |
+| Advance-fee fraud (419-style) | 489 | Recall | 0.812 | **0.800** |
+| Recruitment scam | 81 | Recall | 0.494 | **0.482** |
+| Legitimate chat | 13,794 | False-positive rate | 0.007% | **0.00%** |
+| Legitimate job posting | 1,523 | False-positive rate | 0.72% | **1.05%** |
+| Legitimate SMS | 802 | False-positive rate | 1.25% | **1.00%** |
+| Legitimate email | 4,652 | False-positive rate | 3.22% | **8.30%** |
+
+Recruitment scams remain the weakest single class — real linguistic overlap between scam recruiter outreach and legit recruiter outreach at first-message register. The `ham_email` FP jump (3.22% → 8.30%) is where the modern rule engine trades legacy precision for modern recall; work to shrink that back is on the roadmap.
 
 ### Threshold sweep (external benchmark)
 
@@ -160,34 +168,57 @@ Full sweep in [`models/e5_threshold_sweep.json`](models/e5_threshold_sweep.json)
 ┌──────────────────────────────────────────────────────────────────┐
 │  API — FastAPI on Render (Docker)                                │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │  Rate-limit · language detect (langdetect) · LRU cache     │  │
+│  │  Rate-limit · langdetect · LRU cache · in-flight dedup     │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                            │                                     │
 │                            ▼                                     │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │  E5 sklearn Pipeline                                       │  │
-│  │  FeatureUnion(word 1-2gram + char 3-6gram TF-IDF)          │  │
+│  │  E7-P1 Full sklearn Pipeline (bundle: e7_p1_full_e8p9)     │  │
+│  │  ┌──────────────────────────────────────────────────────┐  │  │
+│  │  │  word 1–2 gram TF-IDF     (200 000 features)         │  │  │
+│  │  │  char 3–6 gram TF-IDF     (300 000 features)         │  │  │
+│  │  │  25 numerical features    (tone · URL · phrase ·     │  │  │
+│  │  │                            text stats, StandardScaler)│  │  │
+│  │  └──────────────────────────────────────────────────────┘  │  │
+│  │            ↓ concatenated feature matrix (500 025)         │  │
+│  │  Logistic Regression (C=5.97, L2, class_weight=balanced)   │  │
 │  │            ↓                                               │  │
-│  │  Logistic Regression (L2, C=5.97, class_weight=balanced)   │  │
-│  │            ↓                                               │  │
-│  │  P(SCAM) — threshold 0.59 → verdict SCAM / LEGIT           │  │
+│  │  ml_probability ∈ [0, 1]                                   │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                            │                                     │
 │                            ▼                                     │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │  Ancillary analysis (display-only — never modifies verdict)│  │
-│  │  · Scam-type classifier (rule-based)                       │  │
-│  │  · Tone signals (urgency · fear · reward · threat)         │  │
+│  │  Rule Engine  (src/rule_engine/)                           │  │
+│  │  A — Critical (force-scam) : credential req · OTP theft ·  │  │
+│  │       gift-card · remote-access · crypto seed · brand-     │  │
+│  │       impersonation compound · investment / romance /      │  │
+│  │       threat type-floors (A9 / A10 / A11)                  │  │
+│  │  B — Strong (evidence boost) : URL shorteners · threat +   │  │
+│  │       immediate payment · impossible brand domain, …       │  │
+│  │  C — Legit (evidence dampen) : official transactional      │  │
+│  │       domain consistency, …                                │  │
+│  │            ↓                                               │  │
+│  │  final_probability + triggered_rules[]                     │  │
+│  │            ↓                                               │  │
+│  │  E7-P2 URL safety net (cap at 0.50 if all URLs trusted)    │  │
+│  │            ↓                                               │  │
+│  │  threshold 0.59 → verdict SCAM / SUSPICIOUS / LEGIT        │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                            │                                     │
+│                            ▼                                     │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Ancillary enrichment (display-only)                       │  │
+│  │  · Scam-type classifier (phishing · investment · romance…) │  │
 │  │  · URL extraction + Google Safe Browsing + VirusTotal      │  │
-│  │  · Human-readable rationale ("why flagged")                │  │
+│  │  · Human-readable rationale ("why_flagged")                │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────┬───────────────────────────────────────────┘
-                       │  JSON response
+                       │  JSON response (25 fields)
                        ▼
                     Frontend
 ```
 
-The classifier is self-contained inside a single 22.6 MB joblib bundle. Ancillary analysis enriches the response with URL scans and tone signals but never influences the SCAM / LEGIT verdict.
+The classifier bundle (22.6 MB joblib) contains the LR, both TF-IDF vectorizers, the `StandardScaler` for the numerical features, and the training-time feature-column ordering — everything needed for byte-identical inference. The Rule Engine sits *outside* the bundle in `src/rule_engine/` so rules can be added or tuned without retraining.
 
 ---
 
@@ -197,28 +228,53 @@ The classifier is self-contained inside a single 22.6 MB joblib bundle. Ancillar
 ScamRadar/
 ├── api/                       # FastAPI backend (routes, cache, rate limits)
 │   ├── main.py                # /predict · /analyze-conversation · /health
-│   └── cache.py               # LRU cache for repeat requests
+│   └── cache.py               # LRU + in-flight-dedup cache
 ├── src/
-│   ├── e5_inference.py        # E5 wrapper — pure inference, parity-contracted
-│   ├── _02_feature_engineering.py  # tone · URL · scam-type helpers (ancillary)
-│   └── _09_prediction_pipeline.py  # legacy code + E5 shim (adapter for api/)
+│   ├── e5_inference.py        # Bundle loader — resolves SCAMRADAR_LOCAL_MODEL
+│   │                          # (default: e7_p1_full_e8p9), returns predict fn
+│   ├── _02_feature_engineering.py  # 25 numerical features (tone · URL · phrase · text stats)
+│   ├── _09_prediction_pipeline.py  # Full inference pipeline (feature build + predict + rules)
+│   └── rule_engine/           # Modular post-classifier rule system
+│       ├── base.py            # Rule / RuleEngine / RuleContext / Severity primitives
+│       ├── context.py         # build_context() — assembles the state each rule reads
+│       ├── critical.py        # A-category rules (force-scam) incl. A9/A10/A11 type floors
+│       ├── strong.py          # B-category rules (evidence boost)
+│       ├── legit.py           # C-category rules (evidence dampen)
+│       ├── patterns.py        # Shared regex-based detectors (credential / OTP / gift-card / …)
+│       ├── numerical_features.py  # Rule inputs derived from the 25 numerical features
+│       └── weights.py         # Per-rule adjustment magnitudes + priorities
 ├── models/
-│   ├── e5_bundle.joblib       # ← THE PRODUCTION MODEL (loaded at API startup)
-│   ├── e5_metadata.json       # Full metrics · hyperparameters · thresholds
-│   └── e5_threshold_sweep.json # Precision / recall / F1 across thresholds
+│   ├── e5_bundle.joblib       # Legacy E5 (text-only) — kept as env-selectable fallback
+│   ├── e5_metadata.json       # Full metrics · hyperparameters · thresholds for E5
+│   ├── e5_threshold_sweep.json # Precision / recall / F1 across thresholds (E5)
+│   └── e7_p1_variants/
+│       ├── e7_p1_full_e8p9.joblib   # ← THE PRODUCTION BUNDLE
+│       ├── e7_p1_full_e8p6.joblib   # Rollback target (pre-synthetic-scam corpus)
+│       └── e7_p1_{tone,url,phrase,textstats,full}.joblib  # Ablation variants
 ├── web/                       # Next.js 16 frontend → scamradarplus.com
 │   ├── app/                   # App Router pages (/, /performance, /team, …)
 │   └── components/ui/         # UI components
-├── config.py                  # E5_BUNDLE_PATH · E5_THRESHOLD · paths
+├── extension/                 # Chrome MV3 extension (highlight → right-click → analyse)
+│   ├── manifest.json
+│   ├── background.js          # Context menu + API client
+│   ├── content.js             # On-demand Shadow-DOM overlay
+│   └── popup.{html,js,css}    # Toolbar popup + API-health indicator
+├── config.py                  # E5_BUNDLE_PATH · E5_THRESHOLD · E7_P2 safety-net params
 ├── tests/
-│   └── e5_parity_test.py      # Byte-identical parity vs standalone E5
+│   ├── e5_parity_test.py      # Byte-identical parity vs standalone E5 (13 messages)
+│   ├── holdout_eval.py        # E7/E8 external-benchmark evaluator
+│   ├── stress_test.py         # Concurrent request stress harness
+│   └── tier2_external.py      # Tier-2 acceptance runner
 ├── docs/
 │   └── USER_GUIDE.md          # End-user documentation
-├── outputs/                   # Historical v1.x research reports (kept as-is)
-├── scripts/                   # Historical training + evaluation scripts
-│   ├── training/
-│   ├── evaluation/
-│   └── data_prep/
+├── outputs/
+│   ├── eval/                  # E5 / E7 / E8-P{1..9} evaluation artifacts
+│   ├── coefs/                 # Per-variant coefficient snapshots
+│   └── e7_p1_report.md        # E7-P1 research report
+├── scripts/
+│   ├── training/              # train_e7_p1.py · train_e8p9.py · …
+│   ├── evaluation/            # eval_e7_p1.py · analyze_e8p9_errors.py · …
+│   └── data_prep/             # gen_e8p8_synthetic_scam.py · merge_e8p8_into_training.py
 ├── legacy/                    # Superseded top-level entry points
 ├── old_models/                # v1.x model artifacts (reference only)
 ├── Dockerfile                 # Production container (Render)
@@ -228,7 +284,7 @@ ScamRadar/
 └── requirements.txt           # Python dependencies
 ```
 
-The E5 model was trained in a separate research repository (**ScamRadar+ 2.0**) using a strict data-first workflow with an approval-gated dataset audit. The final artifact (`E5_final_logreg_F3.joblib`) is what ships here as `models/e5_bundle.joblib`. Behavior is byte-identical to the standalone research artifact — verified in [`tests/e5_parity_test.py`](tests/e5_parity_test.py) (13 diverse messages, probability parity to within numerical rounding tolerance).
+**Model provenance.** The E5 classifier was trained in a separate research repository (**ScamRadar+ 2.0**) using a strict data-first workflow with an approval-gated dataset audit. E7 (numerical-feature fusion) and E8 (corpus expansion + rule engine) were developed inside this repo. Every training + evaluation step has a corresponding script under `scripts/training/` or `scripts/evaluation/`; every evaluation artifact is under `outputs/eval/`. E5 → E8-P9 shares the LR head recipe, TF-IDF vocab sizes, and decision threshold (0.59) — the additions are numerical features, an expanded corpus, and the post-classifier Rule Engine. Byte-identical parity of the LR head vs the original standalone E5 artifact is checked in [`tests/e5_parity_test.py`](tests/e5_parity_test.py).
 
 ---
 
@@ -246,7 +302,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env → VIRUSTOTAL_API_KEY, GOOGLE_SAFEBROWSING_API_KEY if desired
 
-# 3. Start the API (loads models/e5_bundle.joblib on startup)
+# 3. Start the API (loads models/e7_p1_variants/e7_p1_full_e8p9.joblib on
+#    startup — override with SCAMRADAR_LOCAL_MODEL to load a different variant)
 uvicorn api.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -263,13 +320,13 @@ npm run dev
 
 Frontend at `http://localhost:3000` — points at the local API you started above.
 
-### Verify E5 parity
+### Verify E5-fallback parity
 
-The parity harness confirms that the API produces byte-identical probabilities and verdicts to the standalone E5 research artifact:
+The parity harness confirms that when the API is pointed at the E5 fallback bundle (`SCAMRADAR_LOCAL_MODEL=` unset or unknown), it produces byte-identical probabilities and verdicts to the standalone E5 research artifact. This guards the safe-rollback path; the default E8-P9 build is validated separately via the eval scripts under `scripts/evaluation/`.
 
 ```bash
-# Requires the local API running on port 8000
-python tests/e5_parity_test.py
+# Requires the local API running on port 8000 with the E5 bundle loaded
+SCAMRADAR_LOCAL_MODEL= python tests/e5_parity_test.py
 # → Probability parity: 13/13
 # → Verdict parity:     13/13
 ```
@@ -376,16 +433,24 @@ Every source has an entry in the ScamRadar+ 2.0 research repo's `src/scamradar/s
 
 ---
 
-## Historical context (v1.x → E5)
+## Historical context (v1.x → E5 → E7 → E8-P9)
 
-An earlier iteration of this project (versions v1.0 → v1.3, documented in [`outputs/intervention_log.md`](outputs/intervention_log.md), [`outputs/intervention_4_report.md`](outputs/intervention_4_report.md), and [`outputs/final_comparison_report.md`](outputs/final_comparison_report.md)) used a completely different architecture:
+Four generations of ML architecture ship with this repository — each superseded but retained for provenance.
 
-- **v1.x:** Random Forest over TF-IDF + character n-grams + hand-crafted numerical features + FAISS proximity scores. Trained on ~22.5k deduplicated clusters. External F1 ≈ 0.87 on a 400-message benchmark.
-- **E5 (current):** Logistic Regression over word + character TF-IDF only. Trained on 195,776 clusters. External F1 = 0.941 on a 25,306-message benchmark.
+| Generation | Architecture | Training | External F1 (n = 25,306) | Location |
+|---|---|---|---:|---|
+| **v1.x** (2025) | Random Forest + TF-IDF + char-grams + hand-crafted numerics + FAISS proximity | ~22.5k deduplicated clusters | ≈ 0.87 (400-message benchmark, not the locked 25,306 set) | [`old_models/`](old_models) |
+| **E5** (Aug 2026) | Logistic Regression + word 1–2 gram TF-IDF + char 3–6 gram TF-IDF (500k features) | 195,776 clusters | **0.941** | [`models/e5_bundle.joblib`](models/e5_bundle.joblib) |
+| **E7-P1 Full** (Aug 2026) | E5 recipe + 25 numerical features (tone · URL · phrase · text stats) | Same corpus as E5 | 0.941 (unchanged; adds explainability, not accuracy) | [`models/e7_p1_variants/e7_p1_full.joblib`](models/e7_p1_variants) |
+| **E8-P9** (Aug 2026, current) | E7-P1 Full + modular Rule Engine (Critical/Strong/Legit categories, A9–A11 type floors) | E5 corpus + 14,669 modern synthetic scams + 1,109 legit-pair adversarial twins → **283,501 messages total** | 0.913 on legacy benchmark (see [Performance](#performance) for the tradeoff explanation) | [`models/e7_p1_variants/e7_p1_full_e8p9.joblib`](models/e7_p1_variants/e7_p1_full_e8p9.joblib) |
 
-E5 shares **no training data, no features, and no architecture** with v1.x. The migration replaced only the machine-learning inference stack; the frontend, API contract, deployment, and user experience are unchanged.
+**What changed between generations, in one sentence each:**
 
-v1.x artifacts are preserved under [`old_models/`](old_models/) and their research reports under [`outputs/`](outputs/) as a record of the project's evolution. They are historical and should not be cited as current performance.
+- **v1.x → E5:** Full ML rewrite. New training corpus (195k clusters vs 22.5k), new architecture (LogReg over word+char TF-IDF vs RF over mixed features), new external benchmark (locked 25,306 vs ad-hoc 400). No shared code, features, or data.
+- **E5 → E7-P1:** Same head and text features; added 25 numerical features (already computed elsewhere in the codebase but previously ignored by the classifier) via feature-concatenation. Small F1 movements (±0.001) but the numerical block enables the Rule Engine to reason over consistent inputs.
+- **E7-P1 → E8-P9:** Same architecture; added a modular Rule Engine and expanded the training corpus with 15,778 modern messages targeting conversational / investment / romance / threat scams that the 2008-era external benchmark doesn't measure. Deliberate tradeoff — some legacy-email precision for meaningful modern-scam recall.
+
+v1.x artifacts remain under [`old_models/`](old_models/) and E5 under [`models/e5_bundle.joblib`](models/e5_bundle.joblib); either can be swapped back in via the `SCAMRADAR_LOCAL_MODEL` env var without a redeploy.
 
 ---
 

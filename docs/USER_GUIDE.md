@@ -81,7 +81,7 @@ Click the **Upload** icon below the text box to submit a `.txt`, `.log`, or `.cs
 | 59–75 | Above the decision threshold — model classifies as SCAM |
 | 75–100 | High-confidence scam |
 
-The decision boundary is fixed at **confidence = 59** (the E5 F1-optimal threshold, verified from validation data).
+The decision boundary is fixed at **confidence = 59** (the F1-optimal threshold on validation data — inherited from E5, unchanged through E7 and E8-P9).
 
 **Dark / Light mode** — use the sun/moon toggle in the navigation bar.
 
@@ -137,7 +137,7 @@ Content-Type: application/json
 }
 ```
 
-Note: `confidence` is the model's scam probability as a percentage (0–100). `threshold_used` is the fixed E5 decision threshold (0.59) — messages with `confidence ≥ 59` are labelled `SCAM`. `verdict` is one of `SCAM`, `LEGIT`, or `TOO_SHORT`. The production model does not emit a `SUSPICIOUS` tier — it is a strictly binary classifier.
+Note: `confidence` is the final scam probability as a percentage (0–100), after both the ML classifier and the Rule Engine. `threshold_used` is the fixed decision threshold (0.59). `verdict` is one of `SCAM`, `SUSPICIOUS`, `LEGIT`, or `TOO_SHORT` — `SUSPICIOUS` is a borderline band between roughly 0.40 and 0.59 that is surfaced when a message trips ancillary signals (dangerous URL, untrusted domain, VirusTotal hit) without the ML crossing the SCAM threshold on its own.
 
 **cURL example**
 
@@ -224,7 +224,7 @@ curl https://scamradar-api-l2vv.onrender.com/health
 ```json
 {
   "status": "ready",
-  "model": "ScamRadar+ 2.0 (E5)",
+  "model": "ScamRadar+ 2.0 (E8-P9)",
   "predict_cached": 142,
   "predict_maxsize": 10000,
   "predict_ttl_s": 3600,
@@ -246,23 +246,25 @@ curl https://scamradar-api-l2vv.onrender.com/stats
 
 ```json
 {
-  "deployed_model":        "ScamRadar+ 2.0 (E5)",
-  "model_architecture":    "Calibrated Logistic Regression on word + character TF-IDF (500k features)",
-  "training_corpus_raw":   253264,
-  "training_corpus_dedup": 195776,
-  "channels":              4,
-  "scam_types":            12,
-  "features":              500000,
-  "external_eval_size":    25306,
-  "external_accuracy":     0.9794,
-  "external_precision":    0.9605,
-  "external_recall":       0.9230,
-  "external_f1":           0.9414,
-  "external_roc_auc":      0.9950,
-  "external_pr_auc":       0.9839,
-  "internal_test_f1":      0.9434,
-  "threshold":             0.59,
-  "evaluation_note":       "External metrics measured on a locked one-shot benchmark of 25,306 messages held out from all model selection, tuning, and threshold optimisation."
+  "deployed_model":              "ScamRadar+ 2.0 (E8-P9)",
+  "model_architecture":          "Logistic Regression + word/char TF-IDF (500,000 text features) + 25 numerical features + modular Rule Engine",
+  "training_corpus_raw":         283501,
+  "training_corpus_dedup":       195776,
+  "channels":                    4,
+  "scam_types":                  12,
+  "features":                    500025,
+  "external_eval_size":          25306,
+  "external_accuracy":           0.9687,
+  "external_precision":          0.9102,
+  "external_recall":             0.9160,
+  "external_f1":                 0.9131,
+  "external_baseline_f1":        0.9414,
+  "external_baseline_precision": 0.9605,
+  "external_baseline_recall":    0.9230,
+  "external_baseline_roc_auc":   0.9950,
+  "external_baseline_pr_auc":    0.9839,
+  "threshold":                   0.59,
+  "evaluation_note":             "External metrics measured on a locked one-shot benchmark of 25,306 messages held out from all model selection, tuning, and threshold optimisation. Production numbers include the Rule Engine; baseline numbers are the pure classifier for reference."
 }
 ```
 
@@ -320,7 +322,7 @@ Yes — the API is public and unauthenticated. Please respect the rate limits. F
 See [README.md](README.md) for full local setup instructions.
 
 **Q: The result seems wrong — what should I do?**
-On a locked one-shot benchmark of 25,306 messages, the E5 production model achieves F1 = 0.941 — which means it still misclassifies roughly 2% of messages. For borderline cases (confidence 40–75), treat the result as a prompt to investigate further rather than a definitive verdict. This tool is designed to *assist* your judgement, not replace it.
+On the locked one-shot external benchmark (n = 25,306), the pure ML classifier scores F1 = 0.941; the full production pipeline (E8-P9, classifier + rule engine) scores F1 = 0.913. Either way, roughly 3–9% of messages will be misclassified. For borderline cases (confidence 40–75), treat the result as a prompt to investigate further rather than a definitive verdict. This tool is designed to *assist* your judgement, not replace it.
 
 **Q: What are the model's honest performance limits?**
-On the 25,306-item external benchmark: recall = 0.923 (misses roughly 8% of scams) and precision = 0.961 (roughly 4% of items flagged as scam are actually legitimate). The weakest single scam class is recruitment scams (recall 0.494) — if a message reads like a recruiter and the offer feels off, verify through official company channels regardless of the model's verdict. Full evaluation metadata is in `models/e5_metadata.json`.
+On the 25,306-item external benchmark, the production E8-P9 build gets recall = 0.916 (misses ~8% of scams) and precision = 0.910 (~9% of items flagged as scam are actually legitimate). The weakest single scam class remains recruitment scams (recall 0.48) — if a message reads like a recruiter and the offer feels off, verify through official company channels regardless of the verdict. E8-P9 also trades a small amount of legacy-legit-email precision (ham_email FP rate 3.22% → 8.30%) for meaningfully better coverage of modern conversational / investment / romance / threat scams that the 2008-era external benchmark doesn't measure. Full per-category numbers are in [README.md](../README.md) → Performance.
