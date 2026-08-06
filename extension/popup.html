@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ScamRadar+</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="pop">
+
+    <!-- Hero -->
+    <section class="pop-hero">
+      <div class="pop-shield" aria-hidden="true">
+        <div class="pop-shield-halo"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <path d="M12 2 L20 5 V12 C20 17.5 16 21.5 12 22.5 C8 21.5 4 17.5 4 12 V5 Z"
+                stroke-linejoin="round"/>
+          <path d="M8.5 12.5 L11 15 L15.5 10"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1 class="pop-title">ScamRadar<span class="pop-plus">+</span></h1>
+      <p class="pop-sub">Trust any message. In one glance.</p>
+    </section>
+
+    <!-- Status -->
+    <section class="pop-status" id="status" data-state="checking">
+      <span class="pop-status-dot" aria-hidden="true"></span>
+      <span class="pop-status-text" id="statusText">Checking…</span>
+    </section>
+
+    <!-- Divider -->
+    <div class="pop-divider" aria-hidden="true"></div>
+
+    <!-- How-to -->
+    <section class="pop-how">
+      <p class="pop-how-line">
+        Highlight any suspicious text,<br />
+        right-click, and choose
+        <span class="pop-how-cta">Analyze with ScamRadar+</span>.
+      </p>
+    </section>
+
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
