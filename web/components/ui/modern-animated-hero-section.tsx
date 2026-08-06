@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ShieldAlert, AlertTriangle, CheckCircle, KeyRound, ShieldX, ShieldCheck, AlertCircle, Link as LinkIcon, Paperclip, X } from "lucide-react"
+import { ShieldAlert, AlertTriangle, CheckCircle, ShieldX, ShieldCheck, AlertCircle, Paperclip, X } from "lucide-react"
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
@@ -610,103 +610,565 @@ function DemoModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ─── Verdict banner ────────────────────────────────────────────────────────────
-// Replaces the old circular gauge. Uses the site's minimal-mono-terminal
-// aesthetic: colored left stripe, subtle diagonal color tint, pulsing status
-// dot, tiny uppercase labels, chip badge for scam type. No numeric confidence
-// is exposed to the user (kept in the API response for other uses).
+// ─── Verdict system ────────────────────────────────────────────────────────────
+// Product spec: the user must answer "can I trust this?" in under one second.
+// Everything below serves that goal — no percentages, no ML jargon.
+//
+// The API's `confidence` field (0–100, always = P(scam) × 100) is translated
+// into one of five human-readable verdicts. Technical fields (tone bars,
+// conversation-score breakdown) live in a collapsed "Technical Details".
 
-function ConfidenceGauge({ displayConf: _displayConf, vColor, vLabel, vIcon, isLegit, scamType }: {
-  displayConf: number      // still accepted for backward compat; unused
-  vColor: string
-  vLabel: string
-  vIcon: React.ReactNode
-  isLegit: boolean
-  scamType?: string
+type VerdictKey = 'SAFE' | 'PROB_SAFE' | 'CAUTION' | 'LIKELY' | 'SCAM' | 'SHORT'
+type ShieldGlyph = 'check' | 'alert' | 'x' | 'question'
+
+interface DerivedVerdict {
+  key:     VerdictKey
+  label:   string
+  caption: string
+  accent:  string
+  glyph:   ShieldGlyph
+}
+
+function deriveVerdict(result: any): DerivedVerdict {
+  if (result?.verdict === 'TOO_SHORT') {
+    return {
+      key: 'SHORT', label: 'NOT ENOUGH TEXT', accent: '#94A3B8', glyph: 'question',
+      caption: 'Paste a longer message to get an accurate reading.',
+    }
+  }
+  const p = Math.max(0, Math.min(100, safeNum(result?.confidence, 0))) / 100
+  if (p < 0.20) return {
+    key: 'SAFE', label: 'LOOKS SAFE', accent: '#22C55E', glyph: 'check',
+    caption: 'No suspicious indicators were detected.',
+  }
+  if (p < 0.45) return {
+    key: 'PROB_SAFE', label: 'PROBABLY SAFE', accent: '#65A30D', glyph: 'check',
+    caption: 'Nothing obviously suspicious — but stay alert.',
+  }
+  if (p < 0.60) return {
+    key: 'CAUTION', label: 'USE CAUTION', accent: '#F59E0B', glyph: 'alert',
+    caption: 'Some warning signs are present. Verify before acting.',
+  }
+  if (p < 0.85) return {
+    key: 'LIKELY', label: 'LIKELY SCAM', accent: '#EF4444', glyph: 'x',
+    caption: 'Multiple signs suggest this is a scam.',
+  }
+  return {
+    key: 'SCAM', label: 'SCAM DETECTED', accent: '#EF4444', glyph: 'x',
+    caption: 'Strong evidence that this is a scam.',
+  }
+}
+
+const isPositiveVerdict = (k: VerdictKey) => k === 'SAFE' || k === 'PROB_SAFE'
+
+// ─── Reason synthesis ──────────────────────────────────────────────────────────
+// For scam-leaning verdicts the API populates `why_flagged`. For safe verdicts
+// it's empty, so we derive positive statements from the ABSENCE of signals.
+function synthReasons(result: any, key: VerdictKey): string[] {
+  if (isPositiveVerdict(key)) {
+    const out: string[] = []
+    const toneLow = ['tone_urgency', 'tone_fear', 'tone_reward', 'tone_threat']
+      .every(k => safeNum(result?.[k]) <= 1)
+    if (toneLow) out.push('No pressure, urgency, or fear tactics')
+    const urls = Array.isArray(result?.urls_found) ? result.urls_found : []
+    if (!urls.length)              out.push('No suspicious links found')
+    else if (!result?.gsb_flagged) out.push('Links match known-safe domains')
+    if (safeNum(result?.scam_phrase_score) < 0.2)    out.push('No known scam phrasing detected')
+    if (safeNum(result?.sender_impersonation) < 0.2) out.push('No brand-impersonation signals')
+    if (!out.length) out.push('Language matches legitimate communication')
+    return out.slice(0, 4)
+  }
+  const raw = typeof result?.why_flagged === 'string' ? result.why_flagged : ''
+  return raw.split('|').map((s: string) => s.trim()).filter(Boolean).slice(0, 4)
+}
+
+// ─── Link findings (Google Safe Browsing) ──────────────────────────────────────
+const THREAT_LABELS: Record<string, string> = {
+  SOCIAL_ENGINEERING:              'phishing',
+  MALWARE:                         'malware',
+  UNWANTED_SOFTWARE:               'unwanted software',
+  POTENTIALLY_HARMFUL_APPLICATION: 'a harmful app',
+}
+function prettyThreat(t: any): string | null {
+  if (!t) return null
+  return THREAT_LABELS[t as string] || String(t).toLowerCase().replace(/_/g, ' ')
+}
+function hostOf(u: string): string {
+  try { return new URL(String(u).startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, '') }
+  catch { return String(u) }
+}
+function extractLinks(result: any) {
+  const urls = Array.isArray(result?.urls_found) ? result.urls_found : []
+  if (!urls.length || !result?.gsb_attempted) return null
+  const dangerous = !!result?.gsb_flagged
+  return {
+    urls:      urls as string[],
+    dangerous,
+    threat:    dangerous ? prettyThreat(result?.gsb_threat_type) : null,
+  }
+}
+function prettyScamType(t: any): string | null {
+  if (!t || t === 'general_spam') return null
+  return String(t).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+}
+
+// ─── Shield SVG icons (Lucide-derived, consistent geometry) ────────────────────
+const SHIELD_PATH = 'M12 2 L20 5 V12 C20 17.5 16 21.5 12 22.5 C8 21.5 4 17.5 4 12 V5 Z'
+
+function Shield({ glyph, size = 96 }: { glyph: ShieldGlyph, size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4}
+         style={{ width: size, height: size }} aria-hidden="true">
+      <path d={SHIELD_PATH} strokeLinejoin="round" />
+      {glyph === 'check' && (
+        <path d="M8.5 12.5 L11 15 L15.5 10" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+      {glyph === 'alert' && (
+        <>
+          <path d="M12 8 V13" strokeLinecap="round" />
+          <circle cx="12" cy="16.2" r="0.9" fill="currentColor" stroke="none" />
+        </>
+      )}
+      {glyph === 'x' && (
+        <path d="M9 10 L15 15 M15 10 L9 15" strokeLinecap="round" />
+      )}
+      {glyph === 'question' && (
+        <>
+          <path d="M10.2 10.5 C10.2 9.2 11 8.4 12 8.4 C13 8.4 13.9 9.2 13.9 10.2 C13.9 11.2 12.7 11.4 12 12.5 L12 13.5" strokeLinecap="round" />
+          <circle cx="12" cy="16.2" r="0.9" fill="currentColor" stroke="none" />
+        </>
+      )}
+    </svg>
+  )
+}
+
+// ─── Presentational subcomponents ──────────────────────────────────────────────
+function VerdictBlock({ v }: { v: DerivedVerdict }) {
+  return (
+    <div className="relative flex flex-col items-center text-center px-6 pt-14 pb-12 overflow-hidden">
+
+      {/* ── Layered ambience ─────────────────────────────────────────────── */}
+
+      {/* Warm centre glow */}
+      <div
+        className="absolute inset-x-0 top-0 h-72 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 50% 22%, ${v.accent}22 0%, transparent 55%)` }}
+      />
+
+      {/* Faint horizontal scan lines — masked to fade at the edges */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.06] mix-blend-screen"
+        style={{
+          backgroundImage:
+            `repeating-linear-gradient(0deg, ${v.accent} 0px, ${v.accent} 1px, transparent 1px, transparent 5px)`,
+          WebkitMaskImage:
+            'radial-gradient(ellipse at 50% 35%, black 30%, transparent 70%)',
+          maskImage:
+            'radial-gradient(ellipse at 50% 35%, black 30%, transparent 70%)',
+        }}
+      />
+
+      {/* Corner brackets — subtle terminal frame */}
+      {(['tl','tr','bl','br'] as const).map(pos => (
+        <span
+          key={pos}
+          aria-hidden="true"
+          className="absolute w-4 h-4 pointer-events-none"
+          style={{
+            top:    pos.startsWith('t') ? 12 : undefined,
+            bottom: pos.startsWith('b') ? 12 : undefined,
+            left:   pos.endsWith('l')   ? 12 : undefined,
+            right:  pos.endsWith('r')   ? 12 : undefined,
+            borderTop:    pos.startsWith('t') ? `1px solid ${v.accent}55` : undefined,
+            borderBottom: pos.startsWith('b') ? `1px solid ${v.accent}55` : undefined,
+            borderLeft:   pos.endsWith('l')   ? `1px solid ${v.accent}55` : undefined,
+            borderRight:  pos.endsWith('r')   ? `1px solid ${v.accent}55` : undefined,
+          }}
+        />
+      ))}
+
+      {/* ── Radar stack: rings + rotating sweep + shield ─────────────────── */}
+      <div className="relative" style={{ width: 200, height: 200, color: v.accent }}>
+
+        {/* Three concentric rings — pulse outward every 3s, staggered */}
+        {[0, 1, 2].map(i => (
+          <motion.div
+            key={i}
+            className="absolute inset-0 rounded-full"
+            style={{ border: `1.5px solid ${v.accent}` }}
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: [0.4, 1.05, 1.05], opacity: [0, 0.32, 0] }}
+            transition={{ duration: 2.8, delay: i * 0.95, repeat: Infinity, ease: 'easeOut' }}
+          />
+        ))}
+
+        {/* Static outer ring — anchors the composition */}
+        <div
+          className="absolute inset-6 rounded-full pointer-events-none"
+          style={{ border: `1px dashed ${v.accent}30` }}
+        />
+
+        {/* Rotating radar-sweep — subtle conic gradient wedge */}
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background:
+              `conic-gradient(from 0deg, transparent 0deg, ${v.accent}30 42deg, transparent 60deg)`,
+            WebkitMaskImage: 'radial-gradient(circle, black 60%, transparent 60%)',
+            maskImage:       'radial-gradient(circle, black 60%, transparent 60%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: 'linear' }}
+        />
+
+        {/* Crosshair lines — barely visible */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-6 right-6 h-px" style={{ background: `${v.accent}20` }} />
+          <div className="absolute left-1/2 top-6 bottom-6 w-px" style={{ background: `${v.accent}20` }} />
+        </div>
+
+        {/* Shield in centre with halo — animated scale-in */}
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center"
+          initial={{ opacity: 0, scale: 0.65 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.55, ease: [0.22, 1.4, 0.36, 1], delay: 0.08 }}
+        >
+          <div className="relative">
+            <div
+              className="absolute inset-[-18px] rounded-full"
+              style={{
+                background: `radial-gradient(circle, ${v.accent}55 0%, transparent 65%)`,
+                filter: 'blur(14px)',
+              }}
+            />
+            <div className="relative">
+              <Shield glyph={v.glyph} size={92} />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Verdict label — bigger, breathing glow ────────────────────────── */}
+      <motion.h2
+        className="mt-7 relative"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <motion.span
+          className="inline-block text-[28px] sm:text-[36px] font-black tracking-[0.16em] leading-none"
+          style={{ color: v.accent }}
+          animate={{
+            textShadow: [
+              `0 0 22px ${v.accent}30`,
+              `0 0 34px ${v.accent}66`,
+              `0 0 22px ${v.accent}30`,
+            ],
+          }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          {v.label}
+        </motion.span>
+      </motion.h2>
+
+      {/* ── Caption ───────────────────────────────────────────────────────── */}
+      <motion.p
+        className="mt-4 text-[14px] sm:text-[15px] text-white/65 max-w-[360px] leading-relaxed"
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.32, duration: 0.35, ease: 'easeOut' }}
+      >
+        {v.caption}
+      </motion.p>
+
+      {/* ── Terminal-style metadata line ──────────────────────────────────── */}
+      <motion.div
+        className="mt-6 font-mono text-[10px] tracking-[0.22em] uppercase flex items-center gap-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.44, duration: 0.4 }}
+      >
+        <span style={{ color: v.accent }} className="opacity-70">[</span>
+        <span className="text-white/45">Scan Complete</span>
+        <span className="text-white/20">·</span>
+        <span className="text-white/45">Signal Locked</span>
+        <motion.span
+          className="inline-block w-[6px] h-[10px]"
+          style={{ background: v.accent }}
+          animate={{ opacity: [1, 0, 1] }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+        />
+        <span style={{ color: v.accent }} className="opacity-70">]</span>
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── Evidence card ─────────────────────────────────────────────────────────────
+// Every finding below the verdict block is presented as a stacked, uniform
+// evidence card. This replaces the previous divider-label + content pattern
+// which read as three distinct sections with an awkward rhythm.
+function EvidenceCard({
+  index, label, meta, accent, children,
+  expandable = false, expanded = false, onToggle, expandHint,
+}: {
+  index?: number                 // shown as "01", "02", ... when provided
+  label: string                  // uppercase category label
+  meta?: string                  // small metadata suffix (e.g. "2 SIGNALS")
+  accent: string
+  children: React.ReactNode
+  expandable?: boolean
+  expanded?: boolean
+  onToggle?: () => void
+  expandHint?: string
 }) {
-  const showScamType = !isLegit
-    && typeof scamType === 'string'
-    && scamType.length > 0
-    && scamType !== 'general_spam'
+  const showBody = !expandable || expanded
 
   return (
     <motion.div
-      className="relative flex flex-col items-center text-center px-4 sm:px-5 py-6 sm:py-7"
-      initial={{ opacity: 0, y: -6 }}
+      layout
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-lg overflow-hidden"
       style={{
-        // Symmetric radial tint — centred, not left-anchored
-        background: `radial-gradient(circle at 50% 30%, ${vColor}14 0%, transparent 65%)`,
+        background: `linear-gradient(180deg, ${accent}0A 0%, ${accent}03 100%)`,
+        border:     `1px solid ${accent}22`,
+        boxShadow:  `inset 0 1px 0 ${accent}12`,
       }}
     >
-      {/* Top row — pulsing status dot + VERDICT label, centred */}
-      <div className="flex items-center gap-2">
-        <motion.span
-          className="w-2 h-2 rounded-full shrink-0"
-          style={{ background: vColor, boxShadow: `0 0 10px ${vColor}` }}
-          animate={{ opacity: [0.55, 1, 0.55] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <p className="font-mono text-[10px] text-white/40 uppercase tracking-[2.5px] font-semibold">
-          Verdict
-        </p>
-      </div>
-
-      {/* Iconised tile — centred below the label */}
-      <motion.div
-        className="mt-4 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center"
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        style={{
-          background: `${vColor}16`,
-          border: `1px solid ${vColor}33`,
-        }}
-      >
-        <div className="scale-[1.7] sm:scale-[1.95]" style={{ color: vColor }}>
-          {vIcon}
-        </div>
-      </motion.div>
-
-      {/* Big verdict word */}
-      <motion.p
-        className="font-mono mt-4 text-3xl sm:text-4xl font-black tracking-[0.18em] leading-none"
-        style={{ color: vColor }}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.14, duration: 0.32, ease: 'easeOut' }}
-      >
-        {isLegit ? 'LEGIT' : 'SCAM'}
-      </motion.p>
-
-      {/* Descriptive tagline */}
-      <motion.p
-        className="font-mono text-[11px] sm:text-xs text-white/55 mt-3 max-w-[280px] leading-snug"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.3 }}
-      >
-        {vLabel}
-      </motion.p>
-
-      {/* Scam-type chip — centred below the tagline (only for non-legit) */}
-      {showScamType && (
-        <motion.p
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.42, duration: 0.3 }}
-          className="mt-3 font-mono text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-md"
-          style={{
-            color: vColor,
-            background: `${vColor}18`,
-            border: `1px solid ${vColor}30`,
-          }}
+      {/* Header — button when expandable, static div otherwise */}
+      {expandable ? (
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors group"
         >
-          {scamType!.replace(/_/g, ' ')}
-        </motion.p>
+          <span
+            className="inline-flex items-center justify-center w-5 h-5 rounded-[3px] font-mono text-[13px] font-bold leading-none pb-[1px] transition-colors"
+            style={{
+              border: `1px solid ${accent}55`,
+              color:  accent,
+              background: `${accent}12`,
+            }}
+            aria-hidden="true"
+          >
+            {expanded ? '−' : '+'}
+          </span>
+          <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.22em] text-white/70 group-hover:text-white/95 transition-colors">
+            {label}
+          </span>
+          {!expanded && expandHint && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-white/25 mx-1 shrink-0" aria-hidden="true" />
+              <span className="font-mono text-[10px] text-white/35 tracking-[0.02em] hidden sm:inline whitespace-nowrap">
+                {expandHint}
+              </span>
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+          {typeof index === 'number' && (
+            <span
+              className="font-mono text-[10.5px] font-bold tabular-nums tracking-[0.14em]"
+              style={{ color: accent }}
+              aria-hidden="true"
+            >
+              {String(index + 1).padStart(2, '0')}
+            </span>
+          )}
+          <span
+            className="inline-block w-1 h-1 rounded-full shrink-0"
+            style={{ background: accent }}
+            aria-hidden="true"
+          />
+          <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.22em] text-white/70 flex-1">
+            {label}
+          </span>
+          {meta && (
+            <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.18em] text-white/32 whitespace-nowrap">
+              {meta}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Body */}
+      {showBody && (
+        <motion.div
+          initial={expandable ? { height: 0, opacity: 0 } : false}
+          animate={expandable ? { height: 'auto', opacity: 1 } : {}}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden"
+        >
+          <div className={expandable ? "px-4 pb-4 pt-1" : "px-4 pb-4"}>
+            {children}
+          </div>
+        </motion.div>
       )}
     </motion.div>
+  )
+}
+
+function ReasonsList({ items, accent, positive, delay = 0.32 }: {
+  items: string[], accent: string, positive: boolean, delay?: number,
+}) {
+  return (
+    <ul className="space-y-2.5 mt-1">
+      {items.map((r, i) => (
+        <motion.li
+          key={i}
+          initial={{ opacity: 0, x: -4 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: delay + i * 0.06, duration: 0.3, ease: 'easeOut' }}
+          className="flex items-start gap-3 text-[13.5px] leading-relaxed text-white/82"
+        >
+          <span
+            className="shrink-0 font-mono text-[10px] font-bold tabular-nums tracking-[0.05em] pt-[3px] w-5"
+            style={{ color: accent }}
+            aria-hidden="true"
+          >
+            {positive ? '✓' : String(i + 1).padStart(2, '0')}
+          </span>
+          <span className="flex-1">{r}</span>
+        </motion.li>
+      ))}
+    </ul>
+  )
+}
+
+function LinksBlock({ urls, dangerous, threat }: {
+  urls: string[], dangerous: boolean, threat: string | null,
+}) {
+  const shown = urls.slice(0, 5)
+  const remaining = Math.max(0, urls.length - shown.length)
+  return (
+    <div>
+      <ul className="space-y-2 mt-1">
+        {shown.map((u, i) => (
+          <motion.li
+            key={u + i}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 + i * 0.05, duration: 0.28 }}
+            className="flex items-center justify-between gap-4"
+          >
+            <span className="text-[13.5px] font-medium text-white/88 truncate">{hostOf(u)}</span>
+            <span
+              className="shrink-0 text-[9.5px] font-bold uppercase tracking-[0.18em] px-2 py-1 rounded"
+              style={{
+                color:      dangerous ? '#F87171' : '#4ADE80',
+                background: dangerous ? 'rgba(239,68,68,0.10)' : 'rgba(34,197,94,0.10)',
+                border:     `1px solid ${dangerous ? 'rgba(239,68,68,0.24)' : 'rgba(34,197,94,0.22)'}`,
+              }}
+            >
+              {dangerous ? 'Dangerous' : 'Safe'}
+            </span>
+          </motion.li>
+        ))}
+        {remaining > 0 && (
+          <li className="text-[11.5px] text-white/40 pt-1">and {remaining} more</li>
+        )}
+      </ul>
+      <p className="mt-3 pt-3 border-t border-white/[0.05] text-[11px] text-white/45 leading-relaxed">
+        {dangerous
+          ? <>Flagged as <span className="text-white/70">{threat ?? 'unsafe'}</span> by Google Safe Browsing.</>
+          : 'Verified by Google Safe Browsing.'}
+      </p>
+    </div>
+  )
+}
+
+function TechnicalDetails({ tones, conversation, accent }: {
+  tones: Array<{ label: string; desc: string; value: number; color: string }>
+  conversation: null | { full: number; window: number; final: number; analyzed: number; total: number }
+  accent: string
+}) {
+  const [open, setOpen] = useState(false)
+  const hasContent = tones.length > 0 || conversation !== null
+  if (!hasContent) return null
+
+  return (
+    <EvidenceCard
+      label="Technical Log"
+      accent={accent}
+      expandable
+      expanded={open}
+      onToggle={() => setOpen(o => !o)}
+      expandHint={open ? 'signal data below' : 'expand for raw signal data'}
+    >
+      <div className="space-y-6 pt-2">
+        {tones.length > 0 && (
+          <div className="space-y-3">
+            {tones.map(t => (
+              <div key={t.label}>
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-[13px] font-medium text-white/85">{t.label}</span>
+                  <span className="text-[10px] uppercase tracking-widest font-semibold"
+                        style={{ color: t.color }}>
+                    {t.value >= 4 ? 'Very high' : t.value >= 3 ? 'High' : t.value >= 2 ? 'Moderate' : 'Mild'}
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-white/45 mb-2">{t.desc}</p>
+                <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: t.color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (t.value / 4) * 100)}%` }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {conversation && (
+          <div>
+            {tones.length > 0 && <div className="h-px bg-white/[0.05] mb-5" />}
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35 mb-2">
+              Conversation breakdown
+            </p>
+            <p className="text-[11.5px] text-white/45 mb-4">
+              Analysed {conversation.analyzed} of {conversation.total} messages
+              across three lenses.
+            </p>
+            <div className="space-y-3.5">
+              {([
+                { label: 'Full thread',    score: conversation.full,   desc: 'how the whole conversation reads' },
+                { label: 'Peak window',    score: conversation.window, desc: 'most suspicious stretch' },
+                { label: 'Final messages', score: conversation.final,  desc: 'where scammers usually escalate' },
+              ] as const).map(({ label, score, desc }) => {
+                const c = score >= 65 ? '#EF4444' : score >= 40 ? '#F59E0B' : '#22C55E'
+                return (
+                  <div key={label}>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="text-[13px] font-medium text-white/85">{label}</span>
+                      <span className="text-[10px] uppercase tracking-widest font-semibold"
+                            style={{ color: c }}>
+                        {score >= 65 ? 'High risk' : score >= 40 ? 'Moderate' : 'Low risk'}
+                      </span>
+                    </div>
+                    <p className="text-[11.5px] text-white/45 mb-2">{desc}</p>
+                    <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: c }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${score}%` }}
+                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </EvidenceCard>
   )
 }
 
@@ -1141,263 +1603,25 @@ const RainingLetters: React.FC = () => {
             {/* Results */}
             <AnimatePresence>
               {result && (() => {
-                const isLegit = result.verdict === 'LEGIT'
-                const displayConf = isLegit
-                  ? 100 - safeNum(result.confidence)
-                  : safeNum(result.confidence)
-                const vColor = result.verdict === 'SCAM'
-                  ? (isDark ? '#EF4444' : '#DC2626')
-                  : result.verdict === 'SUSPICIOUS'
-                  ? (isDark ? '#F59E0B' : '#B45309')
-                  : (isDark ? '#22C55E' : '#15803D')
-                const vBorder = result.verdict === 'SCAM'
-                  ? (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(220,38,38,0.22)')
-                  : result.verdict === 'SUSPICIOUS'
-                  ? (isDark ? 'rgba(245,158,11,0.20)' : 'rgba(180,83,9,0.22)')
-                  : (isDark ? 'rgba(34,197,94,0.20)' : 'rgba(21,128,61,0.22)')
-                const vLabel = result.verdict === 'SCAM' ? 'This is likely a scam'
-                  : result.verdict === 'SUSPICIOUS' ? 'This looks suspicious'
-                  : 'This looks safe'
-                const vIcon = result.verdict === 'SCAM'
-                  ? <ShieldX className="w-5 h-5" style={{ color: vColor }} />
-                  : result.verdict === 'SUSPICIOUS'
-                  ? <AlertCircle className="w-5 h-5" style={{ color: vColor }} />
-                  : <ShieldCheck className="w-5 h-5" style={{ color: vColor }} />
-                const reasons = typeof result.why_flagged === 'string'
-                  ? result.why_flagged.split('|').map((s: string) => s.trim()).filter(Boolean)
-                  : []
-                const tones = [
-                  { label: 'Creates Urgency',  desc: 'Pressures you to act right now',       value: safeNum(result.tone_urgency), dot: '#EF4444' },
-                  { label: 'Uses Fear',        desc: 'Language designed to frighten you',    value: safeNum(result.tone_fear),    dot: '#F97316' },
-                  { label: 'Promises Rewards', desc: 'Offers fake prizes, money, or jobs',   value: safeNum(result.tone_reward),  dot: '#EAB308' },
-                  { label: 'Makes Threats',    desc: 'Threatens account loss, arrest, etc.', value: safeNum(result.tone_threat),  dot: '#DC2626' },
+                const isConv     = conversationMode
+                const verdict    = deriveVerdict(result)
+                const reasons    = synthReasons(result, verdict.key)
+                const scamType   = prettyScamType(result?.scam_type)
+                const links      = extractLinks(result)
+                const tones      = [
+                  { label: 'Urgency', desc: 'Pressures you to act right now',       value: safeNum(result?.tone_urgency), color: '#EF4444' },
+                  { label: 'Fear',    desc: 'Language designed to frighten',        value: safeNum(result?.tone_fear),    color: '#F97316' },
+                  { label: 'Reward',  desc: 'Fake prizes, money, or opportunities', value: safeNum(result?.tone_reward),  color: '#EAB308' },
+                  { label: 'Threat',  desc: 'Threatens loss, arrest, or exposure',  value: safeNum(result?.tone_threat),  color: '#DC2626' },
                 ].filter(t => t.value > 0)
+                const conversation = isConv ? {
+                  full:     safeNum(result?.full_conversation_score, 0),
+                  window:   safeNum(result?.window_analysis_score,   0),
+                  final:    safeNum(result?.final_messages_score,    0),
+                  analyzed: safeNum(result?.messages_analyzed,        0),
+                  total:    safeNum(result?.total_messages,           0),
+                } : null
 
-                // ── Shared sections ────────────────────────────────────────────
-                const sharedSections = (
-                  <div className="divide-y divide-white/[0.06]">
-                    {/* Why flagged */}
-                    {reasons.length > 0 && (
-                      <div className="px-3 sm:px-4 py-3.5">
-                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-                          <AlertCircle className="w-3 h-3" />
-                          What raised the alarm
-                        </p>
-                        <ul className="space-y-2">
-                          {reasons.map((r: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2.5 text-[12px] text-white/65 leading-relaxed font-mono">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400/55 shrink-0 mt-[5px]" />
-                              {r}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Warning signals */}
-                    {tones.length > 0 && (
-                      <div className="px-3 sm:px-4 py-3.5">
-                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Warning Signals</p>
-                        <div className="space-y-2.5">
-                          {tones.map(tone => (
-                            <div key={tone.label} className="flex items-center gap-2 sm:gap-3">
-                              <div className="flex gap-1 shrink-0">
-                                {[1,2,3,4].map(i => (
-                                  <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
-                                    style={{ background: i <= tone.value ? tone.dot : 'rgba(255,255,255,0.08)' }} />
-                                ))}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-mono text-[12px] text-white/65">{tone.label}</span>
-                                <span className="hidden sm:inline font-mono text-[10px] text-white/30 ml-1.5">— {tone.desc}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Link safety check */}
-                    {result.gsb_attempted && Array.isArray(result.urls_found) && result.urls_found.length > 0 && (
-                      <div className="px-3 sm:px-4 py-3.5">
-                        <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                          <LinkIcon className="w-3 h-3" />
-                          Link Safety Check
-                        </p>
-                        {result.urls_found.map((url: string) => (
-                          <div key={url} className="flex items-center justify-between py-1 gap-2">
-                            <span className="font-mono text-[11px] text-white/35 truncate">{url}</span>
-                            {result.gsb_flagged ? (
-                              <span className="font-mono text-red-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
-                                <ShieldX className="w-3 h-3" /> Dangerous
-                              </span>
-                            ) : (
-                              <span className="font-mono text-emerald-400 flex items-center gap-1 shrink-0 text-[10px] font-medium">
-                                <ShieldCheck className="w-3 h-3" /> Safe
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-
-                // ── Conversation result panel ───────────────────────────────────
-                if (conversationMode) {
-                  const totalMessages   = safeNum(result.total_messages, 0)
-                  const messagesAnalyzed = safeNum(result.messages_analyzed, 0)
-                  const fullScore   = safeNum(result.full_conversation_score, 0)
-                  const windowScore = safeNum(result.window_analysis_score, 0)
-                  const finalScore  = safeNum(result.final_messages_score, 0)
-
-                  const barColor = (s: number) =>
-                    s >= 65 ? '#EF4444' : s >= 40 ? '#F59E0B' : '#22C55E'
-
-                  const cvLabel = result.verdict === 'SCAM' ? 'This conversation is a scam'
-                    : result.verdict === 'SUSPICIOUS' ? 'This conversation looks suspicious'
-                    : 'This conversation looks safe'
-
-                  return (
-                    <motion.div
-                      ref={resultRef}
-                      key="result"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: 0.28, ease: 'easeOut' }}
-                      className="mt-3 rounded-2xl overflow-hidden hero-result-card"
-                      style={{ border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
-                    >
-                      <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
-
-                        {/* Gauge */}
-                        <ConfidenceGauge
-                          displayConf={displayConf}
-                          vColor={vColor}
-                          vLabel={cvLabel}
-                          vIcon={vIcon}
-                          isLegit={isLegit}
-                          scamType={result.scam_type}
-                        />
-
-                        {/* Messages stat */}
-                        <p className="font-mono text-center text-[10px] text-white/25 -mt-2 pb-3">
-                          {messagesAnalyzed} of {totalMessages} messages analysed
-                        </p>
-
-                        <div className="divide-y divide-white/[0.06]">
-
-                          {/* Score breakdown — the unique insight of conversation mode */}
-                          <div className="px-3 sm:px-4 py-3.5">
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3.5">
-                              Conversation Breakdown
-                            </p>
-                            <div className="space-y-3">
-                              {([
-                                { label: 'Full thread',    score: fullScore,   desc: 'how the whole conversation reads' },
-                                { label: 'Peak window',    score: windowScore, desc: 'most suspicious stretch of messages' },
-                                { label: 'Final messages', score: finalScore,  desc: 'where scammers usually escalate' },
-                              ] as const).map(({ label, score, desc }) => (
-                                <div key={label}>
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <div>
-                                      <span className="font-mono text-[12px] text-white/60">{label}</span>
-                                      <span className="hidden sm:inline font-mono text-[10px] text-white/25 ml-2">— {desc}</span>
-                                    </div>
-                                    <span className="font-mono text-[11px] font-bold" style={{ color: barColor(score) }}>
-                                      {Math.round(score)}%
-                                    </span>
-                                  </div>
-                                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                                    <motion.div
-                                      className="h-full rounded-full"
-                                      style={{ background: barColor(score) }}
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${score}%` }}
-                                      transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* LEGIT: why it's safe */}
-                          {isLegit && (
-                            <div className="px-3 sm:px-4 py-3.5">
-                              <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-                                <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
-                                Why this conversation looks safe
-                              </p>
-                              <ul className="space-y-2">
-                                {['No urgency language, manipulation, or pressure tactics found across the thread',
-                                  'No suspicious links or impersonation signals detected',
-                                  'Tone and patterns are consistent with legitimate conversation',
-                                ].map(pt => (
-                                  <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                    <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
-                                    {pt}
-                                  </li>
-                                ))}
-                              </ul>
-                              <p className="font-mono text-[10px] text-white/30 mt-2.5 leading-relaxed">
-                                Still uneasy? Trust your instincts — never share money or personal details over chat.
-                              </p>
-                            </div>
-                          )}
-
-                          {/* SCAM/SUSPICIOUS: conversation-specific actions */}
-                          {!isLegit && (
-                            <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
-                              <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
-                                What to do now
-                              </p>
-                              <ul className="space-y-2">
-                                {[
-                                  'Stop responding — do not send money, gift cards, or personal details',
-                                  'Screenshot the full thread before you block or delete anything',
-                                  'Block and report the sender on every platform they contacted you on',
-                                ].map(action => (
-                                  <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                    <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
-                                    {action}
-                                  </li>
-                                ))}
-                                <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                  <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
-                                  <span>
-                                    Report at{' '}
-                                    <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>reportfraud.ftc.gov</a>
-                                    {' '}(US)
-                                    <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>actionfraud.police.uk</a> (UK)</span>
-                                  </span>
-                                </li>
-                              </ul>
-                            </div>
-                          )}
-
-                        </div>
-
-                        {/* Shared: why flagged, warning signals, link safety */}
-                        {sharedSections}
-
-                        <div className="px-3 sm:px-4 pt-3 pb-4">
-                          <button
-                            onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
-                            className="font-mono w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
-                          >
-                            <span className="inline-block group-hover:-translate-x-0.5 transition-transform duration-150 text-base leading-none">←</span>
-                            Analyse another conversation
-                          </button>
-                        </div>
-
-                      </ErrorBoundary>
-                    </motion.div>
-                  )
-                }
-
-                // ── Single-message result panel ────────────────────────────────
                 return (
                   <motion.div
                     ref={resultRef}
@@ -1405,100 +1629,103 @@ const RainingLetters: React.FC = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.28, ease: 'easeOut' }}
-                    className="mt-3 rounded-2xl overflow-hidden hero-result-card"
-                    style={{ border: `1px solid ${vBorder}`, backdropFilter: 'blur(20px)' }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative mt-3 rounded-[20px] overflow-hidden hero-result-card"
+                    style={{
+                      border: `1px solid ${verdict.accent}22`,
+                      backdropFilter: 'blur(20px)',
+                    }}
                   >
                     <ErrorBoundary onError={() => { setResult(null); addToast('Could not display the result. Please try again.', 'error') }}>
 
-                      {/* Gauge */}
-                      <ConfidenceGauge
-                        displayConf={displayConf}
-                        vColor={vColor}
-                        vLabel={vLabel}
-                        vIcon={vIcon}
-                        isLegit={isLegit}
-                        scamType={result.scam_type}
-                      />
-
-                      {/* Sections */}
-                      <div className="divide-y divide-white/[0.06]">
-
-                        {/* LEGIT: why it's safe */}
-                        {isLegit && (
-                          <div className="px-3 sm:px-4 py-3.5">
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-                              <ShieldCheck className="w-3 h-3" style={{ color: vColor }} />
-                              Why this looks safe
-                            </p>
-                            <ul className="space-y-2">
-                              {['No urgency language, threats, or pressure tactics detected',
-                                'No suspicious links or lookalike domains found',
-                                'Tone and phrasing match legitimate communication patterns',
-                              ].map(pt => (
-                                <li key={pt} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                  <span className="shrink-0 mt-0.5" style={{ color: vColor }}>✓</span>
-                                  {pt}
-                                </li>
-                              ))}
-                            </ul>
-                            <p className="font-mono text-[10px] text-white/30 mt-2.5 leading-relaxed">
-                              Still feels off? Verify directly with the sender — don't use contact details from the message itself.
-                            </p>
-                          </div>
-                        )}
-
-                        {/* SCAM/SUSPICIOUS: what to do */}
-                        {!isLegit && (
-                          <div className="px-3 sm:px-4 py-3.5" style={{ borderLeft: `3px solid ${vColor}28` }}>
-                            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2.5">
-                              What to do now
-                            </p>
-                            <ul className="space-y-2">
-                              {['Do not click any links or call any number in this message',
-                                'Block and report the sender on the platform you received it',
-                                'If you already shared financial details, contact your bank immediately',
-                              ].map(action => (
-                                <li key={action} className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                  <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
-                                  {action}
-                                </li>
-                              ))}
-                              <li className="flex items-start gap-2.5 text-[12px] text-white/60 leading-relaxed font-mono">
-                                <span className="shrink-0 mt-0.5 text-[11px]" style={{ color: vColor }}>→</span>
-                                <span>
-                                  Report at{' '}
-                                  <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>reportfraud.ftc.gov</a>
-                                  {' '}(US)
-                                  <span className="hidden sm:inline"> · <a href="https://www.actionfraud.police.uk" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: vColor, opacity: 0.65 }}>actionfraud.police.uk</a> (UK)</span>
-                                </span>
-                              </li>
-                            </ul>
-                          </div>
-                        )}
-
-                      </div>
-
-                      {/* Shared: why flagged, warning signals, link safety */}
-                      {sharedSections}
-
-                      {/* Borderline note — trigger uses the model's confidence
-                          (kept in the API response), but the wording no longer
-                          exposes any numeric confidence to the user. */}
-                      {!isLegit && safeNum(result.confidence) < 90 && (
-                        <p className="font-mono text-[10px] text-white/28 text-center px-4 pt-3 leading-relaxed">
-                          This one is borderline — worth a second look. Legitimate security alerts can sometimes be flagged.
-                        </p>
-                      )}
-
-                      <div className="px-3 sm:px-4 pt-3 pb-4">
-                        <button
-                          onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
-                          className="font-mono w-full py-3 rounded-xl text-sm font-semibold text-white/55 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.24] transition-all duration-200 flex items-center justify-center gap-2 group"
+                      {/* New-scan action — real button: accent-tinted bg + border. */}
+                      <motion.button
+                        onClick={() => { setResult(null); setPrompt(''); setFileName(null); setToasts([]) }}
+                        aria-label={isConv ? 'Close and analyse another conversation' : 'Close and scan another message'}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35, duration: 0.32, ease: 'easeOut' }}
+                        whileHover={{ y: -1 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="group absolute top-4 right-4 z-20 inline-flex items-center gap-2 h-9 pl-2.5 pr-3.5 rounded-md font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-white/85 hover:text-white transition-colors"
+                        style={{
+                          background: `linear-gradient(180deg, ${verdict.accent}20 0%, ${verdict.accent}12 100%)`,
+                          border:     `1px solid ${verdict.accent}55`,
+                          boxShadow:  `0 4px 14px ${verdict.accent}22, inset 0 1px 0 ${verdict.accent}22`,
+                        }}
+                      >
+                        <span
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-[3px]"
+                          style={{ background: `${verdict.accent}30`, border: `1px solid ${verdict.accent}66` }}
+                          aria-hidden="true"
                         >
-                          <span className="inline-block group-hover:-translate-x-0.5 transition-transform duration-150 text-base leading-none">←</span>
-                          Scan another message
-                        </button>
+                          <svg
+                            viewBox="0 0 24 24" width="10" height="10"
+                            fill="none" stroke="currentColor" strokeWidth={2.2}
+                            strokeLinecap="round" strokeLinejoin="round"
+                            className="transition-transform duration-500 group-hover:-rotate-180"
+                          >
+                            <path d="M3 12a9 9 0 1 0 3-6.7" />
+                            <path d="M3 4v6h6" />
+                          </svg>
+                        </span>
+                        <span className="hidden sm:inline whitespace-nowrap">New Scan</span>
+                      </motion.button>
+
+                      <VerdictBlock v={verdict} />
+
+                      {/* Evidence stack — each finding is a uniform bordered card. */}
+                      <div className="px-5 sm:px-6 pb-6 space-y-2.5">
+
+                        {reasons.length > 0 && (
+                          <EvidenceCard
+                            index={0}
+                            label={isPositiveVerdict(verdict.key) ? 'Reassurance' : 'Pattern'}
+                            meta={`${reasons.length} ${reasons.length === 1 ? 'Signal' : 'Signals'}`}
+                            accent={verdict.accent}
+                          >
+                            <ReasonsList
+                              items={reasons}
+                              accent={verdict.accent}
+                              positive={isPositiveVerdict(verdict.key)}
+                            />
+                          </EvidenceCard>
+                        )}
+
+                        {links && (
+                          <EvidenceCard
+                            index={reasons.length > 0 ? 1 : 0}
+                            label={links.urls.length === 1 ? 'Link' : 'Links'}
+                            meta={`${links.urls.length} ${links.urls.length === 1 ? 'URL' : 'URLs'}`}
+                            accent={verdict.accent}
+                          >
+                            <LinksBlock urls={links.urls} dangerous={links.dangerous} threat={links.threat} />
+                          </EvidenceCard>
+                        )}
+
+                        {scamType && (
+                          <EvidenceCard
+                            index={
+                              (reasons.length > 0 ? 1 : 0) + (links ? 1 : 0)
+                            }
+                            label="Classification"
+                            accent={verdict.accent}
+                          >
+                            <div className="mt-1 font-mono text-[15px] sm:text-[16px] font-bold uppercase tracking-[0.18em]"
+                                 style={{
+                                   color:      verdict.accent,
+                                   textShadow: `0 0 16px ${verdict.accent}44`,
+                                 }}>
+                              {scamType}
+                            </div>
+                          </EvidenceCard>
+                        )}
+
+                        <TechnicalDetails
+                          tones={tones}
+                          conversation={conversation}
+                          accent={verdict.accent}
+                        />
                       </div>
 
                     </ErrorBoundary>
