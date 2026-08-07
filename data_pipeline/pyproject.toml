@@ -1,0 +1,12 @@
+[project]
+name = "scamradar2"
+version = "2.0.0"
+description = "ScamRadar+ 2.0 — scientifically rigorous scam message detection"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
