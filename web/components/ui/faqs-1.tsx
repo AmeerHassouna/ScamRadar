@@ -53,7 +53,7 @@ const questions = [
         id: 'item-1',
         title: 'How accurate is ScamRadar+?',
         content:
-            'The production model achieves F1 = 0.941 (precision 0.961, recall 0.923, ROC-AUC 0.995, PR-AUC 0.984) on a locked one-shot external benchmark of 25,306 messages that was held out from all model selection, tuning, and threshold optimisation. Every scoring event on that benchmark is recorded in the research repository. Full metrics and hyperparameters are published in models/e5_metadata.json.',
+            'The production model achieves F1 = 0.941 (precision 0.961, recall 0.923, ROC-AUC 0.995, PR-AUC 0.984) on a locked one-shot external benchmark of 25,306 messages that was held out from all model selection, tuning, and threshold optimisation. Every scoring event on that benchmark is recorded in the project audit log. Full metrics and hyperparameters are published in models/e5_metadata.json.',
     },
     {
         id: 'item-2',

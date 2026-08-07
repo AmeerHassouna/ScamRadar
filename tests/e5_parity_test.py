@@ -1,13 +1,13 @@
 """
-E5 parity test — verifies migrated production produces IDENTICAL probabilities
-and verdicts to standalone E5 on a diverse message set.
+E5 parity test — verifies the production inference pipeline produces IDENTICAL
+probabilities and verdicts to the frozen E5 bundle on a diverse message set.
 
 For each test message, this script:
-  1. Calls the standalone E5 bundle directly (Project B's model, loaded from
-     models/e5_bundle.joblib): p_standalone = pipe.predict_proba([text])[0, 1]
-  2. Calls the migrated production API: POST /predict {text} → confidence
+  1. Calls the frozen E5 bundle directly (loaded from models/e5_bundle.joblib):
+     p_bundle = pipe.predict_proba([text])[0, 1]
+  2. Calls the production API: POST /predict {text} → confidence
   3. Compares:
-     - Probability: p_standalone vs (confidence/100), tolerance 1e-4
+     - Probability: p_bundle vs (confidence/100), tolerance 1e-4
      - Verdict:      SCAM/LEGIT match, computed as (p >= 0.59)
 
 Any mismatch → fail the test with a diagnostic.
@@ -55,8 +55,8 @@ TESTS = [
 ]
 
 
-def load_standalone():
-    """Load the E5 bundle exactly as Project B does."""
+def load_frozen_e5():
+    """Load the frozen E5 bundle from disk (word+char TF-IDF → LogReg)."""
     b = joblib.load(BUNDLE_PATH)
     return b['model'], float(b['threshold_f1'])
 
@@ -72,13 +72,13 @@ def call_api(text):
 
 
 def main():
-    pipe, thresh = load_standalone()
-    print(f'Standalone E5 loaded. threshold_f1 = {thresh}')
+    pipe, thresh = load_frozen_e5()
+    print(f'Frozen E5 bundle loaded. threshold_f1 = {thresh}')
     print(f'Local API      : {API_URL}')
     print(f'Tolerance      : {TOL}')
     print()
 
-    hdr = f"{'tag':22s} {'p_stand':>8s} {'p_api':>8s} {'Δ':>10s}  {'v_stand':>7s} {'v_api':>7s}  match?"
+    hdr = f"{'tag':22s} {'p_bundle':>8s} {'p_api':>8s} {'Δ':>10s}  {'v_bund':>7s} {'v_api':>7s}  match?"
     print(hdr)
     print('-' * len(hdr))
 
@@ -89,30 +89,30 @@ def main():
 
     for tag, text in TESTS:
         n += 1
-        # Standalone E5 probability + verdict
-        p_stand = float(pipe.predict_proba([text])[0, 1])
-        v_stand = 'SCAM' if p_stand >= thresh else 'LEGIT'
+        # Frozen E5 bundle probability + verdict
+        p_bundle = float(pipe.predict_proba([text])[0, 1])
+        v_bundle = 'SCAM' if p_bundle >= thresh else 'LEGIT'
 
-        # Migrated API probability + verdict
+        # Production API probability + verdict
         r = call_api(text)
         v_api = r.get('verdict')
         conf = r.get('confidence', 0)
         p_api = conf / 100.0
 
         # Compare
-        d = abs(p_stand - p_api)
+        d = abs(p_bundle - p_api)
         prob_match = (d < TOL)
-        verdict_match = (v_stand == v_api)
+        verdict_match = (v_bundle == v_api)
         both = prob_match and verdict_match
 
         if prob_match: n_pass_prob += 1
         if verdict_match: n_pass_verdict += 1
         if not both:
-            failures.append((tag, p_stand, p_api, v_stand, v_api, text[:80]))
+            failures.append((tag, p_bundle, p_api, v_bundle, v_api, text[:80]))
 
         mark = 'OK' if both else ('PROB✗' if not prob_match else 'VERDICT✗')
-        print(f'{tag:22s} {p_stand:>8.4f} {p_api:>8.4f} {d:>10.2e}  '
-              f'{v_stand:>7s} {v_api:>7s}  {mark}')
+        print(f'{tag:22s} {p_bundle:>8.4f} {p_api:>8.4f} {d:>10.2e}  '
+              f'{v_bundle:>7s} {v_api:>7s}  {mark}')
 
     print()
     print(f'Probability parity: {n_pass_prob}/{n}')
@@ -120,13 +120,13 @@ def main():
 
     if failures:
         print('\n=== FAILURES ===')
-        for tag, ps, pa, vs, va, txt in failures:
-            print(f'  [{tag}] p_stand={ps:.6f}  p_api={pa:.6f}  Δ={abs(ps-pa):.2e}')
-            print(f'    v_stand={vs}  v_api={va}')
+        for tag, pb, pa, vb, va, txt in failures:
+            print(f'  [{tag}] p_bundle={pb:.6f}  p_api={pa:.6f}  Δ={abs(pb-pa):.2e}')
+            print(f'    v_bundle={vb}  v_api={va}')
             print(f'    text: {txt}')
         sys.exit(1)
 
-    print('\nPARITY CONFIRMED: migrated production matches standalone E5 within tolerance.')
+    print('\nPARITY CONFIRMED: production API matches the frozen E5 bundle within tolerance.')
 
 
 if __name__ == '__main__':

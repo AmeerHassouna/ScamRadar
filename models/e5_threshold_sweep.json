@@ -1,5 +1,5 @@
 {
-  "source": "ScamRadar+ 2.0 E5_final_logreg_F3.joblib evaluated on external_benchmark.parquet",
+  "source": "E5_final_logreg_F3.joblib evaluated on external_benchmark.parquet",
   "n": 25306,
   "sweep": [
     {

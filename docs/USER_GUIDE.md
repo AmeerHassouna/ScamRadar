@@ -224,7 +224,7 @@ curl https://scamradar-api-l2vv.onrender.com/health
 ```json
 {
   "status": "ready",
-  "model": "ScamRadar+ 2.0 (E8-P9)",
+  "model": "ScamRadar+ (E8-P9)",
   "predict_cached": 142,
   "predict_maxsize": 10000,
   "predict_ttl_s": 3600,
@@ -246,7 +246,7 @@ curl https://scamradar-api-l2vv.onrender.com/stats
 
 ```json
 {
-  "deployed_model":              "ScamRadar+ 2.0 (E8-P9)",
+  "deployed_model":              "ScamRadar+ (E8-P9)",
   "model_architecture":          "Logistic Regression + word/char TF-IDF (500,000 text features) + 25 numerical features + modular Rule Engine",
   "training_corpus_raw":         283501,
   "training_corpus_dedup":       195776,

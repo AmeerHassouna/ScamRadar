@@ -91,7 +91,7 @@ Both are computed from real artifacts checked into this repository — no histor
 
 ### Baseline — pure E5 classifier (n = 25,306)
 
-A **locked, one-shot, write-once** benchmark. Never seen during model selection, hyperparameter search, calibration, or threshold tuning. Every scoring event is recorded in the research repository's `data/external_benchmark/LOCK.json` — by design this benchmark can only be scored once per bundle.
+A **locked, one-shot, write-once** benchmark. Never seen during model selection, hyperparameter search, calibration, or threshold tuning. Every scoring event is recorded in the project's [`data_pipeline/data/external_benchmark/LOCK.json`](data_pipeline/) — by design this benchmark can only be scored once per bundle.
 
 | Metric | Value |
 |---|---:|
@@ -261,7 +261,7 @@ ScamRadar/
 │   └── popup.{html,js,css}    # Toolbar popup + API-health indicator
 ├── config.py                  # E5_BUNDLE_PATH · E5_THRESHOLD · E7_P2 safety-net params
 ├── tests/
-│   ├── e5_parity_test.py      # Byte-identical parity vs standalone E5 (13 messages)
+│   ├── e5_parity_test.py      # Byte-identical parity vs the frozen E5 bundle (13 messages)
 │   ├── holdout_eval.py        # E7/E8 external-benchmark evaluator
 │   ├── stress_test.py         # Concurrent request stress harness
 │   └── tier2_external.py      # Tier-2 acceptance runner
@@ -286,7 +286,7 @@ ScamRadar/
 └── requirements.txt           # Python dependencies
 ```
 
-**Model provenance.** The E5 classifier was trained by the data collection pipeline at [`data_pipeline/`](data_pipeline/) — a strict data-first workflow with an approval-gated dataset audit (`python -m scamradar acquire → clean → audit → approve-dataset → split`). E7 (numerical-feature fusion) and E8 (corpus expansion + rule engine) were built on top, in `scripts/training/`. Every training + evaluation step has a corresponding script under `scripts/training/` or `scripts/evaluation/`; every evaluation artifact is under `outputs/eval/`. E5 → E8-P9 shares the LR head recipe, TF-IDF vocab sizes, and decision threshold (0.59) — the additions are numerical features, an expanded corpus, and the post-classifier Rule Engine. Byte-identical parity of the LR head vs the original standalone E5 artifact is checked in [`tests/e5_parity_test.py`](tests/e5_parity_test.py).
+**Model provenance.** The E5 classifier was trained by the data collection pipeline at [`data_pipeline/`](data_pipeline/) — a strict data-first workflow with an approval-gated dataset audit (`python -m scamradar acquire → clean → audit → approve-dataset → split`). E7 (numerical-feature fusion) and E8 (corpus expansion + rule engine) were built on top, in `scripts/training/`. Every training + evaluation step has a corresponding script under `scripts/training/` or `scripts/evaluation/`; every evaluation artifact is under `outputs/eval/`. E5 → E8-P9 shares the LR head recipe, TF-IDF vocab sizes, and decision threshold (0.59) — the additions are numerical features, an expanded corpus, and the post-classifier Rule Engine. Byte-identical parity of the LR head vs the frozen E5 bundle is checked in [`tests/e5_parity_test.py`](tests/e5_parity_test.py).
 
 ---
 
@@ -324,7 +324,7 @@ Frontend at `http://localhost:3000` — points at the local API you started abov
 
 ### Verify E5-fallback parity
 
-The parity harness confirms that when the API is pointed at the E5 fallback bundle (`SCAMRADAR_LOCAL_MODEL=` unset or unknown), it produces byte-identical probabilities and verdicts to the standalone E5 research artifact. This guards the safe-rollback path; the default E8-P9 build is validated separately via the eval scripts under `scripts/evaluation/`.
+The parity harness confirms that when the API is pointed at the E5 fallback bundle (`SCAMRADAR_LOCAL_MODEL=` unset or unknown), it produces byte-identical probabilities and verdicts to the frozen E5 bundle. This guards the safe-rollback path; the default E8-P9 build is validated separately via the eval scripts under `scripts/evaluation/`.
 
 ```bash
 # Requires the local API running on port 8000 with the E5 bundle loaded

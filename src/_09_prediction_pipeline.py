@@ -788,24 +788,24 @@ if __name__ == '__main__':
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# E5 MIGRATION SHIM  (ScamRadar+ 2.0 — added 2026-08-01)
+# E5 INFERENCE BRIDGE  (added 2026-08-01)
 # ══════════════════════════════════════════════════════════════════════════
 #
 # The names `load_pipeline` and `predict_message` are rebound below to
-# delegators for the standalone E5 pipeline defined in `src/e5_inference.py`.
+# delegators for the E5 pipeline defined in `src/e5_inference.py`.
 # Python honours the last binding, so external imports such as
 #   `from src._09_prediction_pipeline import load_pipeline, predict_message`
 # (used by `api/main.py`) receive the E5 versions.
 #
 # The legacy implementations above are preserved in place (no-delete rule)
-# but are unreachable via the public module names once this shim executes.
+# but are unreachable via the public module names once this bridge executes.
 #
 # Parity contract (see src/e5_inference.py):
 #   * The E5 pipeline receives the RAW TEXT — no legacy preprocessing.
 #   * The threshold is E5_THRESHOLD (0.59), never DEFAULT_THRESHOLD (0.40).
 #   * NO rule floors, NO probability boosts, NO URL-based verdict escalation.
-#   * Given the same input, this shim produces the same probability and
-#     verdict as the standalone E5 model.
+#   * Given the same input, this bridge produces the same probability and
+#     verdict as the E5 bundle.
 # ──────────────────────────────────────────────────────────────────────────
 
 from src.e5_inference import load_e5_pipeline as _load_e5_pipeline

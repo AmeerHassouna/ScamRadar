@@ -20,9 +20,8 @@ const MONO: React.CSSProperties = { fontFamily: "monospace" };
 const fmt = (fn: (v: number, name: string) => [string, string]) => (v: any, name: any) => fn(+v, String(name)) as [string, string];
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  E5 verified data — every number below is sourced from ScamRadar+ 2.0
-//  research artifacts. See models/e5_metadata.json and
-//  models/e5_threshold_sweep.json.
+//  E5 verified data — every number below is sourced from the E5 training run.
+//  See models/e5_metadata.json and models/e5_threshold_sweep.json.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ROC curve — canonical shape for a model with ROC-AUC = 0.995.
@@ -536,7 +535,7 @@ export default function PerformancePage() {
           <SectionHeader
             label="Research Journey · E2 → E5"
             title="MODEL DEVELOPMENT"
-            sub="External benchmark PR-AUC and F1 across the four stages of the ScamRadar+ 2.0 research campaign"
+            sub="External benchmark PR-AUC and F1 across the four E5 development stages"
           />
           <ChartCard title="E-Series Progression" sub="Each stage builds on the previous under strict cluster-grouped evaluation">
             <ResponsiveContainer width="100%" height={280}>

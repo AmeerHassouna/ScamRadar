@@ -1,17 +1,17 @@
 """
-E5 inference wrapper — behaviorally identical to standalone ScamRadar+ 2.0.
+E5 inference wrapper — loads the frozen E5 bundle and exposes predict/predict_proba.
 
 The E5 bundle (models/e5_bundle.joblib) is a self-contained sklearn Pipeline
-(word+char TF-IDF → LogisticRegression) trained by ScamRadar+ 2.0. It was
+(word+char TF-IDF → LogisticRegression) trained during the E5 stage. It was
 evaluated at threshold 0.59 (F1-max) on n=34,194 internal test and n=25,306
 external benchmark, achieving F1=0.943 / 0.941 respectively.
 
 Parity contract
 ---------------
 This module's sole job is to preserve **byte-for-byte behavioral parity** with
-the standalone E5 candidate. Specifically:
+the frozen E5 candidate. Specifically:
 
-  * Input to the model is the RAW TEXT string, exactly as ScamRadar+ 2.0's
+  * Input to the model is the RAW TEXT string, exactly as the E5 training
     evaluate.py does: `p = model.predict_proba(df.text)[:, 1]`.
     No pre-normalisation, no lowercasing, no URL stripping — the internal
     TfidfVectorizers handle tokenisation.
@@ -26,7 +26,7 @@ the standalone E5 candidate. Specifically:
     urls_found, GSB/VT status) for frontend compatibility.
 
   * Given the same input text, this module MUST produce the same probability
-    and verdict as the standalone E5 model. Any deviation is a bug.
+    and verdict as the frozen E5 model. Any deviation is a bug.
 """
 from __future__ import annotations
 
@@ -241,7 +241,7 @@ def load_e5_pipeline(bundle_path: str | None = None) -> dict:
 # ══════════════════════════════════════════════════════════════════════════
 
 def _e5_probability(text: str, pipe) -> float:
-    """The parity-critical call. Identical to ScamRadar+ 2.0 evaluate.py:
+    """The parity-critical call. Identical to the E5 training-time evaluate.py:
        p = model.predict_proba(df.text)[:, 1]
     """
     with warnings.catch_warnings():

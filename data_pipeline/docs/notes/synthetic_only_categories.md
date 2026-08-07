@@ -1,6 +1,6 @@
 # Justification: Synthetic-Only Categories (Batch 1)
 
-Status: **Fork C, batch 1 v2b — ACCEPTED on artifact grounds** (2026-08-01).
+Status: **Batch 1 v2b — ACCEPTED on artifact grounds** (2026-08-01).
 Downstream-benefit verification (DESIGN §7 rule 6.f) still required.
 
 - Active batch id: `batch1v2_20260731`
@@ -28,7 +28,7 @@ Per DESIGN §7 (v2.0):
 
 This note justifies operating three categories at 100% synthetic composition
 in batch 1, because no viable ethical public real corpus was found during the
-Fork A search pass documented in the audit conversation.
+initial search pass documented in the audit conversation.
 
 The following original justification remains applicable to batch 1 v2b (only
 the surface style of the samples changed; the sourcing rationale is unchanged).

@@ -1,4 +1,4 @@
-"""ScamRadar+ 2.0 — Fork C synthesis batch 1 (DESIGN §7, conservative pass).
+"""ScamRadar+ synthetic data — batch 1 (DESIGN §7, conservative pass).
 
 Target: ~500 synthetic samples per gap category (bec_ceo_fraud, romance_scam,
 marketplace_delivery_scam) = ~1,500 total. Well below the 2–3k cap and the
@@ -503,7 +503,7 @@ def main() -> None:
         "target_per_category": TARGET_PER_CATEGORY,
         "counts": {},
         "notes": (
-            "Fork C batch 1. Conservative: ~1.5k rows across 3 gap categories. "
+            "Synthetic batch 1. Conservative: ~1.5k rows across 3 gap categories. "
             "Diverse across persona, platform, country, register, length, "
             "and ask-vs-rapport (romance)."
         ),

@@ -25,7 +25,7 @@ outputs/
 
 # Model development artefacts (frozen baselines + intermediate candidates).
 # All historical v1.x model artifacts + backups now live under old_models/
-# after the E5 migration reorganization. Kept locally for reproducibility;
+# after the E5 model rollout. Kept locally for reproducibility;
 # not shipped to production.
 old_models/
 

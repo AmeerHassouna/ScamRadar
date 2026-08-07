@@ -337,7 +337,7 @@ async def login(request: Request):
 async def health(request: Request):
     if _pipe is None:
         return JSONResponse(status_code=200, content={'status': 'loading'})
-    return {'status': 'ready', 'model': 'ScamRadar+ 2.0 (E8-P9)', **cache_info()}
+    return {'status': 'ready', 'model': 'ScamRadar+ (E8-P9)', **cache_info()}
 
 
 @app.get('/warmup')
@@ -360,7 +360,7 @@ async def stats(request: Request):
     # scams the 2008-era benchmark doesn't measure vs. a small precision loss on
     # legacy legit email. See README.md → Performance for the explanation.
     return {
-        'deployed_model':        'ScamRadar+ 2.0 (E8-P9)',
+        'deployed_model':        'ScamRadar+ (E8-P9)',
         'model_architecture':    ('Logistic Regression + word/char TF-IDF (500,000 text features) + '
                                   '25 numerical features + modular Rule Engine'),
         'training_corpus_raw':   283501,  # E8-P6 base (267,723) + E8-P8 scam+pairs (15,778)
