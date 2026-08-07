@@ -1,9 +1,12 @@
-# ScamRadar+ 2.0 — Research Pipeline
+# ScamRadar+ — Data Collection Pipeline
 
-State-of-the-art, scientifically defensible scam-message detection.
+Stage 0 of the ScamRadar+ project: acquire → clean → audit → split.
+This subfolder produces the E5 training dataset that the top-level `scripts/training/`
+scripts consume to train the deployed model.
+
 **No Kaggle anywhere.** Every source has a documented URL + license (`src/scamradar/sources.py`).
 
-Read `docs/DESIGN.md` first — it is the full technical design document (v2.0, data-first
+Read `docs/DESIGN.md` first — it is the full technical design document (data-first
 framework with a mandatory dataset-audit approval gate before any training).
 
 ## Setup in VS Code

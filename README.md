@@ -275,6 +275,8 @@ ScamRadar/
 │   ├── training/              # train_e7_p1.py · train_e8p9.py · …
 │   ├── evaluation/            # eval_e7_p1.py · analyze_e8p9_errors.py · …
 │   └── data_prep/             # gen_e8p8_synthetic_scam.py · merge_e8p8_into_training.py
+├── data_pipeline/             # Stage 0 — data collection (acquire → clean → split → audit)
+│   └── src/scamradar/         # sources.py (13 corpora registry) + acquire.py + …
 ├── legacy/                    # Superseded top-level entry points
 ├── old_models/                # v1.x model artifacts (reference only)
 ├── Dockerfile                 # Production container (Render)
@@ -284,7 +286,7 @@ ScamRadar/
 └── requirements.txt           # Python dependencies
 ```
 
-**Model provenance.** The E5 classifier was trained in a separate research repository (**ScamRadar+ 2.0**) using a strict data-first workflow with an approval-gated dataset audit. E7 (numerical-feature fusion) and E8 (corpus expansion + rule engine) were developed inside this repo. Every training + evaluation step has a corresponding script under `scripts/training/` or `scripts/evaluation/`; every evaluation artifact is under `outputs/eval/`. E5 → E8-P9 shares the LR head recipe, TF-IDF vocab sizes, and decision threshold (0.59) — the additions are numerical features, an expanded corpus, and the post-classifier Rule Engine. Byte-identical parity of the LR head vs the original standalone E5 artifact is checked in [`tests/e5_parity_test.py`](tests/e5_parity_test.py).
+**Model provenance.** The E5 classifier was trained by the data collection pipeline at [`data_pipeline/`](data_pipeline/) — a strict data-first workflow with an approval-gated dataset audit (`python -m scamradar acquire → clean → audit → approve-dataset → split`). E7 (numerical-feature fusion) and E8 (corpus expansion + rule engine) were built on top, in `scripts/training/`. Every training + evaluation step has a corresponding script under `scripts/training/` or `scripts/evaluation/`; every evaluation artifact is under `outputs/eval/`. E5 → E8-P9 shares the LR head recipe, TF-IDF vocab sizes, and decision threshold (0.59) — the additions are numerical features, an expanded corpus, and the post-classifier Rule Engine. Byte-identical parity of the LR head vs the original standalone E5 artifact is checked in [`tests/e5_parity_test.py`](tests/e5_parity_test.py).
 
 ---
 
@@ -419,7 +421,7 @@ Every source is publicly available and documented with a URL + license. **No Kag
 | Enron ham sample | legit | email | legacy |
 | Synthetic supplements (documented + audit-flagged) | scam | mixed | modern |
 
-Every source has an entry in the ScamRadar+ 2.0 research repo's `src/scamradar/sources.py` with its download URL, license, and category tag. The dataset audit found no license issues; 0.6% of the corpus is synthetic and is flagged in the audit report.
+Every source has an entry in [`data_pipeline/src/scamradar/sources.py`](data_pipeline/src/scamradar/sources.py) with its download URL, license, and category tag. The dataset audit found no license issues; 0.6% of the corpus is synthetic and is flagged in the audit report.
 
 ---
 

@@ -1,8 +1,8 @@
-# ScamRadar+ 2.0 — Technical Design Document
+# ScamRadar+ Data Pipeline — Technical Design Document
 
-Status: **v2.0** (pre-implementation design — hardened data-first framework)
-Author: ScamRadar+ 2.0 project
-Scope: Offline research system. Deployment deliberately out of scope until the model is frozen.
+Status: **v2.0** (hardened data-first framework)
+Author: ScamRadar+ project
+Scope: Offline data-collection + audit + split pipeline. Produces the training splits consumed by `scripts/training/` in the parent repo.
 
 Change summary vs. v1.0:
 - Reframed the entire pipeline as **data-first**: no model training may begin until the
