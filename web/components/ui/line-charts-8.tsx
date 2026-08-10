@@ -60,9 +60,9 @@ const sparkCards = [
   {
     title: 'Confidence Separation',
     metric: 'Score deviation from decision threshold (t = 0.59)',
-    baseValue: '96.1%',
+    baseValue: '91.0%',
     baseCurrency: 'Precision',
-    targetValue: '92.3%',
+    targetValue: '91.6%',
     targetCurrency: 'Recall',
     data: confidenceData,
     color: '#4ade80',
@@ -82,9 +82,9 @@ const sparkCards = [
   {
     title: 'External Benchmark',
     metric: 'Locked one-shot set · n = 25,306 · never seen at training',
-    baseValue: '0.984',
+    baseValue: '0.964',
     baseCurrency: 'PR-AUC',
-    targetValue: '0.941',
+    targetValue: '0.913',
     targetCurrency: 'F1',
     data: convergenceData,
     color: '#a78bfa',

@@ -14,7 +14,7 @@ const sections = [
     title: "Use at Your Own Risk",
     content: [
       "ScamRadar+ is provided as-is, without any warranty of accuracy, completeness, or fitness for a particular purpose.",
-      "On a locked one-shot benchmark of 25,306 messages, the deployed model achieves F1 = 0.941, meaning it still misclassifies roughly 2% of messages. Do not rely solely on this tool to make financial, legal, or safety decisions.",
+      "On a locked one-shot benchmark of 25,306 messages, the deployed E8-P9 pipeline (classifier + Rule Engine) achieves F1 = 0.913, meaning it still misclassifies roughly 3% of messages. Do not rely solely on this tool to make financial, legal, or safety decisions.",
       "Always verify suspicious messages directly through official channels (not contact details provided in the message itself).",
     ],
   },
@@ -112,7 +112,7 @@ export default function TermsPage() {
         <div className="border border-amber-400/20 bg-amber-400/5 rounded-xl p-4 mb-10 flex gap-3 items-start">
           <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
           <p className="text-amber-400/80 text-xs" style={MONO}>
-            <span className="font-bold text-amber-400">Important:</span> ScamRadar+ is a machine-learning tool designed to assist your judgement — not a guarantee. On its 25,306-message external benchmark it achieves F1 = 0.941, but individual predictions can still be wrong. Never use it as your sole basis for financial or safety decisions. When in doubt, verify through official channels.
+            <span className="font-bold text-amber-400">Important:</span> ScamRadar+ is a machine-learning tool designed to assist your judgement — not a guarantee. On its 25,306-message external benchmark the deployed E8-P9 pipeline achieves F1 = 0.913, but individual predictions can still be wrong. Never use it as your sole basis for financial or safety decisions. When in doubt, verify through official channels.
           </p>
         </div>
 

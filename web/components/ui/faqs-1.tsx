@@ -53,13 +53,13 @@ const questions = [
         id: 'item-1',
         title: 'How accurate is ScamRadar+?',
         content:
-            'The production model achieves F1 = 0.941 (precision 0.961, recall 0.923, ROC-AUC 0.995, PR-AUC 0.984) on a locked one-shot external benchmark of 25,306 messages that was held out from all model selection, tuning, and threshold optimisation. Every scoring event on that benchmark is recorded in the project audit log. Full metrics and hyperparameters are published in models/e5_metadata.json.',
+            'On a locked one-shot external benchmark of 25,306 messages held out from all model selection, tuning, and threshold optimisation, the deployed E8-P9 pipeline (classifier + Rule Engine) achieves F1 = 0.913 (accuracy 0.969, precision 0.910, recall 0.916). The pure classifier baseline (no Rule Engine) reaches F1 = 0.941 (precision 0.961, recall 0.923, ROC-AUC 0.995, PR-AUC 0.984). E8-P9 trades a small amount of legacy-benchmark precision for meaningfully better coverage of modern conversational, investment, romance, and threat scams that the 2008-era external benchmark does not measure. Every scoring event on the benchmark is recorded in the project audit log.',
     },
     {
         id: 'item-2',
         title: 'What types of scams can it detect?',
         content:
-            'Email phishing, SMS phishing (smishing), advance-fee fraud (419-style), email spam, recruitment scams, romance scams, marketplace and delivery scams, business-email compromise, impersonation, and general social engineering — 12 scam categories in the E5 evaluation. Recruitment scams are the weakest single class (recall 0.494); every other scam class exceeds 0.81 recall on external benchmark.',
+            'Email phishing, SMS phishing (smishing), advance-fee fraud (419-style), email spam, recruitment scams, romance scams, marketplace and delivery scams, business-email compromise, impersonation, and general social engineering — 12 scam categories in the E8-P9 evaluation. Recruitment scams remain the weakest single class (recall 0.48); every other scam class exceeds 0.80 recall on the external benchmark.',
     },
     {
         id: 'item-3',
@@ -71,7 +71,7 @@ const questions = [
         id: 'item-4',
         title: 'What does the model actually look at?',
         content:
-            'The classifier reads word and character n-grams of the message text — 500,000 features in total, produced by two TF-IDF vectorisers (word 1-2 grams + character 3-6 grams). A Logistic Regression trained on 195,776 unique message clusters converts those features into a scam probability. Alongside the model verdict, the API returns tone signals, URL reputation, and a scam-type label to help you understand why the message was flagged.',
+            'The deployed E8-P9 classifier reads 500,000 word and character n-gram features (word 1–2 grams + character 3–6 grams from two TF-IDF vectorisers) plus 25 engineered numerical features covering tone (urgency, fear, reward, threat), URL structure, scam-phrase scores, and text statistics. A Logistic Regression trained on 195,776 unique message clusters converts these signals into a scam probability, and a modular Rule Engine (Critical / Strong / Legit categories) then applies domain-specific overrides for constructions the classifier alone can miss — OTP-theft, gift-card CEO fraud, cryptocurrency seed requests, and modern conversational-scam type floors. Alongside the verdict, the API returns tone signals, URL reputation, and a scam-type label so you can see why the message was flagged.',
     },
     {
         id: 'item-5',

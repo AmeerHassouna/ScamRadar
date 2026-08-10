@@ -1786,7 +1786,7 @@ const RainingLetters: React.FC = () => {
                 {/* Points */}
                 <ul className="flex flex-col gap-3 mb-6">
                   {[
-                    { icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />, text: "F1 = 0.941 on a locked 25,306-message external benchmark — the model can still miss scams or flag legitimate messages. Don't rely on this alone for financial or safety decisions." },
+                    { icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />, text: "The deployed E8-P9 pipeline scores F1 = 0.913 (classifier + Rule Engine) on a locked 25,306-message external benchmark — the system can still miss scams or flag legitimate messages. Don't rely on this alone for financial or safety decisions." },
                     { icon: <ShieldX className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />, text: "Not legal or financial advice. Verdicts are model outputs, not legal determinations." },
                     { icon: <AlertCircle className="w-3.5 h-3.5 text-white/40 mt-0.5 shrink-0" />, text: "No liability for any loss from a missed or incorrect verdict. Academic project — no commercial guarantees." },
                   ].map((item, i) => (

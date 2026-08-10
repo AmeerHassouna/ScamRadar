@@ -294,7 +294,7 @@ const landingItems: AccordionData[] = [
     id: 4,
     step: '04',
     title: 'Matched Against Known Scams',
-    description: 'Your message is scored against 500,000 word and character n-gram features learned from 195,776 deduplicated real message clusters — recognising scam patterns even when disguised.',
+    description: 'Your message is scored against 500,000 word and character n-gram features plus 25 engineered numerical signals, learned from 195,776 deduplicated real message clusters — recognising scam patterns even when disguised.',
     imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=90',
     icon: Cpu,
   },
@@ -421,16 +421,16 @@ const pipelineItems: AccordionData[] = [
   {
     id: 4,
     step: '04',
-    title: 'TF-IDF Feature Extraction',
-    description: 'Two TF-IDF vectorisers extract 500,000 features — 200,000 word 1-2 grams and 300,000 character 3-6 grams — capturing both semantic content and character-level obfuscation patterns.',
+    title: 'Feature Extraction',
+    description: 'Two TF-IDF vectorisers extract 500,000 text features (200,000 word 1–2 grams + 300,000 character 3–6 grams) and 25 engineered numerical features are computed — tone, URL structure, phrase scores, and text statistics — capturing both semantic content and character-level obfuscation.',
     imageUrl: 'https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&h=600&fit=crop',
     icon: Cpu,
   },
   {
     id: 5,
     step: '05',
-    title: 'Calibrated Verdict',
-    description: 'A Logistic Regression trained on 195,776 real message clusters converts features to a scam probability — returning SCAM or LEGIT at the F1-optimal threshold of 0.59, with a confidence percentage.',
+    title: 'Classifier + Rule Engine',
+    description: 'A Logistic Regression trained on 195,776 real message clusters converts the 500,025-dimensional feature vector into a scam probability. A modular Rule Engine then applies domain-specific overrides (OTP-theft, gift-card CEO, crypto-seed, romance / investment / threat floors), returning SCAM / SUSPICIOUS / LEGIT at the F1-optimal threshold of 0.59.',
     imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop',
     icon: ShieldCheck,
   },
@@ -452,9 +452,9 @@ export function HowItWorksAccordion() {
           <span className="text-green-400">INFERENCE PIPELINE</span>
         </h2>
         <p className="text-white/45 text-sm sm:text-base leading-relaxed mb-6 max-w-md mx-auto lg:mx-0" style={MONO}>
-          From raw text to calibrated verdict in under a second. Every message passes through
-          preprocessing, tone scoring, URL analysis, and TF-IDF feature extraction before a
-          Logistic Regression model issues its final confidence-weighted verdict.
+          From raw text to final verdict in under a second. Every message passes through
+          preprocessing, tone scoring, URL analysis, and feature extraction before a
+          Logistic Regression and modular Rule Engine issue the final confidence-weighted verdict.
         </p>
 
         {/* Step pills */}

@@ -20,12 +20,14 @@ const MONO: React.CSSProperties = { fontFamily: "monospace" };
 const fmt = (fn: (v: number, name: string) => [string, string]) => (v: any, name: any) => fn(+v, String(name)) as [string, string];
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  E5 verified data — every number below is sourced from the E5 training run.
-//  See models/e5_metadata.json and models/e5_threshold_sweep.json.
+//  Deployed E8-P9 pipeline — every number below is sourced from the current
+//  production run. See models/e5_metadata.json (baseline classifier),
+//  outputs/eval/e8p9_bakeoff_results.json (raw E8-P9 classifier), and
+//  outputs/eval/e8p9_per_item.parquet (E8-P9 classifier + Rule Engine).
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ROC curve — canonical shape for a model with ROC-AUC = 0.995.
-// Illustrative visualisation of the near-perfect separation reported by E5.
+// ROC curve — E8-P9 classifier ROC-AUC = 0.991 on external benchmark.
+// Illustrative visualisation of the near-perfect separation between classes.
 const rocData = [
   { fpr: 0, tpr: 0 }, { fpr: 0.001, tpr: 0.55 }, { fpr: 0.003, tpr: 0.72 },
   { fpr: 0.006, tpr: 0.83 }, { fpr: 0.010, tpr: 0.89 }, { fpr: 0.015, tpr: 0.92 },
@@ -36,37 +38,41 @@ const rocData = [
 ];
 const randomLine = [{ fpr: 0, tpr: 0 }, { fpr: 1, tpr: 1 }];
 
-// Confusion matrix — E5 external benchmark (n = 25,306, threshold 0.59)
-// Source: models/e5_metadata.json → external.confusion
-const CM = { tp: 4186, fn: 349, fp: 172, tn: 20599 };
+// Confusion matrix — deployed E8-P9 pipeline on external benchmark
+// (n = 25,306, threshold 0.59). Source: outputs/eval/e8p9_per_item.parquet.
+const CM = { tp: 4154, fn: 381, fp: 410, tn: 20361 };
 
-// Per-category performance on the external benchmark (n = 25,306).
-// Source: models/e5_metadata.json → per_category_external
-// SCAM classes report recall; LEGIT classes report false-positive rate.
+// Per-category performance on the external benchmark (n = 25,306), computed
+// from outputs/eval/e8p9_per_item.parquet (deployed pipeline including
+// Rule Engine). SCAM classes report recall; LEGIT classes report FP rate.
 const scamCategoryData = [
-  { category: "Email phishing",    n: 2178, metric: "recall",  value: 95.7 },
-  { category: "Email spam",        n: 1719, metric: "recall",  value: 93.4 },
+  { category: "Email phishing",    n: 2178, metric: "recall",  value: 95.0 },
+  { category: "Email spam",        n: 1719, metric: "recall",  value: 92.9 },
   { category: "Smishing",          n: 68,   metric: "recall",  value: 85.3 },
-  { category: "Advance-fee fraud", n: 489,  metric: "recall",  value: 81.2 },
-  { category: "Recruitment scam",  n: 81,   metric: "recall",  value: 49.4 },
+  { category: "Advance-fee fraud", n: 489,  metric: "recall",  value: 80.0 },
+  { category: "Recruitment scam",  n: 81,   metric: "recall",  value: 48.1 },
 ];
 
 const legitCategoryData = [
-  { category: "Legitimate chat",         n: 13794, metric: "fp_rate", value: 0.01 },
-  { category: "Legitimate job posting",  n: 1523,  metric: "fp_rate", value: 0.72 },
-  { category: "Legitimate SMS",          n: 802,   metric: "fp_rate", value: 1.25 },
-  { category: "Legitimate email",        n: 4652,  metric: "fp_rate", value: 3.22 },
+  { category: "Legitimate chat",         n: 13794, metric: "fp_rate", value: 0.00 },
+  { category: "Legitimate SMS",          n: 802,   metric: "fp_rate", value: 1.00 },
+  { category: "Legitimate job posting",  n: 1523,  metric: "fp_rate", value: 1.05 },
+  { category: "Legitimate email",        n: 4652,  metric: "fp_rate", value: 8.30 },
 ];
 
-// E-series experiment progression — replaces the legacy v1.0 → v1.3 chart.
-// Source: reports/e2_ranking.json (feature-set ablation), e3_ranking.json
-// (model bake-off), e5_final.json (final calibration + threshold).
-// PR-AUC values shown on the external benchmark.
+// E-series experiment progression — end-to-end research trail.
+// External-benchmark PR-AUC and F1 across every stage that produced a
+// persistent metric artifact. Source: reports/e2_ranking.json,
+// e3_ranking.json, e4_best.json + e5_metadata.json (baseline classifier),
+// outputs/eval/e7_p1_results.json (25-feature fusion), and
+// outputs/eval/e8p9_bakeoff_results.json (E8-P9 raw classifier).
 const eSeriesData = [
   { phase: "E2\nAblation",   pr_auc: 0.979, f1: 0.932, label: "F3 feature set" },
   { phase: "E3\nBake-off",   pr_auc: 0.979, f1: 0.932, label: "logreg wins" },
   { phase: "E4\nHPO",        pr_auc: 0.984, f1: 0.939, label: "20 Optuna trials" },
-  { phase: "E5\nFinal",      pr_auc: 0.984, f1: 0.941, label: "calibration + thresholds" },
+  { phase: "E5\nFinal",      pr_auc: 0.984, f1: 0.941, label: "no calibration + t=0.59" },
+  { phase: "E7-P1\nFusion",  pr_auc: 0.982, f1: 0.941, label: "+ 25 numerical features" },
+  { phase: "E8-P9\nDeployed",pr_auc: 0.969, f1: 0.916, label: "+ modern corpus + rule engine" },
 ];
 
 // Dataset composition — E5 training corpus (before dedup).
@@ -226,9 +232,9 @@ export default function PerformancePage() {
         {/* ── 1. Top-line metrics ────────────────────────────────────────── */}
         <section>
           <SectionHeader
-            label="Model Metrics · E5 Production"
+            label="Deployed Model · E8-P9"
             title="PERFORMANCE"
-            sub="Calibrated Logistic Regression on 500,000 word + character TF-IDF features · trained on 195,776 deduplicated message clusters · decision threshold 0.59"
+            sub="Logistic Regression on 500,000 word + character TF-IDF features + 25 engineered numerical features + modular Rule Engine · trained on 195,776 deduplicated message clusters · decision threshold 0.59"
           />
 
           {/* Evaluation methodology callout */}
@@ -237,10 +243,12 @@ export default function PerformancePage() {
               About these numbers
             </p>
             <p className="text-white/60 text-xs leading-relaxed" style={MONO}>
-              Headline metrics below are from a <span className="text-white">locked one-shot benchmark of
+              Headline metrics below are for the <span className="text-white">deployed E8-P9 pipeline</span>
+              {' '}(classifier + Rule Engine) on a <span className="text-white">locked one-shot benchmark of
               25,306 messages</span> held out from all model selection, hyperparameter search, calibration,
-              and threshold tuning. Every scoring event on that benchmark is recorded in the research
-              repository. The reported F1 measures generalisation, not memorisation.
+              and threshold tuning. The pure classifier baseline (no Rule Engine) scores F1 = 0.941 on the
+              same benchmark — that number is preserved as a reference in the API's <span className="text-white">/stats</span> endpoint.
+              Every scoring event on the benchmark is recorded in the research repository.
             </p>
           </div>
 
@@ -259,15 +267,15 @@ export default function PerformancePage() {
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard title="Accuracy"   value={97.94} change={0} changeDescription="external, n=25,306"
+            <StatCard title="Accuracy"   value={96.87} change={0} changeDescription="external, n=25,306"
               icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} />
-            <StatCard title="F1 Score"   value={94.14} change={0} changeDescription="external, n=25,306"
+            <StatCard title="F1 Score"   value={91.31} change={0} changeDescription="external, n=25,306"
               icon={<Target className="h-4 w-4 text-green-400" />} />
-            <StatCard title="ROC-AUC"    value={99.50} change={0} changeDescription="external, n=25,306"
+            <StatCard title="ROC-AUC"    value={99.07} change={0} changeDescription="external, n=25,306"
               icon={<Activity className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Precision"  value={96.05} change={0} changeDescription="external, n=25,306"
+            <StatCard title="Precision"  value={91.02} change={0} changeDescription="external, n=25,306"
               icon={<ShieldCheck className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Recall"     value={92.30} change={0} changeDescription="external, n=25,306"
+            <StatCard title="Recall"     value={91.60} change={0} changeDescription="external, n=25,306"
               icon={<Zap className="h-4 w-4 text-green-400" />} />
             <StatCard title="Scam Types" value={12}    change={0} changeDescription="evaluated"
               icon={<BarChart2 className="h-4 w-4 text-green-400" />} />
@@ -367,11 +375,11 @@ export default function PerformancePage() {
                       <Cell key={i} fill={G} fillOpacity={0.6 + i * 0.1} />
                     ))}
                   </Bar>
-                  <ReferenceLine y={92.3} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
+                  <ReferenceLine y={91.6} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-[10px] text-white/25 mt-2" style={MONO}>
-                Dashed line = overall recall (0.923) · Per-category recall on 25,306 messages
+                Dashed line = overall recall (0.916) · Per-category recall on 25,306 messages
               </p>
             </ChartCard>
           </div>
@@ -387,7 +395,7 @@ export default function PerformancePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             {/* ROC Curve */}
-            <ChartCard title="ROC Curve" sub={`ROC-AUC = 0.995 · Near-perfect separation`}>
+            <ChartCard title="ROC Curve" sub={`ROC-AUC = 0.991 · Near-perfect separation`}>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart margin={{ top: 10, right: 20, left: -10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
@@ -417,8 +425,8 @@ export default function PerformancePage() {
                 </LineChart>
               </ResponsiveContainer>
               <div className="flex items-center justify-between mt-2 px-1">
-                <span className="text-xs text-white/30" style={MONO}>Logistic Regression · well-calibrated (ECE 0.008)</span>
-                <span className="text-xs font-bold text-green-400" style={MONO}>ROC-AUC = 0.995</span>
+                <span className="text-xs text-white/30" style={MONO}>Logistic Regression + Rule Engine · well-calibrated (ECE 0.013)</span>
+                <span className="text-xs font-bold text-green-400" style={MONO}>ROC-AUC = 0.991</span>
               </div>
             </ChartCard>
 
@@ -533,9 +541,9 @@ export default function PerformancePage() {
         {/* ── 6. E-series development journey ───────────────────────────── */}
         <section>
           <SectionHeader
-            label="Research Journey · E2 → E5"
+            label="Research Journey · E2 → E8-P9"
             title="MODEL DEVELOPMENT"
-            sub="External benchmark PR-AUC and F1 across the four E5 development stages"
+            sub="External benchmark PR-AUC and F1 across every stage that led to the deployed E8-P9 pipeline"
           />
           <ChartCard title="E-Series Progression" sub="Each stage builds on the previous under strict cluster-grouped evaluation">
             <ResponsiveContainer width="100%" height={280}>
@@ -560,7 +568,7 @@ export default function PerformancePage() {
                   activeDot={{ r: 5, fill: BLUE }} />
               </LineChart>
             </ResponsiveContainer>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4 text-xs" style={MONO}>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 text-xs" style={MONO}>
               <div className="border-l-2 border-green-400/40 pl-3">
                 <div className="text-green-400 font-bold mb-1">E2 · Feature ablation</div>
                 <div className="text-white/50 leading-snug">F1–F6 tested. F3 (word + char TF-IDF) wins on external PR-AUC.</div>
@@ -574,8 +582,16 @@ export default function PerformancePage() {
                 <div className="text-white/50 leading-snug">20-trial Optuna HPO. Best PR-AUC improvement +0.005.</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E5 · Calibration + thresholds</div>
-                <div className="text-white/50 leading-snug">No calibration needed (ECE 0.012). Threshold set at 0.59 (F1-max on validation).</div>
+                <div className="text-green-400 font-bold mb-1">E5 · Threshold selection</div>
+                <div className="text-white/50 leading-snug">No calibration needed (uncalibrated ECE 0.011 vs Platt 0.076). Threshold set at 0.59 (F1-max on validation).</div>
+              </div>
+              <div className="border-l-2 border-green-400/40 pl-3">
+                <div className="text-green-400 font-bold mb-1">E7-P1 · Feature fusion</div>
+                <div className="text-white/50 leading-snug">25 engineered numerical features (tone · URL · phrase · text stats) fused with TF-IDF. Each family reduces FP rate.</div>
+              </div>
+              <div className="border-l-2 border-green-400/40 pl-3">
+                <div className="text-green-400 font-bold mb-1">E8-P9 · Deployed</div>
+                <div className="text-white/50 leading-snug">Corpus expanded with modern synthetic scams + rule engine (Critical / Strong / Legit). Confirmed via final bake-off vs LinearSVC + SGD.</div>
               </div>
             </div>
           </ChartCard>

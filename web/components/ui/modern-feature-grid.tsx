@@ -20,7 +20,7 @@ const FEATURES: { Icon: LucideIcon; title: string; description: string }[] = [
     Icon: ShieldCheck,
     title: "AI Scam Detection",
     description:
-      "A calibrated Logistic Regression trained on 195,776 deduplicated real message clusters scores every input and returns an instant scam or legit verdict.",
+      "A Logistic Regression trained on 195,776 deduplicated real message clusters, combined with 25 engineered signals and a modular Rule Engine, scores every input and returns an instant scam or legit verdict.",
   },
   {
     Icon: Link2,
