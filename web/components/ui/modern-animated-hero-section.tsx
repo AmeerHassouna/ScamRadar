@@ -11,7 +11,6 @@ import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toast } from "@/components/ui/toast"
 import type { ToastMessage } from "@/components/ui/toast"
 import HoverSlatButton from "@/components/ui/hover-button"
-import { useTheme } from 'next-themes'
 
 const safeNum = (v: unknown, fallback = 0): number => {
   const n = Number(v)
@@ -1228,8 +1227,12 @@ function TechnicalDetails({ tones, accent }: {
 
 const RainingLetters: React.FC = () => {
 
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme !== 'light'
+  // Site is permanently dark (light-mode toggle was removed). Passing a
+  // constant instead of reading useTheme() avoids a next-themes quirk in
+  // static export where resolvedTheme momentarily resolved to 'light' and
+  // the canvas painted itself with the light fill colour (#f0f4f8), which
+  // read as a "white homepage" bug.
+  const isDark = true
 
   // Detect input state
   const [prompt, setPrompt] = useState('')

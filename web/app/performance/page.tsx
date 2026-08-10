@@ -11,7 +11,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   Cell, Legend, PolarRadiusAxis,
 } from "recharts";
-import { useTheme } from "next-themes";
 
 // ─── Static palette (non-colour constants stay at module level) ───────────────
 const CARD = "bg-zinc-900/60 border border-white/10 rounded-xl";
@@ -191,26 +190,22 @@ function ConfusionMatrix() {
 // ═══ Page ═══════════════════════════════════════════════════════════════════
 
 export default function PerformancePage() {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme !== 'light'
-
-  // ─── Theme-aware chart palette ──────────────────────────────────────────
-  const G      = isDark ? "#4ade80" : "#15803d"   // green
-  const BLUE   = isDark ? "#60a5fa" : "#2563eb"   // blue
-  const PURPLE = isDark ? "#a78bfa" : "#7c3aed"   // purple
-  const ORANGE = isDark ? "#fb923c" : "#c2410c"   // orange
-  const WHITE  = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.55)"
-  const TICK   = isDark ? "rgba(255,255,255,0.30)" : "rgba(15,23,42,0.35)"
-  const GRID   = isDark ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.09)"
-  const DOTSTROKE = isDark ? "#000" : "#fff"
+  // ─── Chart palette (dark-only — site has no light mode) ────────────────
+  const G      = "#4ade80"   // green
+  const BLUE   = "#60a5fa"   // blue
+  const PURPLE = "#a78bfa"   // purple
+  const ORANGE = "#fb923c"   // orange
+  const WHITE  = "rgba(255,255,255,0.55)"
+  const TICK   = "rgba(255,255,255,0.30)"
+  const GRID   = "rgba(255,255,255,0.07)"
+  const DOTSTROKE = "#000"
   const TOOLTIP_STYLE = {
-    backgroundColor: isDark ? "#111" : "#ffffff",
-    border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.10)"}`,
+    backgroundColor: "#111",
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: 8,
-    color: isDark ? "#fff" : "#0f172a",
+    color: "#fff",
     fontFamily: "monospace",
     fontSize: 12,
-    ...(isDark ? {} : { boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }),
   }
 
   return (
