@@ -40,9 +40,7 @@
 
     "files.exclude": {
 
-      // Whole legacy directories
-      "**/old_models":  true,
-      "**/legacy":      true,
+      // Whole legacy directories      "**/legacy":      true,
 
       // Legacy training / eval / data-prep scripts
       "**/train_v1_*.py":                  true,
@@ -113,9 +111,7 @@
       "**/node_modules":    true
     },
 
-    "search.exclude": {
-      "**/old_models":                     true,
-      "**/legacy":                         true,
+    "search.exclude": {      "**/legacy":                         true,
       "**/train_v1_*.py":                  true,
       "**/eval_v1_*.py":                   true,
       "**/eval_v1_7_triple.py":            true,      "**/generalisation_eval.py":         true,
