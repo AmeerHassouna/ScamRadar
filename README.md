@@ -465,6 +465,8 @@ Four generations of ML architecture ship with this repository — each supersede
 
 The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. The v1.x generation is no longer shipped in the working tree — its code and artifacts are archived in git history.
 
+For the thesis-defense audience, [`docs/THESIS_NAVIGATION.md`](docs/THESIS_NAVIGATION.md) maps common examiner questions to the specific file that answers each one.
+
 ---
 
 ## Team & acknowledgements
