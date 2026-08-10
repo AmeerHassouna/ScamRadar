@@ -1431,7 +1431,7 @@ const RainingLetters: React.FC = () => {
       {/* Scroll cue — pinned to the bottom of the hero, scrolls away with it.
        *  Only shows while the input view is active (not when a result is up). */}
       {!result && (
-        <div className="hidden sm:flex absolute bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex-col items-center gap-1">
+        <div className="flex absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex-col items-center gap-1">
           <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">
             Scroll for intel
           </span>

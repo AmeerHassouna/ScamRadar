@@ -85,8 +85,11 @@ export function SmartChoiceSection() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
 
-            {/* LEFT — 3 points (no icons, no numbers) ──────────────────────── */}
-            <div className="order-2 md:order-1 space-y-3">
+            {/* LEFT (mobile: TOP · horizontal row of 3) ─────────────────────
+             *  Mobile puts the tappable titles above the showcase and lays
+             *  them out as a compact 3-column grid so all three are visible
+             *  at once. Desktop keeps the vertical stack next to the visual. */}
+            <div className="order-1 md:order-1 grid grid-cols-3 gap-2 md:grid-cols-1 md:gap-3">
               {POINTS.map((p, i) => {
                 const isActive = i === active
                 return (
@@ -94,10 +97,10 @@ export function SmartChoiceSection() {
                     key={i}
                     type="button"
                     onClick={() => jumpTo(i)}
-                    className="w-full text-left focus:outline-none"
+                    className="w-full h-full text-left focus:outline-none"
                   >
                     <motion.div
-                      className="relative rounded-xl overflow-hidden transition-all"
+                      className="relative h-full rounded-xl overflow-hidden transition-all"
                       animate={{
                         backgroundColor: isActive ? "rgba(34,197,94,0.06)" : "rgba(255,255,255,0)",
                         opacity: isActive ? 1 : 0.55,
@@ -120,9 +123,9 @@ export function SmartChoiceSection() {
                         }}
                       />
 
-                      <div className="pl-6 pr-5 py-5 md:pl-7 md:pr-6 md:py-6">
+                      <div className="pl-3 pr-2 py-3 md:pl-7 md:pr-6 md:py-6">
                         <h3
-                          className="text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-[1.05]"
+                          className="text-[11px] sm:text-sm md:text-2xl font-black text-white uppercase tracking-tight leading-[1.1] md:leading-[1.05]"
                           style={MONO}
                         >
                           {p.line1}
@@ -155,8 +158,8 @@ export function SmartChoiceSection() {
               })}
             </div>
 
-            {/* RIGHT — swappable visual container ───────────────────────────── */}
-            <div className="order-1 md:order-2">
+            {/* RIGHT (mobile: BOTTOM) — swappable visual container ─────────── */}
+            <div className="order-2 md:order-2">
               <div
                 className="relative h-[440px] sm:h-[480px] md:h-[520px] rounded-2xl overflow-hidden"
                 style={{

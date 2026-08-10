@@ -84,14 +84,32 @@ export function AnimatedNavFramer() {
 
   const handleLinkClick = (href: string) => {
     setIsMenuOpen(false)
-    if (!href.startsWith("/#")) {
+
+    const isHashLink = href.startsWith("/#")
+
+    // Non-hash route (e.g. "/performance", "/team") — normal SPA navigation
+    if (!isHashLink) {
       router.push(href)
       return
     }
-    const hash = href.replace("/", "")
-    setTimeout(() => {
-      document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" })
-    }, 180)
+
+    // Hash link — if we're already on the home page, smooth-scroll the section
+    // into view. If we're on any other route, fall back to a full navigation so
+    // the browser actually loads / and honors the #hash. Previously this branch
+    // did querySelector on the CURRENT page — silent no-op when the target
+    // element didn't exist there (looked like a broken nav).
+    const path   = window.location.pathname.replace(/\/+$/, "")
+    const onHome = path === ""
+    const hash   = href.replace("/", "")
+
+    if (onHome) {
+      setTimeout(() => {
+        document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" })
+      }, 180)
+      return
+    }
+
+    window.location.assign(href)
   }
 
   return (
