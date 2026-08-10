@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
-DB_PATH     = os.path.join(BASE_DIR, 'data', 'db 4.db')
 MODELS_PATH = os.path.join(BASE_DIR, 'models')
 OUTPUT_PATH = os.path.join(BASE_DIR, 'outputs')
 

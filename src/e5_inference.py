@@ -180,12 +180,11 @@ def load_e5_pipeline(bundle_path: str | None = None) -> dict:
     Returns a dict whose shape is compatible with `api/main.py`'s existing
     `_pipe[...]` access pattern.
     """
-    # Production default: E8-P9 (E8-P6 base + 14,669 synthetic scam + 1,109
-    # paired legit twins targeting weak-recall categories). Rule engine
-    # extended with A9/A10/A11 type-floors (investment/romance/threat) and
-    # A3 OTP-theft loosened with a negation guard. Any env-var override
-    # (e.g. `e7_p1_full_e8p6` to roll back, or empty-string to fall back to
-    # the E5 bundle) takes precedence.
+    # Production default: E8-P9. Rule engine extended with A9/A10/A11
+    # type-floors (investment/romance/threat) and A3 OTP-theft loosened
+    # with a negation guard. An env-var override to any other e7_p1_*
+    # research variant (or the empty string to fall back to the E5
+    # bundle) takes precedence.
     override = os.environ.get('SCAMRADAR_LOCAL_MODEL', 'e7_p1_full_e8p9').strip()
     if override.startswith('e7_p1_'):
         # Research variant — different bundle schema; wrap in adapter

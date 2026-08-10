@@ -76,7 +76,7 @@ The production build is codename **E8-P9** — the E7-P1 Full classifier (E5 rec
 | **Bundle size** | 22.6 MB (single joblib, same as E5) | model artifact |
 | **Inference latency** | Sub-millisecond on the classifier itself; ~1–3 ms including rule-engine evaluation | measured |
 
-**Bundle selection.** The API loads `models/e7_p1_variants/${SCAMRADAR_LOCAL_MODEL}.joblib` at startup. Setting `SCAMRADAR_LOCAL_MODEL=e7_p1_full_e8p6` rolls back to the pre-E8-P9 build; unsetting it or setting an unknown value falls back to `models/e5_bundle.joblib` (the original text-only E5).
+**Bundle selection.** The API loads `models/e7_p1_variants/${SCAMRADAR_LOCAL_MODEL}.joblib` at startup, defaulting to `e7_p1_full_e8p9` (the deployed model). Unsetting `SCAMRADAR_LOCAL_MODEL` or setting an unknown value falls back to `models/e5_bundle.joblib` (the text-only E5 reference).
 
 ---
 
@@ -249,8 +249,7 @@ ScamRadar/
 │   ├── e5_threshold_sweep.json # Precision / recall / F1 across thresholds (E5)
 │   └── e7_p1_variants/
 │       ├── e7_p1_full_e8p9.joblib   # ← THE PRODUCTION BUNDLE
-│       ├── e7_p1_full_e8p6.joblib   # Rollback target (pre-synthetic-scam corpus)
-│       └── e7_p1_{tone,url,phrase,textstats,full}.joblib  # Ablation variants
+│       └── e7_p1_{tone,url,phrase,textstats,full}.joblib  # E7-P1 ablation variants
 ├── web/                       # Next.js 16 frontend → scamradarplus.com
 │   ├── app/                   # App Router pages (/, /performance, /team, …)
 │   └── components/ui/         # UI components
