@@ -2,12 +2,11 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ShieldAlert, AlertTriangle, CheckCircle, ShieldX, ShieldCheck, AlertCircle, Paperclip, X } from "lucide-react"
+import { ShieldAlert, AlertTriangle, CheckCircle, ShieldX, ShieldCheck, AlertCircle, Paperclip, X, Loader, ArrowRight } from "lucide-react"
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { Gauge } from "@/components/ui/gauge"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import SendButton from "@/components/ui/send-button"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toast } from "@/components/ui/toast"
 import type { ToastMessage } from "@/components/ui/toast"
@@ -629,13 +628,35 @@ interface DerivedVerdict {
   glyph:   ShieldGlyph
 }
 
-function deriveVerdict(result: any): DerivedVerdict {
+function deriveVerdict(result: any, isConversation = false): DerivedVerdict {
   if (result?.verdict === 'TOO_SHORT') {
     return {
       key: 'SHORT', label: 'NOT ENOUGH TEXT', accent: '#94A3B8', glyph: 'question',
       caption: 'Paste a longer message to get an accurate reading.',
     }
   }
+
+  // ─── Conversation mode: trust the backend's 3-tier verdict ────────────
+  // The /analyze-conversation endpoint fuses three scoring methods and emits
+  // SCAM / SUSPICIOUS / LEGIT with conversation-specific thresholds. Do not
+  // re-bucket by raw confidence — that would collapse the SUSPICIOUS tier
+  // and soften SCAM readings.
+  if (isConversation) {
+    const v = String(result?.verdict || '').toUpperCase()
+    if (v === 'SCAM') return {
+      key: 'SCAM', label: 'SCAM PATTERN', accent: '#EF4444', glyph: 'x',
+      caption: 'Manipulation patterns detected across this thread.',
+    }
+    if (v === 'SUSPICIOUS') return {
+      key: 'CAUTION', label: 'SUSPICIOUS PATTERN', accent: '#F59E0B', glyph: 'alert',
+      caption: 'Warning signs across the conversation. Verify before acting.',
+    }
+    return {
+      key: 'SAFE', label: 'THREAD LOOKS CLEAN', accent: '#22C55E', glyph: 'check',
+      caption: 'No manipulation patterns detected across this conversation.',
+    }
+  }
+
   const p = Math.max(0, Math.min(100, safeNum(result?.confidence, 0))) / 100
   if (p < 0.20) return {
     key: 'SAFE', label: 'LOOKS SAFE', accent: '#22C55E', glyph: 'check',
@@ -743,7 +764,7 @@ function Shield({ glyph, size = 96 }: { glyph: ShieldGlyph, size?: number }) {
 }
 
 // ─── Presentational subcomponents ──────────────────────────────────────────────
-function VerdictBlock({ v }: { v: DerivedVerdict }) {
+function VerdictBlock({ v, chip }: { v: DerivedVerdict; chip?: string }) {
   return (
     <div className="relative flex flex-col items-center text-center px-6 pt-14 pb-12 overflow-hidden">
 
@@ -786,6 +807,27 @@ function VerdictBlock({ v }: { v: DerivedVerdict }) {
           }}
         />
       ))}
+
+      {/* ── Mode chip (conversation only) ───────────────────────────────── */}
+      {chip && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="mb-5 relative inline-flex items-center gap-2 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.22em]"
+          style={{
+            background: `${v.accent}12`,
+            border:     `1px solid ${v.accent}33`,
+            color:      v.accent,
+          }}
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ background: v.accent, boxShadow: `0 0 6px ${v.accent}` }}
+          />
+          <span className="opacity-90">{chip}</span>
+        </motion.div>
+      )}
 
       {/* ── Radar stack: rings + rotating sweep + shield ─────────────────── */}
       <div className="relative" style={{ width: 200, height: 200, color: v.accent }}>
@@ -857,7 +899,7 @@ function VerdictBlock({ v }: { v: DerivedVerdict }) {
         transition={{ delay: 0.22, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <motion.span
-          className="inline-block text-[28px] sm:text-[36px] font-black tracking-[0.16em] leading-none"
+          className="inline-block font-mono text-[26px] sm:text-[34px] font-black tracking-[0.16em] leading-none"
           style={{ color: v.accent }}
           animate={{
             textShadow: [
@@ -874,7 +916,7 @@ function VerdictBlock({ v }: { v: DerivedVerdict }) {
 
       {/* ── Caption ───────────────────────────────────────────────────────── */}
       <motion.p
-        className="mt-4 text-[14px] sm:text-[15px] text-white/65 max-w-[360px] leading-relaxed"
+        className="mt-4 font-mono text-[12.5px] sm:text-[13.5px] text-white/65 max-w-[360px] leading-relaxed"
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32, duration: 0.35, ease: 'easeOut' }}
@@ -1022,7 +1064,7 @@ function ReasonsList({ items, accent, positive, delay = 0.32 }: {
           initial={{ opacity: 0, x: -4 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: delay + i * 0.06, duration: 0.3, ease: 'easeOut' }}
-          className="flex items-start gap-3 text-[13.5px] leading-relaxed text-white/82"
+          className="flex items-start gap-3 font-mono text-[12px] leading-relaxed text-white/82"
         >
           <span
             className="shrink-0 font-mono text-[10px] font-bold tabular-nums tracking-[0.05em] pt-[3px] w-5"
@@ -1054,9 +1096,9 @@ function LinksBlock({ urls, dangerous, threat }: {
             transition={{ delay: 0.32 + i * 0.05, duration: 0.28 }}
             className="flex items-center justify-between gap-4"
           >
-            <span className="text-[13.5px] font-medium text-white/88 truncate">{hostOf(u)}</span>
+            <span className="font-mono text-[12.5px] font-medium text-white/88 truncate">{hostOf(u)}</span>
             <span
-              className="shrink-0 text-[9.5px] font-bold uppercase tracking-[0.18em] px-2 py-1 rounded"
+              className="shrink-0 font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] px-2 py-1 rounded"
               style={{
                 color:      dangerous ? '#F87171' : '#4ADE80',
                 background: dangerous ? 'rgba(239,68,68,0.10)' : 'rgba(34,197,94,0.10)',
@@ -1068,10 +1110,10 @@ function LinksBlock({ urls, dangerous, threat }: {
           </motion.li>
         ))}
         {remaining > 0 && (
-          <li className="text-[11.5px] text-white/40 pt-1">and {remaining} more</li>
+          <li className="font-mono text-[11px] text-white/40 pt-1">and {remaining} more</li>
         )}
       </ul>
-      <p className="mt-3 pt-3 border-t border-white/[0.05] text-[11px] text-white/45 leading-relaxed">
+      <p className="mt-3 pt-3 border-t border-white/[0.05] font-mono text-[11px] text-white/45 leading-relaxed">
         {dangerous
           ? <>Flagged as <span className="text-white/70">{threat ?? 'unsafe'}</span> by Google Safe Browsing.</>
           : 'Verified by Google Safe Browsing.'}
@@ -1080,14 +1122,71 @@ function LinksBlock({ urls, dangerous, threat }: {
   )
 }
 
-function TechnicalDetails({ tones, conversation, accent }: {
-  tones: Array<{ label: string; desc: string; value: number; color: string }>
-  conversation: null | { full: number; window: number; final: number; analyzed: number; total: number }
+// ─── Conversation breakdown card ───────────────────────────────────────────────
+// The three fused scoring methods that make conversation analysis distinct from
+// single-message. Promoted from the collapsed "Technical Details" drawer to a
+// first-class evidence card because it's the whole point of the mode.
+function ConversationBreakdownCard({
+  conversation,
+  accent,
+  index,
+}: {
+  conversation: { full: number; window: number; final: number; analyzed: number; total: number }
+  accent:       string
+  index:        number
+}) {
+  const methods = [
+    { label: 'Full thread',    score: conversation.full,   desc: 'how the whole conversation reads' },
+    { label: 'Peak window',    score: conversation.window, desc: 'most suspicious stretch of messages' },
+    { label: 'Final messages', score: conversation.final,  desc: 'where scammers usually escalate' },
+  ] as const
+
+  return (
+    <EvidenceCard
+      index={index}
+      label="Pattern Breakdown"
+      meta={`${conversation.analyzed} / ${conversation.total} MSG`}
+      accent={accent}
+    >
+      <p className="font-mono text-[11px] text-white/45 mt-1 mb-4">
+        Three scoring lenses were fused into the verdict above.
+      </p>
+      <div className="space-y-3.5">
+        {methods.map(({ label, score, desc }) => {
+          const c = score >= 65 ? '#EF4444' : score >= 40 ? '#F59E0B' : '#22C55E'
+          return (
+            <div key={label}>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="font-mono text-[12px] font-semibold text-white/85">{label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest font-semibold"
+                      style={{ color: c }}>
+                  {score >= 65 ? 'High risk' : score >= 40 ? 'Moderate' : 'Low risk'}
+                </span>
+              </div>
+              <p className="font-mono text-[11px] text-white/45 mb-2">{desc}</p>
+              <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: c }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${score}%` }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </EvidenceCard>
+  )
+}
+
+function TechnicalDetails({ tones, accent }: {
+  tones:  Array<{ label: string; desc: string; value: number; color: string }>
   accent: string
 }) {
   const [open, setOpen] = useState(false)
-  const hasContent = tones.length > 0 || conversation !== null
-  if (!hasContent) return null
+  if (tones.length === 0) return null
 
   return (
     <EvidenceCard
@@ -1098,75 +1197,28 @@ function TechnicalDetails({ tones, conversation, accent }: {
       onToggle={() => setOpen(o => !o)}
       expandHint={open ? 'signal data below' : 'expand for raw signal data'}
     >
-      <div className="space-y-6 pt-2">
-        {tones.length > 0 && (
-          <div className="space-y-3">
-            {tones.map(t => (
-              <div key={t.label}>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-[13px] font-medium text-white/85">{t.label}</span>
-                  <span className="text-[10px] uppercase tracking-widest font-semibold"
-                        style={{ color: t.color }}>
-                    {t.value >= 4 ? 'Very high' : t.value >= 3 ? 'High' : t.value >= 2 ? 'Moderate' : 'Mild'}
-                  </span>
-                </div>
-                <p className="text-[11.5px] text-white/45 mb-2">{t.desc}</p>
-                <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: t.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (t.value / 4) * 100)}%` }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {conversation && (
-          <div>
-            {tones.length > 0 && <div className="h-px bg-white/[0.05] mb-5" />}
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35 mb-2">
-              Conversation breakdown
-            </p>
-            <p className="text-[11.5px] text-white/45 mb-4">
-              Analysed {conversation.analyzed} of {conversation.total} messages
-              across three lenses.
-            </p>
-            <div className="space-y-3.5">
-              {([
-                { label: 'Full thread',    score: conversation.full,   desc: 'how the whole conversation reads' },
-                { label: 'Peak window',    score: conversation.window, desc: 'most suspicious stretch' },
-                { label: 'Final messages', score: conversation.final,  desc: 'where scammers usually escalate' },
-              ] as const).map(({ label, score, desc }) => {
-                const c = score >= 65 ? '#EF4444' : score >= 40 ? '#F59E0B' : '#22C55E'
-                return (
-                  <div key={label}>
-                    <div className="flex items-baseline justify-between mb-1">
-                      <span className="text-[13px] font-medium text-white/85">{label}</span>
-                      <span className="text-[10px] uppercase tracking-widest font-semibold"
-                            style={{ color: c }}>
-                        {score >= 65 ? 'High risk' : score >= 40 ? 'Moderate' : 'Low risk'}
-                      </span>
-                    </div>
-                    <p className="text-[11.5px] text-white/45 mb-2">{desc}</p>
-                    <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: c }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${score}%` }}
-                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+      <div className="space-y-3 pt-2">
+        {tones.map(t => (
+          <div key={t.label}>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="font-mono text-[12px] font-semibold text-white/85">{t.label}</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest font-semibold"
+                    style={{ color: t.color }}>
+                {t.value >= 4 ? 'Very high' : t.value >= 3 ? 'High' : t.value >= 2 ? 'Moderate' : 'Mild'}
+              </span>
+            </div>
+            <p className="font-mono text-[11px] text-white/45 mb-2">{t.desc}</p>
+            <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: t.color }}
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (t.value / 4) * 100)}%` }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              />
             </div>
           </div>
-        )}
+        ))}
       </div>
     </EvidenceCard>
   )
@@ -1259,11 +1311,11 @@ const RainingLetters: React.FC = () => {
     e.target.value = ''
   }
 
-  const quickExamples = [
-    { label: 'Phishing', icon: ShieldAlert, text: 'URGENT: Your PayPal account has been suspended! Verify now at http://paypal-secure-verify.tk/login' },
-    { label: 'Crypto Scam', icon: AlertTriangle, text: 'I turned $500 into $12000 in 6 weeks with this crypto strategy DM me for the link' },
-    { label: 'Legit', icon: CheckCircle, text: 'Your Amazon order has shipped. Estimated delivery Thursday. Track at amazon.com/orders' },
-    { label: 'Safe OTP', icon: CheckCircle, text: 'Your WhatsApp code is 847-291. Do not share this code with anyone.' },
+  const quickExamples: Array<{ label: string; preview: string; text: string; tone: 'scam' | 'legit' }> = [
+    { label: 'Phishing',    preview: 'paypal-secure-verify.tk / login',       text: 'URGENT: Your PayPal account has been suspended! Verify now at http://paypal-secure-verify.tk/login', tone: 'scam'  },
+    { label: 'Crypto Scam', preview: '$500 → $12,000 in 6 weeks · DM me',     text: 'I turned $500 into $12000 in 6 weeks with this crypto strategy DM me for the link',                  tone: 'scam'  },
+    { label: 'Shipping',    preview: 'Amazon order shipped · Thu',            text: 'Your Amazon order has shipped. Estimated delivery Thursday. Track at amazon.com/orders',              tone: 'legit' },
+    { label: 'OTP Code',    preview: 'WhatsApp code 847-291 · do not share',  text: 'Your WhatsApp code is 847-291. Do not share this code with anyone.',                                  tone: 'legit' },
   ]
 
   const runAnalysis = async () => {
@@ -1372,9 +1424,26 @@ const RainingLetters: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full min-h-[100dvh] bg-black overflow-hidden">
+    <div className="relative w-full min-h-[100dvh] sm:min-h-[92dvh] bg-black overflow-hidden">
       {/* Canvas-based raining characters — replaces 300 spans × 60fps React re-renders */}
       <RainingCanvas isDark={isDark} />
+
+      {/* Scroll cue — pinned to the bottom of the hero, scrolls away with it.
+       *  Only shows while the input view is active (not when a result is up). */}
+      {!result && (
+        <div className="hidden sm:flex absolute bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex-col items-center gap-1">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">
+            Scroll for intel
+          </span>
+          <motion.span
+            className="font-mono text-[11px] leading-none text-white/50"
+            animate={{ y: [0, 3, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            ↓
+          </motion.span>
+        </div>
+      )}
 
       {/* Centered overlay — title + input */}
       <div className={cn(
@@ -1440,91 +1509,135 @@ const RainingLetters: React.FC = () => {
 
             {/* Trust badge */}
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1 mb-1">
-              <p className="font-mono text-center text-[10px] text-white/25">
+              <p className="font-mono text-center text-[10px] uppercase tracking-widest text-white/30">
                 Free to use · Not stored · No account needed
               </p>
               {!serverReady && (
-                <span className="flex items-center gap-1 text-[10px] text-white/20 font-mono shrink-0">
+                <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-white/25 font-mono shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />
                   Connecting…
                 </span>
               )}
             </div>
 
-            {/* Conversation mode hint */}
-            {conversationMode && (
-              <p className="font-mono text-center text-[10px] text-white/30 mb-1">
-                <span className="sm:hidden">Paste a chat thread — AI scans the full conversation</span>
-                <span className="hidden sm:inline">Paste a WhatsApp or SMS thread — the AI tracks manipulation across the whole conversation</span>
-              </p>
-            )}
-
+            {/* ═══ Scanner-console input ═══════════════════════════════════
+             *  Radar-viewfinder aesthetic: status header on top, main frame
+             *  with corner reticles + textarea, footer with counter + SCAN
+             *  action. Preserves every behaviour of the old input (file
+             *  upload, warmup banner, char-limit warning, loading state).
+             * ═══════════════════════════════════════════════════════════ */}
             <div className={cn(
-              'rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-white/5 to-black/20 transition-all duration-500',
-              prompt.trim() ? 'drop-shadow-[0_0_12px_rgba(0,255,0,0.3)]' : ''
+              'relative mt-4 transition-all duration-500',
+              prompt.trim() || warmingUp
+                ? 'drop-shadow-[0_0_50px_-4px_rgba(74,222,128,0.42)]'
+                : 'drop-shadow-[0_0_30px_-10px_rgba(74,222,128,0.22)]'
             )}>
-              <textarea
-                ref={textareaRef}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleAnalyse()
-                  }
-                }}
-                placeholder={conversationMode
-                  ? 'Paste a conversation thread here...'
-                  : 'Paste any suspicious message here...'}
-                rows={conversationMode ? 5 : 3}
-                inputMode="text"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                className="font-mono w-full resize-none rounded-t-2xl bg-black/60 border border-white/10 border-b-0 text-white placeholder:text-white/30 outline-none focus:ring-0 backdrop-blur-md px-4 py-3 text-base sm:text-sm"
-              />
-              {/* Bottom bar — sits flush under textarea */}
-              <div className="flex items-center justify-between gap-2 bg-black/60 border border-white/10 border-t border-t-white/[0.06] rounded-b-2xl px-3 py-2">
-                {/* Left: upload (conversation) or spacer */}
-                {conversationMode ? (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".txt,.log,.csv"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="font-mono flex items-center gap-1.5 text-xs text-white/40 hover:text-green-400 transition-colors duration-200 min-h-[36px]"
-                      title="Upload .txt, .csv, .log"
-                    >
-                      <Paperclip className="w-3.5 h-3.5 shrink-0" />
-                      {fileName
-                        ? <span className="text-green-400 max-w-[100px] sm:max-w-[140px] truncate">{fileName}</span>
-                        : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload file</span></>
-                      }
-                    </button>
-                  </>
-                ) : (
-                  <div />
-                )}
-
-                {/* Right: char counter + send */}
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {prompt.length > 0 && prompt.trim().length < 20 && (
-                    <span className="font-mono text-[10px] text-yellow-400/60">
-                      {prompt.trim().length}/20
-                    </span>
-                  )}
-                  <SendButton
-                    onClick={handleAnalyse}
-                    disabled={!prompt.trim() || prompt.trim().length < 20}
-                    loading={isAnalysing}
-                  />
+              {/* Status header strip */}
+              <div className="flex items-center px-4 py-2 bg-gradient-to-r from-green-400/[0.08] via-green-400/[0.03] to-transparent border border-b-0 border-green-400/30 rounded-t-xl">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-green-400/90 font-semibold">
+                    ScamRadar &middot; Ready to scan
+                  </span>
                 </div>
+              </div>
+
+              {/* Main input frame — corner brackets simulate a viewfinder */}
+              <div className="relative bg-black/70 backdrop-blur-md border-x border-green-400/30 focus-within:border-green-400/60 focus-within:bg-black/85 transition-all duration-300">
+                {/* 4 corner reticles */}
+                <span className="pointer-events-none absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-green-400/80" />
+                <span className="pointer-events-none absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-green-400/80" />
+                <span className="pointer-events-none absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-green-400/80" />
+                <span className="pointer-events-none absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-green-400/80" />
+
+                <textarea
+                  ref={textareaRef}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleAnalyse()
+                    }
+                  }}
+                  placeholder={conversationMode
+                    ? 'Paste a conversation thread here...'
+                    : 'Paste any suspicious message here...'}
+                  rows={conversationMode ? 5 : 3}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  className="font-mono w-full resize-none bg-transparent text-white placeholder:text-white/30 outline-none focus:ring-0 px-5 py-4 text-base sm:text-sm leading-relaxed"
+                />
+              </div>
+
+              {/* Footer strip */}
+              <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-black/70 border border-t-0 border-green-400/30 rounded-b-xl">
+                {/* Left: upload (conversation mode) + char meter */}
+                <div className="flex items-center gap-3 min-w-0">
+                  {conversationMode && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".txt,.log,.csv"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="font-mono flex items-center gap-1.5 text-[11px] text-white/40 hover:text-green-400 transition-colors shrink-0"
+                        title="Upload .txt, .csv, .log"
+                      >
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {fileName
+                          ? <span className="text-green-400 max-w-[100px] sm:max-w-[140px] truncate">{fileName}</span>
+                          : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload file</span></>}
+                      </button>
+                      <span className="hidden sm:inline text-white/15">|</span>
+                    </>
+                  )}
+                  <span className={cn(
+                    'font-mono text-[10px] uppercase tracking-wider tabular-nums shrink-0',
+                    prompt.length > 0 && prompt.trim().length < 20
+                      ? 'text-yellow-400/80'
+                      : 'text-white/35'
+                  )}>
+                    [{String(prompt.length).padStart(4, '0')} / 5000]
+                    {prompt.length > 0 && prompt.trim().length < 20 && (
+                      <span className="ml-2 text-yellow-400/80 normal-case tracking-normal">need {20 - prompt.trim().length} more</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Right: SCAN button */}
+                <button
+                  onClick={handleAnalyse}
+                  disabled={!prompt.trim() || prompt.trim().length < 20 || isAnalysing}
+                  className={cn(
+                    'group flex items-center gap-2 rounded-md px-4 py-2 font-mono text-xs uppercase tracking-widest font-bold transition-all duration-200 shrink-0',
+                    (!prompt.trim() || prompt.trim().length < 20 || isAnalysing)
+                      ? 'bg-white/[0.04] border border-white/10 text-white/30 cursor-not-allowed'
+                      : 'bg-green-400 hover:bg-green-300 text-black shadow-[0_0_20px_-4px_rgba(74,222,128,0.6)] hover:shadow-[0_0_28px_-2px_rgba(74,222,128,0.9)] active:scale-95'
+                  )}
+                >
+                  {isAnalysing ? (
+                    <>
+                      <Loader className="w-3.5 h-3.5 animate-spin" />
+                      Scanning
+                    </>
+                  ) : (
+                    <>
+                      Scan
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -1560,51 +1673,45 @@ const RainingLetters: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Quick example pills */}
+            {/* Example buttons — same mono/sharp language as the SCAN button,
+             *  just tone-coloured (red for scam, green for legit) and dimmer.
+             *  Prefixed by a small caption so the user understands these are
+             *  sample messages that load into the scanner, not filters/modes. */}
             {!result && (
-              <div
-                className="flex gap-2 mt-3 overflow-x-auto sm:flex-wrap sm:justify-center pb-1"
-                style={{ scrollbarWidth: "none" } as React.CSSProperties}
-              >
-                {quickExamples.map((ex) => (
-                  <Button
-                    key={ex.label}
-                    variant="tertiary"
-                    size="sm"
-                    leadingIcon={ex.icon}
-                    onClick={() => setPrompt(ex.text)}
-                    className="border-white/10 bg-black/40 text-white/50 hover:text-white hover:border-white/30 rounded-full shrink-0"
-                  >
-                    {ex.label}
-                  </Button>
-                ))}
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-white/35">
+                  <span className="text-white/20">↓</span>
+                  &nbsp;&nbsp;Or try one of these examples&nbsp;&nbsp;
+                  <span className="text-white/20">↓</span>
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {quickExamples.map((ex) => {
+                    const isScam = ex.tone === 'scam'
+                    return (
+                      <button
+                        key={ex.label}
+                        onClick={() => setPrompt(ex.text)}
+                        title="Load this example message into the scanner"
+                        className={cn(
+                          'font-mono text-[11px] uppercase tracking-widest font-semibold px-3 py-1.5 rounded-md border transition-colors duration-150 cursor-pointer',
+                          isScam
+                            ? 'text-red-400/80 border-red-400/25 hover:text-red-300 hover:border-red-400/60 hover:bg-red-400/10'
+                            : 'text-green-400/80 border-green-400/25 hover:text-green-300 hover:border-green-400/60 hover:bg-green-400/10'
+                        )}
+                      >
+                        {ex.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
-
-            {/* Verdict legend — only shown before first scan */}
-            {!result && (
-              <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
-                {[
-                  { dot: '#EF4444', label: 'SCAM',       desc: 'Do not engage' },
-                  { dot: '#F59E0B', label: 'SUSPICIOUS',  desc: 'Proceed carefully' },
-                  { dot: '#22C55E', label: 'LEGIT',       desc: 'Appears safe' },
-                ].map(({ dot, label, desc }) => (
-                  <span key={label} className="flex items-center gap-1.5 font-mono text-[10px] text-white/30">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot, opacity: 0.7 }} />
-                    <span style={{ color: dot, opacity: 0.6 }}>{label}</span>
-                    <span className="text-white/20">— {desc}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-
-
 
             {/* Results */}
             <AnimatePresence>
               {result && (() => {
                 const isConv     = conversationMode
-                const verdict    = deriveVerdict(result)
+                const verdict    = deriveVerdict(result, isConv)
                 const reasons    = synthReasons(result, verdict.key)
                 const scamType   = prettyScamType(result?.scam_type)
                 const links      = extractLinks(result)
@@ -1672,60 +1779,79 @@ const RainingLetters: React.FC = () => {
                         <span className="hidden sm:inline whitespace-nowrap">New Scan</span>
                       </motion.button>
 
-                      <VerdictBlock v={verdict} />
+                      <VerdictBlock
+                        v={verdict}
+                        chip={isConv && conversation
+                          ? `Pattern Scan · ${conversation.analyzed} / ${conversation.total} Msg · 3-Method Fusion`
+                          : undefined}
+                      />
 
                       {/* Evidence stack — each finding is a uniform bordered card. */}
                       <div className="px-5 sm:px-6 pb-6 space-y-2.5">
+                        {(() => {
+                          // Renumber cards on the fly so indices stay contiguous
+                          // regardless of which cards are present in this result.
+                          let idx = 0
+                          const nextIdx = () => idx++
+                          return (
+                            <>
+                              {reasons.length > 0 && (
+                                <EvidenceCard
+                                  index={nextIdx()}
+                                  label={isPositiveVerdict(verdict.key) ? 'Reassurance' : 'Pattern'}
+                                  meta={`${reasons.length} ${reasons.length === 1 ? 'Signal' : 'Signals'}`}
+                                  accent={verdict.accent}
+                                >
+                                  <ReasonsList
+                                    items={reasons}
+                                    accent={verdict.accent}
+                                    positive={isPositiveVerdict(verdict.key)}
+                                  />
+                                </EvidenceCard>
+                              )}
 
-                        {reasons.length > 0 && (
-                          <EvidenceCard
-                            index={0}
-                            label={isPositiveVerdict(verdict.key) ? 'Reassurance' : 'Pattern'}
-                            meta={`${reasons.length} ${reasons.length === 1 ? 'Signal' : 'Signals'}`}
-                            accent={verdict.accent}
-                          >
-                            <ReasonsList
-                              items={reasons}
-                              accent={verdict.accent}
-                              positive={isPositiveVerdict(verdict.key)}
-                            />
-                          </EvidenceCard>
-                        )}
+                              {links && (
+                                <EvidenceCard
+                                  index={nextIdx()}
+                                  label={links.urls.length === 1 ? 'Link' : 'Links'}
+                                  meta={`${links.urls.length} ${links.urls.length === 1 ? 'URL' : 'URLs'}`}
+                                  accent={verdict.accent}
+                                >
+                                  <LinksBlock urls={links.urls} dangerous={links.dangerous} threat={links.threat} />
+                                </EvidenceCard>
+                              )}
 
-                        {links && (
-                          <EvidenceCard
-                            index={reasons.length > 0 ? 1 : 0}
-                            label={links.urls.length === 1 ? 'Link' : 'Links'}
-                            meta={`${links.urls.length} ${links.urls.length === 1 ? 'URL' : 'URLs'}`}
-                            accent={verdict.accent}
-                          >
-                            <LinksBlock urls={links.urls} dangerous={links.dangerous} threat={links.threat} />
-                          </EvidenceCard>
-                        )}
+                              {scamType && (
+                                <EvidenceCard
+                                  index={nextIdx()}
+                                  label="Classification"
+                                  accent={verdict.accent}
+                                >
+                                  <div className="mt-1 font-mono text-[15px] sm:text-[16px] font-bold uppercase tracking-[0.18em]"
+                                       style={{
+                                         color:      verdict.accent,
+                                         textShadow: `0 0 16px ${verdict.accent}44`,
+                                       }}>
+                                    {scamType}
+                                  </div>
+                                </EvidenceCard>
+                              )}
 
-                        {scamType && (
-                          <EvidenceCard
-                            index={
-                              (reasons.length > 0 ? 1 : 0) + (links ? 1 : 0)
-                            }
-                            label="Classification"
-                            accent={verdict.accent}
-                          >
-                            <div className="mt-1 font-mono text-[15px] sm:text-[16px] font-bold uppercase tracking-[0.18em]"
-                                 style={{
-                                   color:      verdict.accent,
-                                   textShadow: `0 0 16px ${verdict.accent}44`,
-                                 }}>
-                              {scamType}
-                            </div>
-                          </EvidenceCard>
-                        )}
+                              {isConv && conversation && (
+                                <ConversationBreakdownCard
+                                  index={nextIdx()}
+                                  conversation={conversation}
+                                  accent={verdict.accent}
+                                />
+                              )}
 
-                        <TechnicalDetails
-                          tones={tones}
-                          conversation={conversation}
-                          accent={verdict.accent}
-                        />
+                              <TechnicalDetails
+                                tones={tones}
+                                accent={verdict.accent}
+                              />
+                            </>
+                          )
+                        })()}
                       </div>
 
                     </ErrorBoundary>

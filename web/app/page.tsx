@@ -22,8 +22,8 @@ const teamMembers = [
     name: 'Moatasem Khalifeh',
     affiliation: 'Data Scientist & Backend Engineer',
     quote: 'The hardest part wasn\'t the accuracy — it was making thousands of messy, real-world messages speak to a single model. We trained on the actual language scammers use, not sanitised examples, and we evaluated it on data the model had never seen. That\'s what makes the difference.',
-    imageSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic',
-    thumbnailSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/v1778505084/IMG_3514_zebobw.heic',
+    imageSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/f_auto,q_auto/v1778505084/IMG_3514_zebobw.heic',
+    thumbnailSrc: 'https://res.cloudinary.com/donzqvn9k/image/upload/f_auto,q_auto/v1778505084/IMG_3514_zebobw.heic',
   },
   {
     id: 3,

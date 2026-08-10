@@ -6,7 +6,6 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-
 import { Menu, X, Home, Zap, ShieldAlert, HelpCircle, BarChart2, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ThemeToggle } from "@/components/ui/curtain-theme-toggle"
 
 const MONO: React.CSSProperties = { fontFamily: "monospace" }
 
@@ -156,12 +155,8 @@ export function AnimatedNavFramer() {
               ))}
             </div>
 
-            {/* Right: ThemeToggle + mobile hamburger */}
+            {/* Right: mobile hamburger — always shows on small screens */}
             <div className="flex items-center gap-1">
-              <div onClick={(e) => e.stopPropagation()}>
-                <ThemeToggle />
-              </div>
-              {/* Mobile hamburger — always shows on small screens */}
               <motion.button
                 onClick={() => setIsMenuOpen(true)}
                 className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-white/60 hover:text-green-400 hover:bg-green-400/8 transition-colors"

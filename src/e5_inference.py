@@ -454,10 +454,11 @@ def predict_e5(
     why_parts: list[str] = []
     if verdict != 'LEGIT':
         if scam_type and scam_type != 'general_spam':
-            why_parts.append(
-                'The structure and language of this message closely match a '
-                f'{scam_type.replace("_", " ")} pattern.'
-            )
+            label = scam_type.replace('_', ' ')
+            # Pluralise cleanly: "romance scam" → "romance scams",
+            # "credential phishing" → "credential phishing scams".
+            phrase = f'{label}s' if label.endswith(' scam') else f'{label} scams'
+            why_parts.append(f'Uses language typical of {phrase}.')
         if tone[0] >= 2:
             why_parts.append('Uses urgent language to pressure quick action.')
         if tone[3] >= 1:

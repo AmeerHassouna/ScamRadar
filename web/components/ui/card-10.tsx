@@ -7,15 +7,10 @@ import { cn } from "@/lib/utils";
 interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
   value: number;
-  change: number;
-  changeDescription: string;
-  icon: React.ReactNode;
 }
 
 const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
-  ({ title, value, change, changeDescription, icon, className, ...props }, ref) => {
-    const isPositive = change >= 0;
-
+  ({ title, value, className, ...props }, ref) => {
     const motionValue = useSpring(value, {
       damping: 100,
       stiffness: 100,
@@ -33,8 +28,6 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       return controls.stop;
     }, [value, motionValue]);
 
-    const ariaLabel = `${title}: ${value}. Change is ${change > 0 ? '+' : ''}${change}% ${changeDescription}.`;
-
     return (
       <div
         ref={ref}
@@ -42,7 +35,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           "flex flex-col gap-1.5 sm:gap-2 rounded-xl border border-white/10 bg-zinc-900/60 p-3 sm:p-6 text-white shadow backdrop-blur-sm",
           className
         )}
-        aria-label={ariaLabel}
+        aria-label={`${title}: ${value}`}
         role="region"
         {...props}
       >
@@ -55,28 +48,6 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           )}
         </div>
         <p className="text-xs sm:text-base text-white/50">{title}</p>
-        <div className="mt-2 sm:mt-4 flex items-center gap-1.5 sm:gap-2">
-          <span
-            className={cn(
-              "flex items-center justify-center rounded-full p-1.5",
-              isPositive ? "bg-green-500/20" : "bg-red-500/20"
-            )}
-          >
-            {icon}
-          </span>
-          <p className="text-xs sm:text-sm text-white/50">
-            <span
-              className={cn(
-                "font-semibold",
-                isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-              )}
-            >
-              {isPositive ? "+" : ""}
-              {change}%
-            </span>
-            <span> from {changeDescription}</span>
-          </p>
-        </div>
       </div>
     );
   }

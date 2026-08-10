@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowUpRight, ArrowLeft, ShieldCheck, Target, Activity, BarChart2, Zap, Database } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { StatCard } from "@/components/ui/card-10";
 import { LineChart8 } from "@/components/ui/line-charts-8";
 import {
@@ -267,18 +267,12 @@ export default function PerformancePage() {
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard title="Accuracy"   value={96.87} change={0} changeDescription="external, n=25,306"
-              icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} />
-            <StatCard title="F1 Score"   value={91.31} change={0} changeDescription="external, n=25,306"
-              icon={<Target className="h-4 w-4 text-green-400" />} />
-            <StatCard title="ROC-AUC"    value={99.07} change={0} changeDescription="external, n=25,306"
-              icon={<Activity className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Precision"  value={91.02} change={0} changeDescription="external, n=25,306"
-              icon={<ShieldCheck className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Recall"     value={91.60} change={0} changeDescription="external, n=25,306"
-              icon={<Zap className="h-4 w-4 text-green-400" />} />
-            <StatCard title="Scam Types" value={12}    change={0} changeDescription="evaluated"
-              icon={<BarChart2 className="h-4 w-4 text-green-400" />} />
+            <StatCard title="Accuracy"   value={96.87} />
+            <StatCard title="F1 Score"   value={91.31} />
+            <StatCard title="ROC-AUC"    value={99.07} />
+            <StatCard title="Precision"  value={91.02} />
+            <StatCard title="Recall"     value={91.60} />
+            <StatCard title="Scam Types" value={12}    />
           </div>
         </section>
 

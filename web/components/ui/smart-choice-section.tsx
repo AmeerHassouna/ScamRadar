@@ -6,31 +6,18 @@ import { motion, AnimatePresence } from "framer-motion"
 const MONO: React.CSSProperties = { fontFamily: "monospace" }
 
 // ── Three marketing points, each with a genuinely different visual ──────────
+// Each title is split into two lines so we can style the second line green —
+// mirrors the section's own "DETECTION THAT / ACTUALLY WORKS" treatment.
 type Point = {
-  title: string
-  body: string
+  line1:  string
+  line2:  string
   Visual: React.FC
 }
 
 const POINTS: Point[] = [
-  {
-    title: "Spots what instincts miss",
-    body:
-      "Scams engineer trust through urgency, impersonation, and lookalike URLs. We read the signals your eye slides right past.",
-    Visual: VisualLiveCatch,
-  },
-  {
-    title: "Free forever. Zero signup.",
-    body:
-      "Paste. Get a verdict. That's it. No account, no cookies, no tracking. Your text is analysed and discarded.",
-    Visual: VisualPrivacyManifest,
-  },
-  {
-    title: "A verdict, not a percentage",
-    body:
-      "No decimal points. No confidence math. Just a plain answer — 'looks safe' or 'don't trust it' — the kind you can act on in a second.",
-    Visual: VisualScorecard,
-  },
+  { line1: "Spots what",   line2: "Instincts Miss",   Visual: VisualLiveCatch       },
+  { line1: "Free Forever.", line2: "Zero Signup.",    Visual: VisualPrivacyManifest },
+  { line1: "A Verdict,",   line2: "Not a Percentage", Visual: VisualScorecard       },
 ]
 
 const AUTOPLAY_MS = 6000
@@ -135,17 +122,13 @@ export function SmartChoiceSection() {
 
                       <div className="pl-6 pr-5 py-5 md:pl-7 md:pr-6 md:py-6">
                         <h3
-                          className="text-lg md:text-xl font-bold text-white mb-2"
+                          className="text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-[1.05]"
                           style={MONO}
                         >
-                          {p.title}
+                          {p.line1}
+                          <br />
+                          <span className="text-green-400">{p.line2}</span>
                         </h3>
-                        <p
-                          className="text-sm md:text-[14.5px] leading-relaxed text-white/55"
-                          style={MONO}
-                        >
-                          {p.body}
-                        </p>
 
                         {/* Autoplay progress bar under the active point */}
                         <div
