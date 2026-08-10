@@ -33,7 +33,7 @@ import pandas as pd
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_HERE))
 sys.path.insert(0, _ROOT)
-from src._09_prediction_pipeline import load_pipeline, predict_message
+from src.inference import load_pipeline, predict_message
 
 BASE = '/Users/ameer/Downloads/scamradar2'
 OUT_DIR = os.path.join(_ROOT, 'outputs', 'eval')

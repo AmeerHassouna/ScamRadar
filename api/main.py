@@ -15,7 +15,7 @@ import os
 # Portable path — works on any machine / container
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src._09_prediction_pipeline import load_pipeline, predict_message
+from src.inference import load_pipeline, predict_message
 from api.cache import get_prediction, set_prediction, cache_info
 from config import (
     GOOGLE_SAFEBROWSING_API_KEY, VIRUSTOTAL_API_KEY,

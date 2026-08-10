@@ -1,53 +1,67 @@
-"""ScamRadar+ | Central configuration — change values here, not scattered across files."""
+"""ScamRadar+ | Central configuration.
+
+Every constant here is consumed by the deployed E8-P9 inference path
+(`api/main.py` → `src/inference.py` → `src/rule_engine/`) or by the
+E5-fallback wrapper (`src/e5_inference.py`). Anything unused by the
+deployed system has been removed; git history is the archive.
+"""
 
 import os
+
 from dotenv import load_dotenv
 
-# Load .env from the project root (no-op if the file doesn't exist)
+
+# Load .env from the project root (no-op if the file doesn't exist).
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
+
+# ─── Paths ────────────────────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 MODELS_PATH = os.path.join(BASE_DIR, 'models')
-OUTPUT_PATH = os.path.join(BASE_DIR, 'outputs')
 
-# ── Index rebuilding ───────────────────────────────────────────────────────
-# Set True to force re-encode all 45 k messages via Sentence Transformers.
-# False = skip encoding if embeddings.npy already exists (saves ~2 min).
-REBUILD_INDEX = False
 
-# ── FAISS search depth ─────────────────────────────────────────────────────
-FAISS_K_SCAM  = 10
-FAISS_K_LEGIT = 10
-
-# ── VirusTotal API key ─────────────────────────────────────────────────────
-VIRUSTOTAL_API_KEY = os.environ.get('VIRUSTOTAL_API_KEY', '')
-
-# ── Google Safe Browsing API key ───────────────────────────────────────────
-GOOGLE_SAFEBROWSING_API_KEY = os.environ.get('GOOGLE_SAFEBROWSING_API_KEY', '')
-
-# ── Decision threshold ─────────────────────────────────────────────────────
-DEFAULT_THRESHOLD = 0.40  # overwritten by threshold optimisation; never goes below 0.40
-                          # LEGACY — used only by the pre-E5 code path. Do NOT
-                          # use this for the E5 inference path.
-
-# ── E5 production model ────────────────────────────────────────────────────
-# Self-contained sklearn Pipeline (word+char TF-IDF → LogReg), trained during
-# the E5 stage. Behaviorally identical to the frozen E5 candidate that
-# produced the final benchmark metrics.
+# ─── Deployed model ───────────────────────────────────────────────────────
+# The E8-P9 bundle is loaded by src.e5_inference.load_e5_pipeline() from
+# models/e7_p1_variants/${SCAMRADAR_LOCAL_MODEL}.joblib (defaulting to
+# e7_p1_full_e8p9). The E5 bundle below is the fallback that is loaded
+# when SCAMRADAR_LOCAL_MODEL is unset or points to an unknown variant.
 E5_BUNDLE_PATH = os.path.join(MODELS_PATH, 'e5_bundle.joblib')
-E5_THRESHOLD   = 0.59  # F1-max threshold selected during E5 (bundle['threshold_f1']).
-                       # DO NOT substitute DEFAULT_THRESHOLD (0.40) here.
 
-# ── Input validation ───────────────────────────────────────────────────────
+# Decision threshold selected at the E5 F1-maximisation stage on the
+# validation partition and preserved unchanged through the E7 and E8
+# iterations. The deployed E8-P9 bundle stores this value in its own
+# `threshold` field; the constant here is the authoritative source that
+# every non-bundle caller uses.
+E5_THRESHOLD = 0.59
+
+
+# ─── Input validation ─────────────────────────────────────────────────────
 MIN_MESSAGE_LENGTH = 20
 MAX_MESSAGE_LENGTH = 5_000
 
-# ── Trusted domains — all-trusted URL set qualifies for the safety-net ───
-# eTLD+1 exact-match set. Used by the E7-P2 safety net layer to cap scam
-# probability at E7_P2_SAFETY_NET_CAP when a message contains URLs and ALL
-# of them point to a domain in this set (or a subdomain of one). Also used
-# by the legacy v1.x rule floors (still present in code but not active
-# in the E5/E7 code path).
+
+# ─── Optional URL-reputation API keys ────────────────────────────────────
+# The classifier runs without these; they enrich the response when set.
+VIRUSTOTAL_API_KEY          = os.environ.get('VIRUSTOTAL_API_KEY', '')
+GOOGLE_SAFEBROWSING_API_KEY = os.environ.get('GOOGLE_SAFEBROWSING_API_KEY', '')
+
+
+# ─── FAISS proximity search ──────────────────────────────────────────────
+# Used by src/inference.py:predict_message() to compute the
+# `proximity_scam_score` numerical feature at inference time. K is the
+# number of nearest neighbours retrieved from the scam FAISS index.
+FAISS_K_SCAM = 10
+
+
+# ─── E7-P2 safety-net layer ──────────────────────────────────────────────
+# POST-classification cap on scam probability, applied only when
+# every URL in the message resolves to a domain in TRUSTED_DOMAINS and
+# Google Safe Browsing returns no threat (or is not called). When active,
+# scam probability is capped at E7_P2_SAFETY_NET_CAP — never raised. The
+# classifier's verdict passes through unchanged in every other case.
+# Enabled by env var SCAMRADAR_SAFETY_NET_ON=true.
+E7_P2_SAFETY_NET_CAP = 0.50
+
 TRUSTED_DOMAINS = {
     # Banking / finance
     'bankofamerica.com', 'chase.com', 'wellsfargo.com', 'citibank.com',
@@ -56,7 +70,7 @@ TRUSTED_DOMAINS = {
     'revolut.com', 'wise.com', 'venmo.com', 'cash.app',
     'americanexpress.com', 'visa.com', 'mastercard.com',
     'stripe.com', 'squareup.com', 'paypal.com',
-    # Big tech consumer accounts
+    # Big-tech consumer accounts
     'google.com', 'googlemail.com', 'gmail.com',
     'apple.com', 'icloud.com',
     'microsoft.com', 'outlook.com', 'live.com', 'hotmail.com', 'onedrive.com',
@@ -83,56 +97,49 @@ TRUSTED_DOMAINS = {
     'discord.com', 'slack.com', 'anthropic.com', 'openai.com',
 }
 
-# ── E7-P2 safety-net layer ─────────────────────────────────────────────────
-# POST-classification cap on scam probability: applied ONLY when
-#   (a) the message contains at least one URL,
-#   (b) EVERY URL resolves (eTLD+1) to a domain in TRUSTED_DOMAINS, AND
-#   (c) Google Safe Browsing returns no threat for any URL
-#       (or GSB isn't called — treated as clean; the trusted-domain check
-#       is the strong constraint).
-# When active, scam probability is capped at E7_P2_SAFETY_NET_CAP (never
-# raised). The classifier's verdict passes through unchanged in every
-# other case. Enabled by env var SCAMRADAR_SAFETY_NET_ON=true.
-E7_P2_SAFETY_NET_CAP = 0.50  # matches the LEGIT-below-0.59 threshold band
 
-# ── Brand / action word lists used by impersonation scorer ────────────────
-BRAND_NAMES   = ['paypal', 'amazon', 'apple', 'microsoft', 'netflix',
-                 'bank', 'fedex', 'irs', 'google', 'dhl', 'hsbc', 'chase']
-ACTION_WORDS  = ['verify', 'confirm', 'suspended', 'login', 'update',
-                 'locked', 'blocked', 'validate', 'reactivate', 'authenticate']
+# ─── Feature-engineering vocabularies ────────────────────────────────────
+# Consumed by src/features.py to produce the 25 engineered numerical
+# features that the deployed E8-P9 classifier reads.
 
-# ── Exact scam phrases (case-insensitive substring match) ─────────────────
+BRAND_NAMES = ['paypal', 'amazon', 'apple', 'microsoft', 'netflix',
+               'bank', 'fedex', 'irs', 'google', 'dhl', 'hsbc', 'chase']
+
+ACTION_WORDS = ['verify', 'confirm', 'suspended', 'login', 'update',
+                'locked', 'blocked', 'validate', 'reactivate', 'authenticate']
+
+# Exact scam phrases (case-insensitive substring match).
 SCAM_PHRASES = [
     'you have been selected', 'claim your prize', 'verify your account',
     'you are a winner', 'you have won',
     'click here to claim', 'your account has been', 'you have been chosen',
     'congratulations you', 'free gift card', 'free iphone',
     'wire transfer', 'western union', 'send money now',
-    # Investment / trading scam phrases
+    # Investment / trading
     'no experience needed', 'ai does all the trading', 'dm me for the link',
     'spots fill up', 'spots are limited',
     'guaranteed returns', 'guaranteed profits', 'guaranteed income',
     'guarantees returns', 'guarantees profits', 'guaranteed monthly returns',
     'monthly returns minimum', 'spots filling up fast', 'ai trading bot',
     'trading bot guarantees',
-    # Credential / spear-phishing phrases
+    # Credential / spear-phishing
     'account will be locked in', 'verify credentials', 'verify your credentials',
     'will be locked unless', 'suspended unless you verify',
-    # Emergency / grandparent scam phrases
+    # Emergency / grandparent
     'please do not tell', 'do not tell mom', 'do not tell dad', 'do not tell anyone',
     'i got arrested', 'i am in jail', 'i am in trouble', 'bail money',
     'wire money', 'wire transfer urgently', 'i am scared', 'please hurry',
     'need bail', 'stranded abroad', 'lost my wallet', 'lost my phone', 'emergency wire',
-    # Delivery / customs fee scam phrases
+    # Delivery / customs fee
     'unpaid customs fee', 'customs fee', 'delivery fee unpaid', 'package on hold',
     'release your package', 'pay to receive your package',
     'failed delivery attempt', 'reschedule your delivery',
     'release fee', 'held at customs', 'customs release', 'clearance fee',
     'customs clearance fee', 'pay release fee', 'shipment is held', 'package is held',
-    # Investment extra phrases
+    # Investment (extra)
     'guaranteed weekly returns', 'guaranteed daily returns',
     'spots left', 'limited spots',
-    # Threat / authority scam phrases
+    # Threat / authority
     'arrest warrant', 'face arrest', 'to avoid arrest', 'irs final notice',
     'linked to illegal activity',
     # Charity / payment fraud
@@ -140,19 +147,19 @@ SCAM_PHRASES = [
     # Blackmail / sextortion
     'unless you pay', 'browsing history has been', 'will be sent to your employer',
     'your employer and family',
-    # Warranty / loan / recovery scams
+    # Warranty / loan / recovery
     'car warranty', 'warranty is about to expire', 'no credit check required',
     'wallet recovery', 'crypto recovery', 'recover your bitcoin',
     # Government benefit fraud
     'student loan forgiveness',
-    # Social media investment scam phrases
+    # Social-media investment openers
     'click the link in my bio', 'link in bio', 'link in my bio',
     'was broke', 'changed my life', 'i am not a financial advisor but',
     'start today with just', 'simple system', 'from home thanks to',
     'paying it forward', 'what worked for me', 'happy to share the strategy',
     'saw your comment', 'taught me a strategy', 'uncle taught me',
     'friend showed me how', 'forex trader in', 'currency trader',
-    # Romance / advance-fee scam phrases
+    # Romance / advance-fee
     'think we matched on tinder', 'matched on tinder', 'we matched on tinder',
     'gold bars', 'transfer out of the country', 'business proposal',
     'commission percentage', 'i will give you', 'deployed in',
@@ -167,14 +174,14 @@ SCAM_PHRASES = [
     'send the card numbers', 'scratch the back of the card',
     'gift card numbers', 'send gift card', 'pay with gift card',
     'gift card code', 'redeem gift card',
-    # Crypto payment scam phrases
+    # Crypto payment
     'send bitcoin to', 'send crypto to', 'pay in bitcoin',
     'pay in cryptocurrency', 'bitcoin wallet address', 'crypto wallet',
     'ethereum address', 'usdt transfer', 'send usdt', 'trc20',
     'withdrawal fee', 'withdrawal limit reached', 'unlock your funds',
     'release your funds', 'platform fee to withdraw', 'tax to withdraw',
     'insurance fee', 'activation fee to withdraw',
-    # Pig butchering scam phrases
+    # Pig butchering
     'i use this platform', 'i can guide you personally',
     'let me show you my portfolio', 'my profits this month',
     'start with as little as', 'you can withdraw anytime',
@@ -185,11 +192,11 @@ SCAM_PHRASES = [
     'scan this qr', 'scan the qr code', 'scan qr code to verify',
     'use your camera to scan', 'qr code to complete',
     'scan to confirm', 'scan to login', 'scan to pay',
-    # Refund / overpayment scam phrases
+    # Refund / overpayment
     'accidentally overpaid', 'sent you too much', 'excess amount',
     'please refund the difference', 'send back the extra',
     'overpayment was made', 'refund the excess', 'return the overpaid',
-    # SIM swap / verification code theft
+    # SIM swap / verification-code theft
     'share the code we sent', 'forward the code',
     'read me the code', 'what is the code you received',
     'verification code sent to your phone', 'code we just texted',
@@ -199,7 +206,7 @@ SCAM_PHRASES = [
     'equipment deposit required', 'buy your starter kit',
     'refunded in first paycheck', 'processing fee for the job',
     'registration fee to start', 'onboarding fee',
-    # Romance scam openers — cold-contact social engineering before money request
+    # Romance-scam openers
     'accidentally texted the wrong number',
     'texted the wrong number',
     'found your number through a friend of a friend',
@@ -221,7 +228,7 @@ SCAM_PHRASES = [
     'us army currently',
     'currently on a peacekeeping',
     'humanitarian mission',
-    # Soft-sell investment / social media scam openers
+    # Soft-sell investment / social-media openers
     'not spam i promise',
     'not a spam i promise',
     'just a regular person who found',
@@ -232,7 +239,7 @@ SCAM_PHRASES = [
     'what actually works for building wealth',
     'what works for building wealth',
     'found something that actually works',
-    # Modern social-media hype spam phrases (2015+ style)
+    # Modern social-media hype spam (2015+)
     "you won't believe", "you wont believe",
     "won't believe number", "wont believe number",
     "won't believe what", "wont believe what",
@@ -260,45 +267,31 @@ SCAM_PHRASES = [
     "socmed",
 ]
 
-# ── URL shortener hostnames ────────────────────────────────────────────────
+# URL-shortener hostnames — flagged as suspicious in the URL feature block.
 URL_SHORTENERS = ['bit.ly', 'tinyurl.com', 't.co', 'ow.ly', 'goo.gl',
                   'short.link', 'rb.gy', 'cutt.ly', 'is.gd', 'buff.ly']
 
-# ── Feature column lists ───────────────────────────────────────────────────
-# V4 — original feature set (kept for reference / backward compat)
-NUMERICAL_FEATURES_V4 = [
-    'text_length', 'word_count', 'has_url', 'url_count',
-    'exclamation_count', 'uppercase_ratio', 'digit_ratio', 'urgency_score',
-    'tone_urgency', 'tone_fear', 'tone_reward', 'tone_threat',
-    'url_suspicious_tld', 'url_suspicious_keyword', 'url_has_ip',
-    'proximity_scam_score',
-]
 
-# V5 — improved feature set (25 features; legit_proximity_score and
-#       proximity_delta removed — they caused false positives on corporate emails)
-NUMERICAL_FEATURES_V5 = [
-    # original DB features
+# ─── Deployed 25-feature numerical block ─────────────────────────────────
+# Consumed by src/inference.py:predict_message() when assembling the
+# feature vector for the classifier. Order matters — it mirrors the
+# training-time feature-fusion order in scripts/training/train_e7_p1.py.
+NUMERICAL_FEATURES = [
+    # Original DB-derived features
     'text_length', 'word_count', 'has_url', 'url_count',
     'exclamation_count', 'uppercase_ratio', 'digit_ratio', 'urgency_score',
-    # improved tone / URL
+    # Tone
     'tone_urgency', 'tone_fear', 'tone_reward', 'tone_threat',
+    # URL structure
     'url_suspicious_tld', 'url_suspicious_keyword', 'url_has_ip',
-    # 9 new engineered features
+    # Phrase / impersonation
     'scam_phrase_score', 'sender_impersonation_score',
+    # Text statistics (engineered)
     'avg_word_length', 'capitalized_word_count',
     'punctuation_density', 'question_mark_count', 'currency_symbol_count',
     'readability_score', 'unique_word_ratio',
-    # scam proximity only (scaled ×0.5 before feature matrix to prevent dominance)
+    # FAISS proximity signal (scaled ×0.5 at feature-matrix construction time)
     'proximity_scam_score',
-    # legit signal — security / automated-message phrases reduce scam probability
+    # Legitimate-signal counter-feature
     'legit_phrase_score',
-]
-
-# ── Scam type labels ───────────────────────────────────────────────────────
-SCAM_TYPES = [
-    'phishing', 'credential_phishing', 'prize_fraud', 'bank_impersonation',
-    'job_scam', 'investment_scam', 'romance_scam', 'advance_fee_scam',
-    'delivery_scam', 'social_media_scam', 'emergency_scam',
-    'threat_scam', 'pig_butchering', 'qr_phishing', 'refund_scam',
-    'sim_swap', 'general_spam',
 ]

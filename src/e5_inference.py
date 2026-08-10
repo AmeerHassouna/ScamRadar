@@ -17,7 +17,7 @@ the frozen E5 candidate. Specifically:
     TfidfVectorizers handle tokenisation.
 
   * The threshold is E5's stored `threshold_f1` (0.59). Never the legacy
-    DEFAULT_THRESHOLD (0.40). Never a hybrid value.
+    (0.40) or any hybrid value.
 
   * The verdict is strictly binary: SCAM if prob >= 0.59, else LEGIT.
     No SUSPICIOUS tier, no rule floors, no URL-based verdict escalation,
@@ -111,7 +111,7 @@ def _is_pure_otp(text: str) -> bool:
     if max_run > 8:  # 9+ consecutive digits → likely a phone number
         return False
     return True
-from src._02_feature_engineering import (
+from src.features import (
     preprocess_text,
     classify_scam_type,
     compute_tone_features,
@@ -120,9 +120,9 @@ from src._02_feature_engineering import (
     extract_urls,
     check_url_virustotal,
 )
-# GSB and trusted-domain helpers live inside _09_prediction_pipeline.py;
+# GSB and trusted-domain helpers live inside inference.py;
 # import lazily inside functions to avoid a circular import (since
-# _09_prediction_pipeline.py's own shim imports from here).
+# inference.py's own shim imports from here).
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -309,7 +309,7 @@ def predict_e5(
         return result
 
     # Threshold: default to E5's stored value. NEVER fall back to
-    # DEFAULT_THRESHOLD (0.40).
+    # fallback value 0.40.
     if threshold is None:
         threshold = float(pipe.get('threshold', E5_THRESHOLD))
 
@@ -345,7 +345,7 @@ def predict_e5(
     vt_malicious, vt_suspicious, vt_attempted = 0, 0, False
     if urls:
         # Lazy import to avoid circular dependency at module-load time.
-        from src._09_prediction_pipeline import check_url_google_safebrowsing
+        from src.inference import check_url_google_safebrowsing
         if gsb_api_key:
             gsb_attempted = True
             for u in urls[:3]:
@@ -433,7 +433,7 @@ def predict_e5(
 
         # Legacy Rule B (URL safety net): all URLs trusted + GSB clean → cap
         if safety_net_active and not otp_rule_capped and urls and prob > E7_P2_SAFETY_NET_CAP:
-            from src._09_prediction_pipeline import is_all_trusted_domains
+            from src.inference import is_all_trusted_domains
             try:
                 all_trusted = is_all_trusted_domains(urls)
             except Exception:

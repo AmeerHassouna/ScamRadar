@@ -57,11 +57,11 @@ def build_context(
 
     if urls is None:
         # Only lazy-import extract_urls if the caller didn't supply URLs
-        from src._02_feature_engineering import extract_urls
+        from src.features import extract_urls
         urls = extract_urls(text) or []
 
     if text_norm is None:
-        from src._02_feature_engineering import preprocess_text
+        from src.features import preprocess_text
         text_norm = preprocess_text(text) if text else ''
 
     hostnames = [h for h in (_hostname_of(u) for u in urls) if h]

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 
-from src._02_feature_engineering import (
+from src.features import (
     preprocess_text,
     compute_tone_features,
     compute_url_features,
@@ -40,7 +40,7 @@ _URL_RE = re.compile(r'https?://\S+|www\.\S+', re.I)
 
 def compute_all_numerical(text: str) -> dict:
     """Compute every one of the 25 numerical features for a single message.
-    Uses only the existing helpers from src/_02_feature_engineering.py."""
+    Uses only the existing helpers from src/features.py."""
     t_raw = str(text) if text is not None else ''
     t_pre = preprocess_text(t_raw)
 

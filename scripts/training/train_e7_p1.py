@@ -3,7 +3,7 @@ E7 Phase 1 — Numerical feature fusion (5 ablation variants + E5 reference).
 
 CONTROLLED EXPERIMENT: everything is E5's exact recipe. The only variable that
 changes is which subset of the 25 already-implemented numerical features
-(from src/_02_feature_engineering.py) is concatenated with the word + char
+(from src/features.py) is concatenated with the word + char
 TF-IDF representation.
 
 Variants trained:
@@ -43,7 +43,7 @@ _ROOT = os.path.dirname(os.path.dirname(_HERE))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from src._02_feature_engineering import (
+from src.features import (
     preprocess_text, compute_tone_features, compute_url_features,
     compute_new_features, extract_urls,
 )
@@ -100,7 +100,7 @@ _URL_RE = re.compile(r'https?://\S+|www\.\S+', re.I)
 
 def compute_all_numerical(text: str) -> dict:
     """Compute every one of the 25 numerical features for a single message.
-    Uses only the existing helpers from src/_02_feature_engineering.py."""
+    Uses only the existing helpers from src/features.py."""
     t_raw = str(text) if text is not None else ''
     t_pre = preprocess_text(t_raw)
 

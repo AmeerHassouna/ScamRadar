@@ -21,7 +21,7 @@ byte-identical to the deployed E8-P9 pipeline:
                        the DP pipeline, consumed as-is by every TF-IDF)
   * word TF-IDF      — TfidfVectorizer(**E5_WORD_PARAMS), fit on train only
   * char TF-IDF      — TfidfVectorizer(**E5_CHAR_PARAMS), fit on train only
-  * numerical block  — the 25 features from src/_02_feature_engineering,
+  * numerical block  — the 25 features from src/features,
                        computed by scripts.training.train_e7_p1
   * scaling          — StandardScaler, fit on train only
   * feature fusion   — hstack([Xw, Xc, csr_matrix(Xn)])

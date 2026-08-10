@@ -36,7 +36,7 @@ Keep this open on a second monitor during the defense.
 | What does the audit check? | `data_pipeline/src/scamradar/audit.py` |
 | How is the approval gate enforced? | `data_pipeline/src/scamradar/approval.py::require_dataset_approval` |
 | How is the split done (cluster-aware)? | `data_pipeline/src/scamradar/split.py` |
-| How are the 25 features engineered? | `scripts/training/train_e7_p1.py::compute_all_numerical` + `src/_02_feature_engineering.py` |
+| How are the 25 features engineered? | `scripts/training/train_e7_p1.py::compute_all_numerical` + `src/features.py` |
 | How is synthetic data generated (E8-P2 legit)? | `scripts/data_prep/gen_e8p2_synthetic_legit.py` |
 | How is synthetic data generated (E8-P6 legit)? | `scripts/data_prep/gen_e8p6_synthetic_legit.py` |
 | How is synthetic data generated (E8-P8 scam + pairs)? | `scripts/data_prep/gen_e8p8_synthetic_scam.py` |
@@ -59,10 +59,10 @@ Keep this open on a second monitor during the defense.
 
 | Question | File |
 |---|---|
-| How does the API load the model? | `api/main.py` → `src/_09_prediction_pipeline.py::load_pipeline` |
-| How is a single message predicted? | `src/_09_prediction_pipeline.py::predict_message` |
+| How does the API load the model? | `api/main.py` → `src/inference.py::load_pipeline` |
+| How is a single message predicted? | `src/inference.py::predict_message` |
 | Which model file does production load? | `models/e7_p1_variants/e7_p1_full_e8p9.joblib` (via `src/e5_inference.py`) |
-| How is the rule engine wired in? | `src/rule_engine/` (imported by `_09_prediction_pipeline.py`) |
+| How is the rule engine wired in? | `src/rule_engine/` (imported by `inference.py`) |
 | Where is the English-only policy enforced? | `api/main.py` (langdetect check + 400 on non-English) |
 | What are the deployment configs? | `Dockerfile`, `Procfile`, `railway.toml`, `requirements.txt`, `runtime.txt`, `config.py` |
 

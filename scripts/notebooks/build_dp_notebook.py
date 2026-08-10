@@ -359,7 +359,7 @@ else:
 md("""## 6. Feature engineering — 25 numerical features per row
 
 For every row in the E5 base, compute the 25 numerical features implemented
-in `src/_02_feature_engineering.py` (tone × 4, URL × 5, phrase × 3,
+in `src/features.py` (tone × 4, URL × 5, phrase × 3,
 textstats × 13). Cached to `data/interim/e7_p1_features.parquet`.
 
 The heavy work is done by `scripts.training.train_e7_p1.load_or_compute_features()`,

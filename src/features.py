@@ -434,7 +434,7 @@ LEGIT_PHRASES = [
 def compute_new_features(text: str) -> dict:
     """
     Compute 10 engineered features for a single message (9 original + legit_phrase_score).
-    Returns a dict with keys matching NUMERICAL_FEATURES_V5 additions.
+    Returns a dict with keys matching NUMERICAL_FEATURES additions.
     """
     if not isinstance(text, str):
         text = ''
