@@ -29,8 +29,10 @@ outputs/
 # not shipped to production.
 old_models/
 
-# Legacy embeddings.npy is a training artefact, not loaded at inference.
+# Training artefacts not loaded at inference — regenerate via
+# scripts/data_prep/build_e7_p3_faiss.py if the E7-P3 study is re-run.
 models/embeddings.npy
+models/e7_p3_faiss/
 
 # OS
 .DS_Store
