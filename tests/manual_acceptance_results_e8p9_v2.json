@@ -1,0 +1,265 @@
+{
+  "api_url": "http://127.0.0.1:8000/predict",
+  "n_messages": 32,
+  "n_categories": 10,
+  "total_legit": 32,
+  "total_scam_false_positives": 0,
+  "overall_fp_rate": 0.0,
+  "per_category": {
+    "google_account": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "microsoft_account": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "apple": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "amazon_order": {
+      "n": 4,
+      "legit": 4,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "paypal": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "otp": {
+      "n": 4,
+      "legit": 4,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "shipping": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "newsletter": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "banking": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    },
+    "social_alert": {
+      "n": 3,
+      "legit": 3,
+      "scam": 0,
+      "fp_rate": 0.0
+    }
+  },
+  "per_row": [
+    {
+      "i": 1,
+      "category": "google_account",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 2,
+      "category": "google_account",
+      "verdict": "LEGIT",
+      "confidence": 2.97
+    },
+    {
+      "i": 3,
+      "category": "google_account",
+      "verdict": "LEGIT",
+      "confidence": 1.31
+    },
+    {
+      "i": 4,
+      "category": "microsoft_account",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 5,
+      "category": "microsoft_account",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 6,
+      "category": "microsoft_account",
+      "verdict": "LEGIT",
+      "confidence": 57.76
+    },
+    {
+      "i": 7,
+      "category": "apple",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 8,
+      "category": "apple",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 9,
+      "category": "apple",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 10,
+      "category": "amazon_order",
+      "verdict": "LEGIT",
+      "confidence": 4.2
+    },
+    {
+      "i": 11,
+      "category": "amazon_order",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 12,
+      "category": "amazon_order",
+      "verdict": "LEGIT",
+      "confidence": 2.15
+    },
+    {
+      "i": 13,
+      "category": "amazon_order",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 14,
+      "category": "paypal",
+      "verdict": "LEGIT",
+      "confidence": 20.76
+    },
+    {
+      "i": 15,
+      "category": "paypal",
+      "verdict": "LEGIT",
+      "confidence": 1.11
+    },
+    {
+      "i": 16,
+      "category": "paypal",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 17,
+      "category": "otp",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 18,
+      "category": "otp",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 19,
+      "category": "otp",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 20,
+      "category": "otp",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 21,
+      "category": "shipping",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 22,
+      "category": "shipping",
+      "verdict": "LEGIT",
+      "confidence": 2.71
+    },
+    {
+      "i": 23,
+      "category": "shipping",
+      "verdict": "LEGIT",
+      "confidence": 4.99
+    },
+    {
+      "i": 24,
+      "category": "newsletter",
+      "verdict": "LEGIT",
+      "confidence": 12.41
+    },
+    {
+      "i": 25,
+      "category": "newsletter",
+      "verdict": "LEGIT",
+      "confidence": 15.17
+    },
+    {
+      "i": 26,
+      "category": "newsletter",
+      "verdict": "LEGIT",
+      "confidence": 1.1
+    },
+    {
+      "i": 27,
+      "category": "banking",
+      "verdict": "LEGIT",
+      "confidence": 2.1
+    },
+    {
+      "i": 28,
+      "category": "banking",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 29,
+      "category": "banking",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 30,
+      "category": "social_alert",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 31,
+      "category": "social_alert",
+      "verdict": "LEGIT",
+      "confidence": 1.0
+    },
+    {
+      "i": 32,
+      "category": "social_alert",
+      "verdict": "LEGIT",
+      "confidence": 2.02
+    }
+  ],
+  "false_positives": []
+}

@@ -42,19 +42,43 @@ def _rows(texts, labels, cats, src: Source, synthetic=False, platforms=None):
 # ------------------------- per-source parsers ---------------------------
 
 def parse_sms_spam_collection(src: Source) -> pd.DataFrame | None:
+    """UCI ML Repository direct download (dataset 228). The zip contains a
+    tab-separated `SMSSpamCollection` file: <label>\\t<text> per line, where
+    label is 'ham' or 'spam'. UCI's HTTPS needs the certifi CA bundle."""
+    import ssl
     import urllib.request
-    dest = RAW / "sms_spam_collection.csv"
+    import certifi
+    dest = RAW / "sms_spam_collection.zip"
     if not dest.exists():
         try:
-            urllib.request.urlretrieve(src.url, dest)
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            req = urllib.request.Request(src.url, headers={"User-Agent": _UA})
+            with urllib.request.urlopen(req, timeout=120, context=ctx) as resp, open(dest, "wb") as f:
+                while True:
+                    chunk = resp.read(1 << 16)
+                    if not chunk:
+                        break
+                    f.write(chunk)
         except Exception as e:  # offline / blocked
             print(f"[acquire] {src.name}: download failed ({e}); skipping")
+            if dest.exists() and dest.stat().st_size == 0:
+                dest.unlink()
             return None
-    df = pd.read_csv(dest, encoding="latin-1")[["v1", "v2"]]
-    df.columns = ["raw_label", "text"]
-    labels = (df.raw_label == "spam").astype(int)
+    with zipfile.ZipFile(dest) as z:
+        with z.open("SMSSpamCollection") as fh:
+            lines = fh.read().decode("utf-8", "ignore").splitlines()
+    raw_labels: list[str] = []
+    texts: list[str] = []
+    for line in lines:
+        if not line.strip():
+            continue
+        parts = line.split("\t", 1)
+        if len(parts) == 2:
+            raw_labels.append(parts[0])
+            texts.append(parts[1])
+    labels = [1 if lbl == "spam" else 0 for lbl in raw_labels]
     cats = ["smishing" if l == 1 else "ham_sms" for l in labels]
-    return _rows(df.text.tolist(), labels.tolist(), cats, src)
+    return _rows(texts, labels, cats, src)
 
 
 def parse_enron_ham_sample(src: Source) -> pd.DataFrame | None:

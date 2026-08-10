@@ -1,0 +1,225 @@
+{
+  // ─────────────────────────────────────────────────────────────────────
+  //  ScamRadar+ workspace — thesis-defense navigation view
+  //
+  //  Each entry becomes a top-level collapsible section in the Explorer.
+  //  Underlying files stay in place; nothing is moved on disk. Open this
+  //  file via File → Open Workspace from File...
+  //
+  //  Numbering follows the natural flow: notebooks first (presentation),
+  //  then CRISP-DM phases (DU → DP → Modeling → Evaluation), then the
+  //  deployment surface (Inference → API → Extension → Web), then
+  //  supporting material (Tests, Docs, Repo root).
+  // ─────────────────────────────────────────────────────────────────────
+
+  "folders": [
+    { "name": "1. Notebooks — defense evidence",   "path": "notebooks" },
+    { "name": "2. Data Understanding pipeline",     "path": "data_pipeline" },
+    { "name": "3. Data Preparation scripts",        "path": "scripts/data_prep" },
+    { "name": "4. Data artifacts",                  "path": "data" },
+    { "name": "5. Modeling — training scripts",     "path": "scripts/training" },
+    { "name": "6. Model artifacts",                 "path": "models" },
+    { "name": "7. Evaluation scripts",              "path": "scripts/evaluation" },
+    { "name": "8. Evaluation outputs",              "path": "outputs" },
+    { "name": "9. Inference / prediction",          "path": "src" },
+    { "name": "10. API service",                    "path": "api" },
+    { "name": "11. Browser extension",              "path": "extension" },
+    { "name": "12. Web frontend",                   "path": "web" },
+    { "name": "13. Tests",                          "path": "tests" },
+    { "name": "14. Docs",                           "path": "docs" },
+    { "name": "15. Repo root — deploy configs",     "path": "." }
+  ],
+
+  "settings": {
+
+    // ─────────────────────────────────────────────────────────────────
+    //  Legacy hides (v1.x pipeline that was discarded).
+    //  Uses `**/…` glob patterns so they match no matter which folder
+    //  root VS Code is showing.
+    // ─────────────────────────────────────────────────────────────────
+
+    "files.exclude": {
+
+      // Whole legacy directories
+      "**/old_models":  true,
+      "**/legacy":      true,
+
+      // Legacy training / eval / data-prep scripts
+      "**/train_v1_*.py":                  true,
+      "**/eval_v1_*.py":                   true,
+      "**/eval_v1_7_triple.py":            true,
+      "**/final_comparison.py":            true,
+      "**/generalisation_eval.py":         true,
+      "**/external_eval.py":               true,
+      "**/scrape_reddit.py":               true,
+      "**/augment_gap_coverage.py":        true,
+      "**/augment_training_data.py":       true,
+      "**/generate_synthetic_data.py":     true,
+      "**/fetch_external_data.py":         true,
+      "**/prep_external_data.py":          true,
+      "**/mine_errors_v1_7.py":            true,
+      "**/extract_eval_slices_v1_7.py":    true,
+      "**/build_splits.py":                true,
+
+      // Old numbered src/ pipeline stages
+      "**/01_data_loading.py":             true,
+      "**/_00_dedup.py":                   true,
+      "**/_03_tfidf_vectorization.py":     true,
+      "**/_04_vector_proximity.py":        true,
+      "**/_05_model_training.py":          true,
+      "**/_06_evaluation.py":              true,
+      "**/_07_hyperparameter_tuning.py":   true,
+      "**/_08_adversarial_testing.py":     true,
+
+      // Legacy metric artifacts + reports
+      "**/v1.*_*.json":                    true,
+      "**/deployed_v1.3_smoke_400.json":   true,
+      "**/intervention_log.md":            true,
+      "**/intervention_4_report.md":       true,
+      "**/v1.7_decision_report.md":        true,
+      "**/split_v1.json":                  true,
+      "**/split_v1_summary.txt":           true,
+      "**/pipeline_run_results.txt":       true,
+      "**/final_comparison.json":          true,
+      "**/final_comparison_report.md":     true,
+      "**/graph_model_comparison.png":     true,
+      "**/graph_radar.png":                true,
+      "**/graph_per_channel.png":          true,
+      "**/label_by_channel.png":           true,
+      "**/feature_importance.png":         true,
+      "**/roc_curve.png":                  true,
+      "**/confusion_matrices.png":         true,
+      "**/class_distribution.png":         true,
+      "**/model_summary_table.png":        true,
+      "**/textlen_Legit.png":              true,
+      "**/textlen_Scam.png":               true,
+
+      // Legacy tests
+      "**/adversarial_test_suite*.py":                              true,
+      "**/adversarial_results*.txt":                                true,
+      "**/eval_original_v1x_external.py":                           true,
+      "**/manual_acceptance_results_ORIGINAL_v1x_baseline.json":    true,
+      "**/analyze_comparison.py":                                    true,
+      "**/comparison_corpus.json":                                   true,
+      "**/comparison_results.json":                                  true,
+      "**/comparison_summary.json":                                  true,
+      "**/model_comparison.py":                                      true,
+      "**/holdout_eval.py":                                          true,
+
+      // Legacy data subdirs
+      "**/external_evaluation":            true,
+      "**/external_training":              true,
+      "**/reddit_raw":                     true,
+      "**/v1.7_augmentation":              true,
+
+      // Legacy model artifacts (only touched by SCAMRADAR_LOCAL_MODEL=original)
+      "**/scamradar_model.pkl":            true,
+      "**/tfidf_vectorizer.pkl":           true,
+      "**/char_vectorizer.pkl":            true,
+      "**/scaler.pkl":                     true,
+      "**/scam_faiss.index":               true,
+      "**/legit_faiss.index":              true,
+      "**/embeddings.npy":                 true,
+
+      // Duplication suppression — the "15. Repo root" folder would
+      // otherwise re-show every top-level directory that already has its
+      // own root above. Hide them from repo-root view only.
+      // NOTE: these hides also apply to any nested folders with the same
+      // names (should be rare in this project).
+      "**/notebooks":                      true,
+      "**/data_pipeline":                  true,
+      "**/scripts":                        true,
+      "**/models":                         true,
+      "**/outputs":                        true,
+      "**/data":                           true,
+      "**/src":                            true,
+      "**/api":                            true,
+      "**/extension":                      true,
+      "**/web":                            true,
+      "**/tests":                          true,
+      "**/docs":                           true,
+      "**/.vscode":                        true,
+
+      // Standard clutter
+      "**/__pycache__":     true,
+      "**/.pytest_cache":   true,
+      "**/.DS_Store":       true,
+      "**/node_modules":    true
+    },
+
+    "search.exclude": {
+      "**/old_models":                     true,
+      "**/legacy":                         true,
+      "**/train_v1_*.py":                  true,
+      "**/eval_v1_*.py":                   true,
+      "**/eval_v1_7_triple.py":            true,
+      "**/final_comparison.py":            true,
+      "**/generalisation_eval.py":         true,
+      "**/external_eval.py":               true,
+      "**/scrape_reddit.py":               true,
+      "**/augment_gap_coverage.py":        true,
+      "**/augment_training_data.py":       true,
+      "**/generate_synthetic_data.py":     true,
+      "**/fetch_external_data.py":         true,
+      "**/prep_external_data.py":          true,
+      "**/mine_errors_v1_7.py":            true,
+      "**/extract_eval_slices_v1_7.py":    true,
+      "**/build_splits.py":                true,
+      "**/01_data_loading.py":             true,
+      "**/_00_dedup.py":                   true,
+      "**/_03_tfidf_vectorization.py":     true,
+      "**/_04_vector_proximity.py":        true,
+      "**/_05_model_training.py":          true,
+      "**/_06_evaluation.py":              true,
+      "**/_07_hyperparameter_tuning.py":   true,
+      "**/_08_adversarial_testing.py":     true,
+      "**/v1.*_*.json":                    true,
+      "**/deployed_v1.3_smoke_400.json":   true,
+      "**/intervention_log.md":            true,
+      "**/intervention_4_report.md":       true,
+      "**/v1.7_decision_report.md":        true,
+      "**/split_v1.json":                  true,
+      "**/split_v1_summary.txt":           true,
+      "**/pipeline_run_results.txt":       true,
+      "**/final_comparison.json":          true,
+      "**/final_comparison_report.md":     true,
+      "**/*.png":                          false,
+      "**/graph_model_comparison.png":     true,
+      "**/graph_radar.png":                true,
+      "**/graph_per_channel.png":          true,
+      "**/label_by_channel.png":           true,
+      "**/feature_importance.png":         true,
+      "**/roc_curve.png":                  true,
+      "**/confusion_matrices.png":         true,
+      "**/class_distribution.png":         true,
+      "**/model_summary_table.png":        true,
+      "**/textlen_Legit.png":              true,
+      "**/textlen_Scam.png":               true,
+      "**/adversarial_test_suite*.py":                              true,
+      "**/adversarial_results*.txt":                                true,
+      "**/eval_original_v1x_external.py":                           true,
+      "**/manual_acceptance_results_ORIGINAL_v1x_baseline.json":    true,
+      "**/analyze_comparison.py":                                    true,
+      "**/comparison_corpus.json":                                   true,
+      "**/comparison_results.json":                                  true,
+      "**/comparison_summary.json":                                  true,
+      "**/model_comparison.py":                                      true,
+      "**/holdout_eval.py":                                          true,
+      "**/external_evaluation":            true,
+      "**/external_training":              true,
+      "**/reddit_raw":                     true,
+      "**/v1.7_augmentation":              true,
+      "**/scamradar_model.pkl":            true,
+      "**/tfidf_vectorizer.pkl":           true,
+      "**/char_vectorizer.pkl":            true,
+      "**/scaler.pkl":                     true,
+      "**/scam_faiss.index":               true,
+      "**/legit_faiss.index":              true,
+      "**/embeddings.npy":                 true,
+      "**/__pycache__":                    true,
+      "**/.pytest_cache":                  true,
+      "**/.DS_Store":                      true,
+      "**/node_modules":                   true
+    }
+  }
+}

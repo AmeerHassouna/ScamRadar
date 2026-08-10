@@ -14,21 +14,21 @@ type Point = {
 
 const POINTS: Point[] = [
   {
-    title: "Spots the scams your instincts miss",
+    title: "Spots what instincts miss",
     body:
-      "Modern scams engineer trust through urgency, brand impersonation, and lookalike URLs. ScamRadar+ reads the exact signals scammers rely on you not to notice and gives you a verdict before you act.",
+      "Scams engineer trust through urgency, impersonation, and lookalike URLs. We read the signals your eye slides right past.",
     Visual: VisualLiveCatch,
   },
   {
     title: "Free forever. Zero signup.",
     body:
-      "Paste a message. Get a verdict. That's it. No account, no email, no tracking cookies. Your text is analysed and discarded — nothing stored, nothing sold, nothing shared.",
+      "Paste. Get a verdict. That's it. No account, no cookies, no tracking. Your text is analysed and discarded.",
     Visual: VisualPrivacyManifest,
   },
   {
-    title: "Built on research, not marketing",
+    title: "A verdict, not a percentage",
     body:
-      "Every reported metric is measured on messages the model has never seen before, with cryptographic verification that no training-set contamination exists. Honest numbers — not vendor claims.",
+      "No decimal points. No confidence math. Just a plain answer — 'looks safe' or 'don't trust it' — the kind you can act on in a second.",
     Visual: VisualScorecard,
   },
 ]
@@ -86,11 +86,9 @@ export function SmartChoiceSection() {
             <br />
             <span className="text-green-400">ACTUALLY WORKS</span>
           </motion.h2>
-          <motion.p initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.16 }} className="mt-5 text-base sm:text-lg text-white/45 leading-relaxed max-w-2xl mx-auto" style={MONO}>
-            Most tools react after the damage. ScamRadar+ reads tone, intent, and semantic
-            patterns — the exact signals scammers rely on — and gives you a verdict{" "}
-            <span className="text-white/75 font-semibold">before you act.</span>{" "}
-            Free to use. No account required.
+          <motion.p initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.16 }} className="mt-5 text-base sm:text-lg text-white/45 leading-relaxed max-w-xl mx-auto" style={MONO}>
+            Most tools react after the damage. We read intent — and give you the verdict{" "}
+            <span className="text-white/75 font-semibold">before you act.</span>
           </motion.p>
         </div>
       </div>
@@ -223,96 +221,132 @@ export function SmartChoiceSection() {
   )
 }
 
-// ═══ VISUAL 1 — Live message detection (a scam being caught) ═══════════════
+// ═══ VISUAL 1 — What you see vs what ScamRadar+ sees ═══════════════════════
+// Two-phase reveal: first the innocuous-looking message, then the same
+// message with signal patterns highlighted. Communicates the value prop
+// directly (you'd miss this; we don't).
 function VisualLiveCatch() {
-  const [firedCount, setFiredCount] = useState(0)
-  const signals = [
-    { label: "URGENCY LANGUAGE", detail: "'suspended', 'verify now'" },
-    { label: "BRAND IMPERSONATION", detail: "PayPal-lookalike host" },
-    { label: "SUSPICIOUS TLD", detail: ".tk domain" },
-    { label: "CREDENTIAL LURE", detail: "'verify your identity'" },
+  const [phase, setPhase] = useState<'you' | 'we'>('you')
+
+  useEffect(() => {
+    setPhase('you')
+    const flip = setTimeout(() => setPhase('we'), 1400)
+    const reset = setInterval(() => {
+      setPhase('you')
+      setTimeout(() => setPhase('we'), 1400)
+    }, 5500)
+    return () => { clearTimeout(flip); clearInterval(reset) }
+  }, [])
+
+  const patterns = [
+    { key: 'urgency',    label: 'Urgency',       phrase: '"URGENT"' },
+    { key: 'brand',      label: 'Impersonation', phrase: '"PayPal"' },
+    { key: 'url',        label: 'Lookalike URL', phrase: 'paypal-secure-verify.tk' },
   ]
 
-  // Progressive signal firing — creates the "live detection" feel
-  useEffect(() => {
-    setFiredCount(0)
-    const t1 = setTimeout(() => setFiredCount(1), 500)
-    const t2 = setTimeout(() => setFiredCount(2), 950)
-    const t3 = setTimeout(() => setFiredCount(3), 1400)
-    const t4 = setTimeout(() => setFiredCount(4), 1850)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
-  }, [])
+  const HL = (active: boolean, text: string) => (
+    <motion.span
+      className="relative inline-block"
+      animate={{
+        color:      active ? 'rgb(252, 165, 165)' : 'rgba(255,255,255,0.85)',
+        background: active ? 'rgba(239, 68, 68, 0.14)' : 'transparent',
+      }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      style={{ padding: active ? '0 3px' : '0', borderRadius: 3 }}
+    >
+      {text}
+    </motion.span>
+  )
 
   return (
     <div className="h-full w-full p-6 sm:p-7 flex flex-col" style={MONO}>
-      <div className="text-white/30 text-[10px] uppercase tracking-widest mb-3">
-        incoming message · 08:47
+      {/* Lens toggle — reads like a segmented indicator */}
+      <div className="flex items-center gap-2 mb-6">
+        <motion.span
+          className="text-[10px] uppercase tracking-[0.22em] px-2.5 py-1 rounded"
+          animate={{
+            color:      phase === 'you' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.28)',
+            background: phase === 'you' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.01)',
+          }}
+        >
+          What you see
+        </motion.span>
+        <motion.span
+          className="text-white/25 text-xs"
+          animate={{ x: phase === 'we' ? 2 : 0 }}
+        >
+          →
+        </motion.span>
+        <motion.span
+          className="text-[10px] uppercase tracking-[0.22em] px-2.5 py-1 rounded"
+          animate={{
+            color:      phase === 'we' ? 'rgba(252,165,165,0.95)' : 'rgba(255,255,255,0.28)',
+            background: phase === 'we' ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.01)',
+          }}
+        >
+          What ScamRadar+ sees
+        </motion.span>
       </div>
 
-      {/* The scam text */}
+      {/* Message — same words, patterns light up in the 'we' phase */}
       <div
-        className="text-white/85 text-[13px] leading-relaxed p-4 rounded-lg mb-5"
+        className="text-[15px] leading-[1.7] p-5 rounded-lg flex-1 flex items-center"
         style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        URGENT: Your PayPal account has been temporarily suspended due to unusual sign-in activity. Please verify your identity within 24 hours at{" "}
-        <span className="text-red-400 underline decoration-dotted decoration-red-500/40">
-          paypal-secure-verify.tk/login
-        </span>{" "}
-        or your account will be permanently closed.
+        <div>
+          {HL(phase === 'we', 'URGENT')}
+          : Your{' '}
+          {HL(phase === 'we', 'PayPal')}
+          {' '}account has been suspended. Verify your identity at{' '}
+          {HL(phase === 'we', 'paypal-secure-verify.tk')}
+        </div>
       </div>
 
-      {/* Live signal firing */}
-      <div className="flex-1 space-y-2">
-        {signals.map((s, i) => {
-          const fired = i < firedCount
-          return (
-            <motion.div
-              key={i}
-              className="flex items-center gap-3 py-1.5"
-              animate={{ opacity: fired ? 1 : 0.25 }}
-              transition={{ duration: 0.25 }}
-            >
-              <motion.span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                animate={{
-                  background: fired ? "rgba(74,222,128,1)" : "rgba(255,255,255,0.15)",
-                  boxShadow: fired ? "0 0 10px rgba(74,222,128,0.9)" : "none",
-                  scale: fired ? 1 : 0.7,
-                }}
-              />
-              <span className="text-[11px] tracking-widest text-white/80">{s.label}</span>
-              <span className="text-white/25 text-[10px] mx-1">·</span>
-              <span className="text-[11px] text-white/40 flex-1">{s.detail}</span>
-              <motion.span
-                className="text-[10px] tabular-nums"
-                animate={{ opacity: fired ? 1 : 0 }}
-                style={{ color: "rgba(74,222,128,0.9)" }}
-              >
-                DETECTED
-              </motion.span>
-            </motion.div>
-          )
-        })}
+      {/* Signal readout — appears only in 'we' phase */}
+      <div className="mt-5 space-y-1.5 min-h-[86px]">
+        {patterns.map((p, i) => (
+          <motion.div
+            key={p.key}
+            className="flex items-center gap-3 text-[11px]"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{
+              opacity: phase === 'we' ? 1 : 0,
+              x:       phase === 'we' ? 0 : -4,
+            }}
+            transition={{ delay: phase === 'we' ? 0.35 + i * 0.12 : 0, duration: 0.28 }}
+          >
+            <span
+              className="w-1 h-1 rounded-full flex-shrink-0"
+              style={{ background: 'rgb(248, 113, 113)', boxShadow: '0 0 6px rgba(248,113,113,0.6)' }}
+            />
+            <span className="text-red-400/85 uppercase tracking-[0.18em] w-32">{p.label}</span>
+            <span className="text-white/50 truncate">{p.phrase}</span>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Verdict at the bottom */}
+      {/* Verdict strip */}
       <motion.div
         className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between"
         initial={{ opacity: 0 }}
-        animate={{ opacity: firedCount === 4 ? 1 : 0 }}
-        transition={{ duration: 0.4 }}
+        animate={{ opacity: phase === 'we' ? 1 : 0 }}
+        transition={{ delay: 0.9, duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <span className="w-2 h-2 rounded-full bg-red-500" style={{ boxShadow: "0 0 10px rgba(239,68,68,0.8)" }} />
-          <span className="text-red-400 font-bold text-sm tracking-widest">VERDICT: SCAM</span>
+        <div className="flex items-center gap-2.5">
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: 'rgb(239, 68, 68)', boxShadow: '0 0 10px rgba(239,68,68,0.7)' }}
+          />
+          <span className="text-red-400 font-bold text-[13px] tracking-[0.22em]">
+            SCAM DETECTED
+          </span>
         </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-red-400 font-black text-2xl tabular-nums">97.5</span>
-          <span className="text-red-400/70 text-xs">%</span>
-        </div>
+        <span className="text-white/40 text-[10px] uppercase tracking-[0.18em]">
+          3 signals · under 1 s
+        </span>
       </motion.div>
     </div>
   )
@@ -404,99 +438,145 @@ function VisualPrivacyManifest() {
   )
 }
 
-// ═══ VISUAL 3 — Research scorecard (data-focused, no message) ══════════════
+// ═══ VISUAL 3 — Verdict spectrum ══════════════════════════════════════════
+// Not corpus, not accuracy, not methodology. This card argues one thing:
+// the OUTPUT is human-readable. No "87.4% confidence" — just a plain-English
+// label. Rotating pulse cycles through the five verdict bands to show the
+// full spectrum is designed for humans, not spreadsheets.
 function VisualScorecard() {
+  type Band = {
+    key: string
+    label: string
+    line: string
+    color: string       // primary hue
+    faint: string       // low-alpha bg for inactive
+    ring: string        // border color when active
+  }
+  const bands: Band[] = [
+    { key: 'safe',    label: 'LOOKS SAFE',      line: 'Almost certainly fine.',        color: 'rgb(74,222,128)',  faint: 'rgba(74,222,128,0.08)',  ring: 'rgba(74,222,128,0.55)' },
+    { key: 'prob',    label: 'PROBABLY SAFE',   line: 'Normal caution applies.',        color: 'rgb(163,230,148)', faint: 'rgba(163,230,148,0.08)', ring: 'rgba(163,230,148,0.45)' },
+    { key: 'caution', label: 'USE CAUTION',     line: "Something's off. Double-check.", color: 'rgb(250,204,21)',  faint: 'rgba(250,204,21,0.09)',  ring: 'rgba(250,204,21,0.50)' },
+    { key: 'likely',  label: 'LIKELY SCAM',     line: 'Treat this as a scam.',          color: 'rgb(251,146,60)',  faint: 'rgba(251,146,60,0.09)',  ring: 'rgba(251,146,60,0.55)' },
+    { key: 'scam',    label: 'SCAM DETECTED',   line: 'Do not engage.',                 color: 'rgb(239,68,68)',   faint: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.55)' },
+  ]
+
+  const [active, setActive] = useState(4) // start on SCAM DETECTED — the punchy one
+  useEffect(() => {
+    const t = setInterval(() => {
+      setActive((i) => (i + 1) % bands.length)
+    }, 1900)
+    return () => clearInterval(t)
+  }, [])
+
   return (
-    <div className="h-full w-full p-6 sm:p-7 flex flex-col" style={MONO}>
+    <div className="h-full w-full relative flex flex-col p-6 sm:p-7" style={MONO}>
+
       {/* Header */}
-      <div className="flex items-baseline justify-between mb-5">
-        <div>
-          <div className="text-white/30 text-[10px] uppercase tracking-widest">
-            external validation
-          </div>
-          <div className="text-white/60 text-xs mt-1">
-            n = 25,306 · never seen at training
-          </div>
+      <div className="flex items-center justify-between mb-5">
+        <div className="text-white/30 text-[10px] uppercase tracking-[0.22em]">
+          Verdict Spectrum
         </div>
-        <div className="text-right">
-          <div className="text-white/30 text-[10px] uppercase tracking-widest">
-            protocol
-          </div>
-          <div className="text-white/60 text-xs mt-1">
-            locked benchmark · single run
-          </div>
+        <div className="text-white/30 text-[10px] uppercase tracking-[0.22em]">
+          Calibrated for humans
         </div>
       </div>
 
-      {/* Hero metric — F1 */}
+      {/* Anti-percentage hero */}
       <motion.div
-        className="rounded-2xl p-5 mb-4"
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        style={{
-          background: "linear-gradient(135deg, rgba(34,197,94,0.20) 0%, rgba(34,197,94,0.05) 100%)",
-          border: "1px solid rgba(74,222,128,0.35)",
-          boxShadow: "0 0 32px rgba(34,197,94,0.15), inset 0 0 24px rgba(74,222,128,0.08)",
-        }}
+        className="mb-2"
       >
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-green-400/70 text-[10px] uppercase tracking-widest mb-1">
-              F1 score
-            </div>
-            <div className="text-green-400 font-black tabular-nums leading-none" style={{ fontSize: "clamp(3rem, 7vw, 4.5rem)" }}>
-              0.94
-            </div>
-          </div>
-          <div className="text-right text-white/40 text-[11px] max-w-[160px] leading-snug">
-            balanced measure of precision and recall on unseen messages
-          </div>
+        <div
+          className="text-white/25 line-through decoration-red-400/60 decoration-[2px]"
+          style={{ fontSize: 'clamp(1.3rem, 2.6vw, 1.75rem)', fontWeight: 800, letterSpacing: '-0.01em' }}
+        >
+          87.4% confidence
+        </div>
+        <div
+          className="text-white font-black leading-[1.05] mt-1.5"
+          style={{ fontSize: 'clamp(1.7rem, 3.2vw, 2.2rem)' }}
+        >
+          Just:{' '}
+          <span className="text-green-400">a plain answer.</span>
         </div>
       </motion.div>
 
-      {/* Secondary metrics */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {[
-          { k: "PRECISION", v: "0.96" },
-          { k: "RECALL", v: "0.92" },
-          { k: "ROC-AUC", v: "0.995" },
-          { k: "PR-AUC", v: "0.98" },
-        ].map((m, i) => (
-          <motion.div
-            key={i}
-            className="rounded-lg p-3"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 + i * 0.06 }}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <div className="text-white/35 text-[9px] uppercase tracking-widest mb-1">
-              {m.k}
-            </div>
-            <div className="text-white font-bold text-lg tabular-nums">{m.v}</div>
-          </motion.div>
-        ))}
+      {/* The ladder — 5 human-readable bands */}
+      <div className="mt-5 flex-1 space-y-2">
+        {bands.map((b, i) => {
+          const isActive = i === active
+          return (
+            <motion.div
+              key={b.key}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 + i * 0.06 }}
+              className="relative rounded-md overflow-hidden"
+            >
+              <motion.div
+                className="flex items-center gap-3 pl-3 pr-3 py-2"
+                animate={{
+                  backgroundColor: isActive ? b.faint : 'rgba(255,255,255,0.015)',
+                  borderColor:     isActive ? b.ring  : 'rgba(255,255,255,0.06)',
+                }}
+                transition={{ duration: 0.35 }}
+                style={{
+                  border: '1px solid',
+                  boxShadow: isActive ? `0 0 22px ${b.faint}, inset 0 0 12px ${b.faint}` : 'none',
+                }}
+              >
+                {/* Left status dot */}
+                <motion.span
+                  className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
+                  animate={{
+                    backgroundColor: isActive ? b.color : 'rgba(255,255,255,0.15)',
+                    boxShadow:       isActive ? `0 0 10px ${b.color}` : 'none',
+                    scale:           isActive ? [1, 1.35, 1] : 1,
+                  }}
+                  transition={{
+                    scale: { duration: 1.6, repeat: Infinity, ease: 'easeInOut' },
+                    backgroundColor: { duration: 0.3 },
+                    boxShadow: { duration: 0.3 },
+                  }}
+                />
+
+                {/* Label */}
+                <motion.span
+                  className="text-[12px] uppercase tracking-[0.16em] font-bold flex-shrink-0"
+                  animate={{ color: isActive ? b.color : 'rgba(255,255,255,0.35)' }}
+                  transition={{ duration: 0.3 }}
+                  style={{ minWidth: '120px' }}
+                >
+                  {b.label}
+                </motion.span>
+
+                {/* Line */}
+                <motion.span
+                  className="text-[11.5px] leading-none flex-1 truncate"
+                  animate={{ color: isActive ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.28)' }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {b.line}
+                </motion.span>
+              </motion.div>
+            </motion.div>
+          )
+        })}
       </div>
 
-      {/* Verification footer */}
-      <div
-        className="rounded-lg p-3 flex-1 flex flex-col justify-center"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px dashed rgba(74,222,128,0.25)",
-        }}
+      {/* Footer */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        className="mt-5 pt-4 text-white/40 text-[11px] leading-snug"
+        style={{ borderTop: '1px dashed rgba(255,255,255,0.08)' }}
       >
-        <div className="text-green-400/80 text-[10px] uppercase tracking-widest mb-1.5">
-          verified · sha-1 hash comparison
-        </div>
-        <div className="text-white/50 text-[11.5px] leading-relaxed">
-          A locked one-shot benchmark of 25,306 messages, held out from all model selection, tuning, and threshold optimisation. Every scoring event is recorded in the research repository. The reported F1 measures generalisation, not memorisation.
-        </div>
-      </div>
+        Five bands. No math.{' '}
+        <span className="text-white/70">The kind of answer you actually needed.</span>
+      </motion.div>
     </div>
   )
 }

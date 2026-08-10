@@ -28,10 +28,11 @@ SOURCES: list[Source] = [
     # ----------------------------- SCAM ----------------------------------
     Source(
         name="sms_spam_collection",
-        url="https://raw.githubusercontent.com/mohitgupta-omg/Kaggle-SMS-Spam-Collection-Dataset-/master/spam.csv",
+        url="https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip",
         license="CC BY 4.0 (Almeida & Gomez Hidalgo, UCI SMS Spam Collection)",
         label=-1, category="smishing", platform="sms", era="legacy", auto=True,
-        notes="GitHub mirror of the UCI corpus (the corpus itself is UCI, not Kaggle). "
+        notes="UCI ML Repository direct download (dataset 228). Zip contains "
+              "SMSSpamCollection (tab-separated <label>\\t<text>). "
               "Legacy: weight-capped via era tag.",
     ),
     # ---- Zenodo record 8339691 (Champa/Rabbi/Zibran 2024, CC BY 4.0) ----
