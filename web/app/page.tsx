@@ -7,6 +7,7 @@ import { TestimonialSlider } from '@/components/ui/testimonial-slider-1'
 import { ScamRadarFooter } from '@/components/ui/scamradar-footer'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
 import { LandingHowItWorks } from '@/components/ui/interactive-image-accordion'
+import { SectionEyebrow } from '@/components/ui/section-eyebrow'
 
 const teamMembers = [
   {
@@ -80,9 +81,7 @@ export default function Home() {
         <div className="relative" style={{ zIndex: 10 }}>
           <ScrollReveal direction="up">
             <div className="max-w-7xl mx-auto px-4 pt-16 pb-4 text-center">
-              <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3" style={{ fontFamily: 'monospace' }}>
-                ScamRadar+ · 2026
-              </p>
+              <SectionEyebrow label="Meet the Team" meta="06 · ScamRadar+ 2026" className="mb-3" />
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-2" style={{ fontFamily: 'monospace' }}>
                 MEET THE TEAM
               </h2>

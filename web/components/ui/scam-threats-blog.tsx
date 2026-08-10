@@ -72,7 +72,7 @@ const posts = [
 export function ScamThreatsBlog() {
   return (
     <Blog7
-      tagline="Threat Intelligence · Updated May 2025"
+      tagline="Threat Intelligence"
       heading={`ACTIVE SCAM\nCAMPAIGNS`}
       description="Real-world scam campaigns that ScamRadar+ is trained to detect. Each entry reflects attack patterns from verified sources — FTC, CISA, FBI — and the tactics our model actively catches."
       buttonText="Scan a suspicious message"

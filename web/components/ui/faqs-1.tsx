@@ -5,12 +5,13 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion';
+import { SectionEyebrow } from '@/components/ui/section-eyebrow';
 
 export function FaqsSection() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-7 px-4 pt-16 pb-16">
             <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-green-400">FAQ</p>
+                <SectionEyebrow label="FAQ" meta="07 · Support" align="left" />
                 <h2 className="text-3xl font-bold text-white md:text-4xl">Frequently Asked Questions</h2>
                 <p className="max-w-2xl text-white/40">
                     Everything you need to know about ScamRadar+. If you don't find the answer you're looking

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { SectionEyebrow } from "@/components/ui/section-eyebrow"
+import { CornerReticles } from "@/components/ui/corner-reticles"
 
 const MONO: React.CSSProperties = { fontFamily: "monospace" }
 
@@ -65,9 +67,7 @@ export function SmartChoiceSection() {
       {/* Header */}
       <div className="relative z-10 pt-16 md:pt-24 pb-8 sm:pb-10">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-4" style={MONO}>
-            Make the Smart Choice
-          </motion.p>
+          <SectionEyebrow label="Make the Smart Choice" meta="03 · Positioning" className="mb-4" />
           <motion.h2 initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.08 }} className="text-3xl sm:text-4xl font-black text-white lg:text-5xl leading-tight" style={MONO}>
             DETECTION THAT
             <br />
@@ -161,13 +161,15 @@ export function SmartChoiceSection() {
             {/* RIGHT (mobile: BOTTOM) — swappable visual container ─────────── */}
             <div className="order-2 md:order-2">
               <div
-                className="relative h-[440px] sm:h-[480px] md:h-[520px] rounded-2xl overflow-hidden"
+                className="relative h-[440px] sm:h-[480px] md:h-[520px] rounded-xl overflow-hidden"
                 style={{
                   background: "linear-gradient(180deg, rgba(20,24,26,0.88) 0%, rgba(6,10,10,0.92) 100%)",
-                  border: "1px solid rgba(74,222,128,0.15)",
+                  border: "1px solid rgba(74,222,128,0.18)",
                   boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,197,94,0.08), inset 0 1px 0 rgba(255,255,255,0.04)",
                 }}
               >
+                {/* Viewfinder reticles — signals "instrument panel" like the scanner */}
+                <CornerReticles inset={8} size={14} />
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={active}

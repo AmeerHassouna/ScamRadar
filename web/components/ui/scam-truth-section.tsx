@@ -4,6 +4,8 @@ import type React from "react"
 import { motion, useAnimation, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState, memo, useCallback } from "react"
 import Image from "next/image"
+import { SectionEyebrow } from "@/components/ui/section-eyebrow"
+import { CornerReticles } from "@/components/ui/corner-reticles"
 import { AlertTriangle, Tag, X } from "lucide-react"
 
 // Scam examples used in the animated field
@@ -487,16 +489,8 @@ export function ScamTruthSection() {
 
           {/* Left — text content */}
           <div className="order-1 lg:order-1 space-y-5 sm:space-y-8">
-            {/* Badge */}
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-green-400 text-xs font-semibold uppercase tracking-widest"
-              style={{ fontFamily: "monospace" }}
-            >
-              HERE'S THE TRUTH
-            </motion.p>
+            {/* Section eyebrow — matches the hero's instrument-readout strip */}
+            <SectionEyebrow label="Here's the truth" meta="02 · Reality Check" align="left" />
 
             {/* Heading */}
             <motion.h2
@@ -545,7 +539,7 @@ export function ScamTruthSection() {
           >
             <div
               ref={containerRef}
-              className="relative w-full h-80 sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm"
+              className="relative w-full h-80 sm:h-[420px] lg:h-[520px] rounded-xl overflow-hidden border border-white/8 backdrop-blur-sm"
               style={{
                 background:
                   "radial-gradient(circle at 30% 20%, rgba(239,68,68,0.06), transparent 60%), radial-gradient(circle at 70% 80%, rgba(34,197,94,0.04), transparent 60%), #000",
@@ -553,6 +547,7 @@ export function ScamTruthSection() {
                 transform: "translate3d(0, 0, 0)",
               }}
             >
+              <CornerReticles inset={8} size={12} color="rgba(74,222,128,0.35)" />
               {/* Grid overlay for that "radar" feel */}
               <div
                 className="absolute inset-0 opacity-[0.04]"
@@ -623,8 +618,9 @@ export function ScamTruthSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="order-2 lg:order-1 relative rounded-2xl overflow-hidden border border-white/10 backdrop-blur-sm h-64 sm:h-80 lg:h-auto lg:aspect-[4/3]"
+            className="order-2 lg:order-1 relative rounded-xl overflow-hidden border border-white/8 backdrop-blur-sm h-64 sm:h-80 lg:h-auto lg:aspect-[4/3]"
           >
+            <CornerReticles inset={8} size={12} color="rgba(74,222,128,0.35)" />
             <Image
               src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=500&fit=crop"
               alt="Traditional security tools reacting too late"

@@ -5,6 +5,7 @@ import { ShieldCheck, Cpu, Globe, ScanSearch, Zap, MessageSquare, ArrowUpRight }
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
+import { SectionEyebrow } from '@/components/ui/section-eyebrow'
 
 const MONO: React.CSSProperties = { fontFamily: 'monospace' }
 const AUTO_DELAY = 4000 // ms per step
@@ -316,9 +317,7 @@ export function LandingHowItWorks() {
 
       {/* Left — text + pills + CTA */}
       <div className="w-full lg:w-2/5 flex-shrink-0 text-center lg:text-left">
-        <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-4" style={MONO}>
-          How It Works
-        </p>
+        <SectionEyebrow label="How It Works" meta="04 · Pipeline" align="left" className="justify-center lg:justify-start w-full mb-4" />
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight mb-5" style={MONO}>
           FROM MESSAGE<br />
           <span className="text-green-400">TO VERDICT</span>
@@ -444,9 +443,7 @@ export function HowItWorksAccordion() {
 
       {/* Left — text */}
       <div className="w-full lg:w-2/5 flex-shrink-0 text-center lg:text-left">
-        <p className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-4" style={MONO}>
-          System Architecture
-        </p>
+        <SectionEyebrow label="System Architecture" meta="05 · Pipeline" align="left" className="justify-center lg:justify-start w-full mb-4" />
         <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-5" style={MONO}>
           5-STAGE<br />
           <span className="text-green-400">INFERENCE PIPELINE</span>

@@ -2,9 +2,10 @@
 
 import React from "react"
 import { ArrowRight, ExternalLink } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import Image from "next/image"
+import { SectionEyebrow } from "@/components/ui/section-eyebrow"
+import { CornerReticles } from "@/components/ui/corner-reticles"
 
 interface Post {
   id: string
@@ -42,13 +43,7 @@ const Blog7 = ({
 
         {/* Header */}
         <div className="text-center max-w-2xl">
-          <Badge
-            variant="secondary"
-            className="mb-5 bg-green-400/10 text-green-400 border border-green-400/30 hover:bg-green-400/15"
-            style={MONO}
-          >
-            {tagline}
-          </Badge>
+          <SectionEyebrow label={tagline} meta="05 · Live Feed" className="mb-5" />
           <h2
             className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 leading-tight whitespace-pre-line"
             style={MONO}
@@ -85,13 +80,16 @@ const Blog7 = ({
               key={post.id}
               /* On mobile: fixed carousel width so one card + peek of next is visible.
                  On sm+: standard grid flow. */
-              className="flex-shrink-0 snap-start w-[82vw] sm:w-auto
+              className="relative flex-shrink-0 snap-start w-[82vw] sm:w-auto
                          grid grid-rows-[auto_auto_1fr_auto]
-                         bg-zinc-900/60 border-white/8
-                         hover:border-green-400/20 transition-all duration-300
+                         bg-zinc-900/60 border-white/8 rounded-xl
+                         hover:border-green-400/25 transition-all duration-300
                          overflow-hidden group"
               style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
             >
+              {/* Viewfinder reticles — dim by default, brighten on hover */}
+              <CornerReticles inset={6} size={10} color="rgba(74,222,128,0.30)" />
+
               {/* Thumbnail */}
               <div className="relative aspect-[16/9] w-full overflow-hidden">
                 <Image
