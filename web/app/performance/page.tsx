@@ -364,7 +364,7 @@ export default function PerformancePage() {
                       <Cell key={i} fill={G} fillOpacity={0.6 + i * 0.1} />
                     ))}
                   </Bar>
-                  <ReferenceLine y={91.6} stroke={isDark ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.18)"} strokeDasharray="3 3" strokeWidth={1} />
+                  <ReferenceLine y={91.6} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" strokeWidth={1} />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-[10px] text-white/25 mt-2" style={MONO}>
@@ -406,7 +406,7 @@ export default function PerformancePage() {
                     contentStyle={TOOLTIP_STYLE}
                     formatter={fmt((v, name) => [`${(+v * 100).toFixed(1)}%`, name])}
                   />
-                  <Line data={randomLine} type="linear" dataKey="tpr" stroke={isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.15)"}
+                  <Line data={randomLine} type="linear" dataKey="tpr" stroke="rgba(255,255,255,0.15)"
                     strokeDasharray="4 4" strokeWidth={1} dot={false} name="Random" />
                   <Line data={rocData} type="monotone" dataKey="tpr" stroke={G}
                     strokeWidth={2.5} dot={false} name="ScamRadar+"
