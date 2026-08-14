@@ -25,7 +25,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_HERE))
 if _ROOT not in sys.path: sys.path.insert(0, _ROOT)
 
-E5         = '/Users/ameer/Downloads/scamradar2/data'
+E5         = os.path.join(_ROOT, 'data', 'canonical')
 MERGED_IN  = os.path.join(_ROOT, 'data', 'interim', 'e7_p1_features_e8p3.parquet')
 MERGED_OUT = os.path.join(_ROOT, 'data', 'interim', 'e7_p1_features_e8p5.parquet')
 REPORT     = os.path.join(_ROOT, 'data', 'interim', 'e8p5_cleanup_report.json')
@@ -72,7 +72,7 @@ def main():
     print('\nLoading source parquets for cross-label audit...')
     src_map: dict = {}     # text_hash → source
     for split in ['train', 'val', 'test']:
-        s = pd.read_parquet(f'{E5}/processed/{split}.parquet',
+        s = pd.read_parquet(f'{E5}/{split}.parquet',
                              columns=['text', 'source'])
         for t, src in zip(s.text, s.source):
             src_map[_hash(t)] = src

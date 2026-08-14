@@ -49,7 +49,6 @@ from src.features import (
 )
 
 BASE_A = _ROOT
-BASE_B = os.path.join(_ROOT, 'data_pipeline')
 OUT_DIR = os.path.join(BASE_A, 'models', 'e7_p1_variants')
 FEAT_PARQUET = os.path.join(BASE_A, 'data', 'interim', 'e7_p1_features.parquet')
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -169,11 +168,12 @@ def load_or_compute_features():
         combined = pd.read_parquet(FEAT_PARQUET)
         return combined
 
-    print('Loading E5 training data...')
-    train = pd.read_parquet(f'{BASE_B}/data/processed/train.parquet')[['text', 'label', 'cluster_id']]
-    val   = pd.read_parquet(f'{BASE_B}/data/processed/val.parquet')[['text', 'label', 'cluster_id']]
-    test  = pd.read_parquet(f'{BASE_B}/data/processed/test.parquet')[['text', 'label', 'cluster_id']]
-    ext   = pd.read_parquet(f'{BASE_B}/data/external_benchmark/benchmark.parquet')[['text', 'label']]
+    print('Loading E5 training data (from canonical in-repo copy)...')
+    CANONICAL = os.path.join(BASE_A, 'data', 'canonical')
+    train = pd.read_parquet(f'{CANONICAL}/train.parquet')[['text', 'label', 'cluster_id']]
+    val   = pd.read_parquet(f'{CANONICAL}/val.parquet')[['text', 'label', 'cluster_id']]
+    test  = pd.read_parquet(f'{CANONICAL}/test.parquet')[['text', 'label', 'cluster_id']]
+    ext   = pd.read_parquet(f'{CANONICAL}/external_benchmark.parquet')[['text', 'label']]
     train['split'] = 'train'; val['split'] = 'val'
     test['split']  = 'test';  ext['split'] = 'external'
     ext['cluster_id'] = -1  # external has no cluster id in this schema

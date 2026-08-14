@@ -35,7 +35,7 @@ _ROOT = os.path.dirname(os.path.dirname(_HERE))
 sys.path.insert(0, _ROOT)
 from src.inference import load_pipeline, predict_message
 
-BASE = '/Users/ameer/Downloads/scamradar2'
+CANONICAL_BENCHMARK = os.path.join(_ROOT, 'data', 'canonical', 'external_benchmark.parquet')
 OUT_DIR = os.path.join(_ROOT, 'outputs', 'eval')
 os.makedirs(OUT_DIR, exist_ok=True)
 PER_ITEM_PARQUET = os.path.join(OUT_DIR, 'e8p9_per_item.parquet')
@@ -53,7 +53,7 @@ def score_all():
     model, tfidf, char_tfidf, scaler, scam_index, st_model = load_pipeline()
     print(f'  loaded in {time.time()-t0:.1f}s')
 
-    df = pd.read_parquet(f'{BASE}/data/external_benchmark/benchmark.parquet')
+    df = pd.read_parquet(CANONICAL_BENCHMARK)
     print(f'  benchmark: n={len(df):,}')
 
     rows: list = []

@@ -39,6 +39,20 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 
 ---
 
+## Source of truth (start here if you're new)
+
+| If you want to know... | Read this |
+|---|---|
+| What is the final system? | [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md) — one canonical answer per question |
+| Where is the final code? | [`src/pipeline.py`](src/pipeline.py) — narrative map of the whole E8-P9 pipeline; run `python -m src.pipeline` to print the fact sheet (works from a clean clone) |
+| Where is the canonical model? | [`models/e7_p1_variants/e7_p1_full_e8p9.joblib`](models/e7_p1_variants/e7_p1_full_e8p9.joblib) — the deployed bundle. See [`models/README.md`](models/README.md) |
+| Where are the rule engine and inference logic? | [`src/rule_engine/`](src/rule_engine/) (19 rules) and [`src/inference.py`](src/inference.py) |
+| How do I reproduce the metrics? | `python scripts/evaluation/analyze_e8p9_errors.py` — reproduces F1 = 0.9131 with the 19-rule engine. **Requires the canonical benchmark parquet at `data/canonical/external_benchmark.parquet`, which is not shipped in this repo** — see [Reproducibility](#reproducibility) below. |
+
+The `src/` package is the single source of truth for the deployed pipeline — it does not depend on any historical experiment. `experiments/` and `models/_archive/` preserve the decision journey without polluting the canonical implementation.
+
+---
+
 ## Table of contents
 
 - [Live production system](#live-production-system)
@@ -49,6 +63,7 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
 - [Local development](#local-development)
+- [Reproducibility](#reproducibility)
 - [Deployment](#deployment)
 - [API](#api)
 - [Data sources](#data-sources)
@@ -72,7 +87,7 @@ The production build is codename **E8-P9** — the E7-P1 Full classifier (E5 rec
 | **URL safety net (E7-P2)** | Caps scam probability at 0.50 when a message contains URLs and every URL resolves to a trusted domain. Prevents legit brand emails being force-flagged by aggressive rules. | [`config.py`](config.py) `E7_P2_SAFETY_NET_*` |
 | **Decision threshold** | **0.59** (F1-max on validation — inherited from E5, unchanged) | bundle `threshold` · [`config.py`](config.py) `E5_THRESHOLD` |
 | **Training corpus** | 283,501 messages · E8-P6 base (267,723) + 14,669 modern synthetic scams (conversational / investment / romance / threat) + 1,109 paired-legit adversarial twins | [`scripts/data_prep/merge_e8p8_into_training.py`](scripts/data_prep/merge_e8p8_into_training.py) |
-| **Data sources** | 14 documented public corpora with URLs + licenses. No Kaggle. Synthetic augmentation is generated in-house and flagged in the audit. | [Data sources](#data-sources) |
+| **Data sources** | 13 real-world public corpora with URLs + licenses, plus an in-house synthetic seed used for targeted augmentation. No Kaggle. Every synthetic row is flagged in the audit. | [Data sources](#data-sources) |
 | **Bundle size** | 22.6 MB (single joblib, same as E5) | model artifact |
 | **Inference latency** | Sub-millisecond on the classifier itself; ~1–3 ms including rule-engine evaluation | measured |
 
@@ -91,7 +106,7 @@ Both are computed from real artifacts checked into this repository — no histor
 
 ### Baseline — pure E5 classifier (n = 25,306)
 
-A **locked, one-shot, write-once** benchmark. Never seen during model selection, hyperparameter search, calibration, or threshold tuning. Every scoring event is recorded in the project's [`data_pipeline/data/external_benchmark/LOCK.json`](data_pipeline/) — by design this benchmark can only be scored once per bundle.
+A **locked, write-once** benchmark of 25,306 rows. Held out from **classifier training, hyperparameter search, calibration, and classifier threshold selection.** It was nevertheless consulted during **Rule Engine development and pruning** — rules that mis-fired on the benchmark were removed or tightened (see `src/rule_engine/critical.py` change-history comments), so the deployed pipeline's headline is not a fully blind evaluation on this set. This is a documented evaluation caveat. The canonical file is [`data/canonical/external_benchmark.parquet`](data/canonical/external_benchmark.parquet) with its write-once seal at [`data/canonical/external_benchmark_LOCK.json`](data/canonical/external_benchmark_LOCK.json).
 
 | Metric | Value |
 |---|---:|
@@ -226,72 +241,61 @@ The classifier bundle (22.6 MB joblib) contains the LR, both TF-IDF vectorizers,
 
 ```
 ScamRadar/
-├── api/                       # FastAPI backend (routes, cache, rate limits)
+├── README.md
+├── SOURCE_OF_TRUTH.md         # Canonical facts, lineage, and metrics
+├── config.py                  # E5_THRESHOLD · TRUSTED_DOMAINS · SCAM_PHRASES · …
+├── requirements.txt · runtime.txt · Dockerfile · Procfile · railway.toml · Makefile · .env.example
+├── .github/workflows/         # CI / deploy pipelines
+│
+├── api/                       # FastAPI backend
 │   ├── main.py                # /predict · /analyze-conversation · /health
 │   └── cache.py               # LRU + in-flight-dedup cache
+│
 ├── src/
-│   ├── inference.py           # Full inference pipeline (feature build + predict + rules)
-│   ├── features.py            # 25 numerical features (tone · URL · phrase · text stats)
-│   ├── e5_inference.py        # Bundle loader — resolves SCAMRADAR_LOCAL_MODEL
-│   │                          # (default: e7_p1_full_e8p9), returns predict fn
-│   └── rule_engine/           # Modular post-classifier rule system
+│   ├── canonical.py           # Single source of truth for constants (paths, hyperparams, threshold, rule counts)
+│   ├── pipeline.py            # High-level E8-P9 pipeline description + reproducibility helpers (`python -m src.pipeline`)
+│   ├── inference.py           # Public inference entry points (load_pipeline, predict_message)
+│   ├── e5_inference.py        # Bundle loader — resolves SCAMRADAR_LOCAL_MODEL (default: e7_p1_full_e8p9)
+│   ├── features.py            # 25 engineered numerical features + preprocessing
+│   ├── model.py               # Vectorizer + classifier builders + save/load helpers
+│   ├── data.py                # Canonical data loaders (require the parquet files listed below)
+│   ├── evaluation.py          # Metric + confusion + rule-engagement helpers
+│   └── rule_engine/           # 19-rule post-classifier layer
 │       ├── base.py            # Rule / RuleEngine / RuleContext / Severity primitives
-│       ├── context.py         # build_context() — assembles the state each rule reads
-│       ├── critical.py        # A-category rules (force-scam) incl. A9/A10/A11 type floors
-│       ├── strong.py          # B-category rules (evidence boost)
-│       ├── legit.py           # C-category rules (evidence dampen)
-│       ├── patterns.py        # Shared regex-based detectors (credential / OTP / gift-card / …)
-│       ├── numerical_features.py  # Rule inputs derived from the 25 numerical features
+│       ├── context.py         # build_context()
+│       ├── critical.py        # 9 Category-A rules (force-scam), incl. A9/A10/A11 type floors
+│       ├── strong.py          # 7 Category-B rules (evidence boost)
+│       ├── legit.py           # 3 Category-C rules (evidence dampen)
+│       ├── patterns.py        # Shared regex detectors
+│       ├── numerical_features.py
 │       └── weights.py         # Per-rule adjustment magnitudes + priorities
+│
 ├── models/
-│   ├── e5_bundle.joblib       # E5 fallback bundle (text-only, env-selectable)
-│   ├── e5_metadata.json       # Full metrics · hyperparameters · thresholds for E5
-│   ├── e5_threshold_sweep.json # Precision / recall / F1 across thresholds (E5)
+│   ├── README.md              # Which artifact is deployed vs fallback
+│   ├── e5_bundle.joblib       # E5 text-only fallback (env-selectable)
+│   ├── e5_metadata.json       # Frozen E4 hyperparameters + E5 calibration report
+│   ├── e5_threshold_sweep.json
 │   └── e7_p1_variants/
-│       ├── e7_p1_full_e8p9.joblib   # ← THE PRODUCTION BUNDLE
-│       └── e7_p1_{tone,url,phrase,textstats,full}.joblib  # E7-P1 ablation variants
-├── notebooks/                 # CRISP-DM notebooks (presentation layer)
-│   ├── data_understanding.ipynb
-│   ├── data_preparation.ipynb
-│   ├── modeling.ipynb
-│   └── evaluation.ipynb
-├── web/                       # Next.js 16 frontend → scamradarplus.com
-│   ├── app/                   # App Router pages (/, /performance, /team, …)
-│   └── components/ui/         # UI components
-├── extension/                 # Chrome MV3 extension (highlight → right-click → analyse)
-│   ├── manifest.json
-│   ├── background.js          # Context menu + API client
-│   ├── content.js             # On-demand Shadow-DOM overlay
-│   └── popup.{html,js,css}    # Toolbar popup + API-health indicator
-├── config.py                  # E5_THRESHOLD · TRUSTED_DOMAINS · SCAM_PHRASES · …
-├── tests/
-│   └── manual_acceptance_test.py  # 32-message acceptance corpus consumed by
-│                                  # scripts/evaluation/eval_e7_p1.py
+│       └── e7_p1_full_e8p9.joblib   # ← THE DEPLOYED PRODUCTION BUNDLE
+│
+├── scripts/
+│   ├── data_prep/             # E8 chain: gen_e8p{2,6,8}_*, merge_e8p{2,6,8}_*, build_e8p{3,5}_training.py, qa_e8p2_synthetic.py
+│   ├── training/              # train_e7_p1.py · train_e8p9.py · bakeoff_e8p9.py · snapshot_e7_p1_coefs.py · diff_coefs.py
+│   └── evaluation/            # eval_e7_p1.py · analyze_e8p9_errors.py · build_evaluation_summary.py
+│
 ├── docs/
 │   └── USER_GUIDE.md          # End-user documentation
-├── scripts/
-│   ├── training/              # train_e7_p1.py · train_e8p9.py · bakeoff_e8p9.py
-│   ├── evaluation/            # eval_e7_p1.py · analyze_e8p9_errors.py ·
-│   │                          # build_evaluation_summary.py
-│   ├── data_prep/             # gen_e8p{2,6,8}_synthetic_*.py ·
-│   │                          # merge_e8p{2,6,8}_into_training.py ·
-│   │                          # collect_e6_tier{2,6,7}_*.py · qc_dedup_e6.py
-│   └── notebooks/             # Notebook builder scripts (build_dp_notebook.py)
-├── data_pipeline/             # Stage 0 — data collection (acquire → clean → split → audit)
-│   └── src/scamradar/         # sources.py (13 corpora registry) + acquire.py + …
-├── outputs/                   # Evaluation artifacts (gitignored — regenerated by scripts)
-│   ├── eval/                  # bakeoff_e8p9.{json,csv} · master_summary.{json,csv}
-│   │                          # · e8p9_findings.md · e8p9_per_item.parquet
-│   └── coefs/                 # Per-variant coefficient snapshots
-├── Makefile                   # Common developer commands (make api / train / eval / …)
-├── Dockerfile                 # Production container (Render)
-├── Procfile                   # Alternate start command (Heroku-style)
-├── railway.toml               # Railway platform config (alternate host)
-├── runtime.txt                # Python 3.11.9
-└── requirements.txt           # Python dependencies
+│
+├── tests/
+│   └── manual_acceptance_test.py
+│
+├── web/                       # Next.js 16 frontend → scamradarplus.com
+└── extension/                 # Chrome MV3 extension
 ```
 
-**Model provenance.** The deployed classifier was trained by the data collection pipeline at [`data_pipeline/`](data_pipeline/) — a strict data-first workflow with an approval-gated dataset audit (`python -m scamradar acquire → clean → audit → approve-dataset → split`). Subsequent training and evaluation stages live under `scripts/training/` and `scripts/evaluation/`; every evaluation artifact is written to `outputs/eval/`. The deployed E8-P9 pipeline uses a Logistic Regression head on word + character TF-IDF plus 25 engineered numerical features (see `config.NUMERICAL_FEATURES`), with the post-classifier Rule Engine under `src/rule_engine/`. The E5 bundle (`models/e5_bundle.joblib`) is retained as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` environment variable.
+**What is intentionally NOT in this repository.** Raw / canonical / interim / synthetic parquet data (`data/`), evaluation outputs (`outputs/`), the four CRISP-DM notebooks, the thesis chapters (`docs/thesis_*.md`), and the historical `experiments/` and `models/_archive/` trees are maintained outside the public software repository. They are defense/evidence material, not runtime dependencies. See the [Reproducibility](#reproducibility) section for what this means practically.
+
+**Model provenance.** The deployed classifier was trained on the canonical data originally produced by a separate `scamradar2` workspace (acquire → clean → audit → approve-dataset → split); the frozen outputs of that upstream workspace feed this repository's `data/canonical/` directory, but neither the upstream code nor the parquet outputs are shipped here at runtime. The API loads only `models/e7_p1_variants/e7_p1_full_e8p9.joblib` and applies the 19-rule engine under `src/rule_engine/`. Full lineage in [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
 
 ---
 
@@ -327,22 +331,38 @@ npm run dev
 
 Frontend at `http://localhost:3000` — points at the local API you started above.
 
-### Reproduce evaluation artifacts
+## Reproducibility
 
-The deployed E8-P9 pipeline is validated by the scripts under `scripts/evaluation/`. Two common workflows:
+Different commands have different reproducibility requirements. This section is explicit about what does and does not work from a clean clone.
+
+### Works from a clean clone (no extra data needed)
 
 ```bash
-# Rebuild the consolidated evaluation summary (fast, aggregation only)
-python scripts/evaluation/build_evaluation_summary.py
-# → outputs/eval/master_summary.{json,csv} + e8p9_findings.md
+# Boot the API and query it — uses the shipped model bundle only
+uvicorn api.main:app --host 127.0.0.1 --port 8000
 
-# Re-run the classifier bake-off (LR vs LinearSVC+calibration vs SGD)
-# Uses per-classifier caching under outputs/eval/_bakeoff_cache/ — first
-# run trains LR (~30 min); subsequent runs cache-hit and finish in seconds.
-python scripts/training/bakeoff_e8p9.py
+# Print the deployed-system fact sheet (constants only, no file I/O)
+python -m src.pipeline
 ```
 
-Both consume the deployed model bundle at `models/e7_p1_variants/e7_p1_full_e8p9.joblib` and write to `outputs/eval/` (gitignored).
+The API loads `models/e7_p1_variants/e7_p1_full_e8p9.joblib` (shipped in this repo, ~22 MB) and runs the 19-rule engine on every request. No external data is needed.
+
+### Requires the canonical data (NOT shipped in this repo)
+
+The following commands read parquet files or JSON reports under `data/canonical/`, `data/interim/`, and `outputs/eval/`. Those paths are `.gitignored` and the files live outside the public repository. If you have them staged, the commands work as documented:
+
+```bash
+# Reproduce the deployed-pipeline external metrics (F1 = 0.9131, 19-rule engine)
+python scripts/evaluation/analyze_e8p9_errors.py       # needs data/canonical/external_benchmark.parquet
+
+# Rebuild the consolidated evaluation summary (needs outputs/eval/*.json + e8p9_per_item.parquet)
+python scripts/evaluation/build_evaluation_summary.py  # → outputs/eval/master_summary.{json,csv} + e8p9_findings.md
+
+# Re-run the classifier bake-off (needs the E8-P9 training corpus at data/interim/e7_p1_features_e8p9.parquet)
+python scripts/training/bakeoff_e8p9.py                # ~30 min first run; cache under outputs/eval/_bakeoff_cache/
+```
+
+If the required files are missing, these commands will raise `FileNotFoundError` on the specific input — nothing silently succeeds.
 
 ---
 
@@ -432,7 +452,7 @@ Every source is publicly available and documented with a URL + license. **No Kag
 | Enron ham sample | legit | email | legacy |
 | Synthetic supplements (documented + audit-flagged) | scam | mixed | modern |
 
-Every source has an entry in [`data_pipeline/src/scamradar/sources.py`](data_pipeline/src/scamradar/sources.py) with its download URL, license, and category tag. The dataset audit found no license issues; 0.6% of the corpus is synthetic and is flagged in the audit report.
+The dataset audit found no license issues. The initial approved corpus (253,264 rows, `data/canonical/clean.parquet`) is 100% real-world. The final training corpus of 283,501 rows was later expanded with 33,277 targeted synthetic rows (~11.7%) added during the E8-P2 / E8-P6 / E8-P8 data-preparation iterations to close specific false-positive and modern-scam coverage gaps identified after initial modeling; every synthetic row is flagged and its generation script is under [`scripts/data_prep/`](scripts/data_prep/). The canonical acquisition and cleaning pipeline (`scamradar acquire` / `clean` / `split`) originated in a separate `scamradar2` workspace; its outputs are frozen and imported into this repository at `data/canonical/`, so the deployed lineage does not depend on that upstream project at runtime.
 
 ---
 
@@ -448,14 +468,14 @@ Every source has an entry in [`data_pipeline/src/scamradar/sources.py`](data_pip
 
 ## Historical context (v1.x → E5 → E7 → E8-P9)
 
-Four generations of ML architecture ship with this repository — each superseded but retained for provenance.
+Four generations of ML architecture led to the deployed system. Only the E8-P9 bundle and the E5 fallback bundle ship in this repository; earlier variants and rejected ablations live in external defense material.
 
-| Generation | Architecture | Training | External F1 (n = 25,306) | Location |
+| Generation | Architecture | Training | External F1 (n = 25,306) | Ships in this repo? |
 |---|---|---|---:|---|
-| **v1.x** (2025) | Random Forest + TF-IDF + char-grams + hand-crafted numerics + FAISS proximity | ~22.5k deduplicated clusters | ≈ 0.87 (400-message benchmark, not the locked 25,306 set) | git history (superseded) |
-| **E5** (Aug 2026) | Logistic Regression + word 1–2 gram TF-IDF + char 3–6 gram TF-IDF (500k features) | 195,776 clusters | **0.941** | [`models/e5_bundle.joblib`](models/e5_bundle.joblib) |
-| **E7-P1 Full** (Aug 2026) | E5 recipe + 25 numerical features (tone · URL · phrase · text stats) | Same corpus as E5 | 0.941 (unchanged; adds explainability, not accuracy) | [`models/e7_p1_variants/e7_p1_full.joblib`](models/e7_p1_variants) |
-| **E8-P9** (Aug 2026, current) | E7-P1 Full + modular Rule Engine (Critical/Strong/Legit categories, A9–A11 type floors) | E5 corpus + 14,669 modern synthetic scams + 1,109 legit-pair adversarial twins → **283,501 messages total** | 0.913 on legacy benchmark (see [Performance](#performance) for the tradeoff explanation) | [`models/e7_p1_variants/e7_p1_full_e8p9.joblib`](models/e7_p1_variants/e7_p1_full_e8p9.joblib) |
+| **v1.x** (2025) | Random Forest + TF-IDF + char-grams + hand-crafted numerics + FAISS proximity | ~22.5k deduplicated clusters | ≈ 0.87 (400-message benchmark, not the locked 25,306 set) | No — superseded |
+| **E5** (Aug 2026) | Logistic Regression + word 1–2 gram TF-IDF + char 3–6 gram TF-IDF (500k features) | 195,776 clusters | **0.941** | Yes — `models/e5_bundle.joblib` (fallback) |
+| **E7-P1 Full** (Aug 2026) | E5 recipe + 25 numerical features (tone · URL · phrase · text stats) | Same corpus as E5 | 0.941 (unchanged; adds explainability, not accuracy) | No — the pre-E8-P2 bundle is superseded; its ablation variants (tone/url/phrase/textstats) are kept as external evidence |
+| **E8-P9** (Aug 2026, current) | E7-P1 Full + 19-rule engine (Critical/Strong/Legit, incl. A9/A10/A11 type floors) | E5 corpus + 14,669 modern synthetic scams + 1,109 legit-pair adversarial twins → **283,501 messages total** | 0.913 on the legacy benchmark (see [Performance](#performance) for the tradeoff explanation) | **Yes — `models/e7_p1_variants/e7_p1_full_e8p9.joblib`** (deployed) |
 
 **What changed between generations, in one sentence each:**
 
@@ -463,9 +483,7 @@ Four generations of ML architecture ship with this repository — each supersede
 - **E5 → E7-P1:** Same head and text features; added 25 numerical features (already computed elsewhere in the codebase but previously ignored by the classifier) via feature-concatenation. Small F1 movements (±0.001) but the numerical block enables the Rule Engine to reason over consistent inputs.
 - **E7-P1 → E8-P9:** Same architecture; added a modular Rule Engine and expanded the training corpus with 15,778 modern messages targeting conversational / investment / romance / threat scams that the 2008-era external benchmark doesn't measure. Deliberate tradeoff — some legacy-email precision for meaningful modern-scam recall.
 
-The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. The v1.x generation is no longer shipped in the working tree — its code and artifacts are archived in git history.
-
-For the thesis-defense audience, [`docs/THESIS_NAVIGATION.md`](docs/THESIS_NAVIGATION.md) maps common examiner questions to the specific file that answers each one.
+The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. Earlier v1.x artifacts, the pre-E8-P2 `e7_p1_full.joblib` baseline, and the four rejected E7-P1 ablation variants are not shipped in this repository — they are external evidence of the decision journey. See [`models/README.md`](models/README.md) and [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
 
 ---
 

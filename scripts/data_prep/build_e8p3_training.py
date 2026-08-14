@@ -25,7 +25,7 @@ if _ROOT not in sys.path: sys.path.insert(0, _ROOT)
 MERGED_IN  = os.path.join(_ROOT, 'data', 'interim', 'e7_p1_features_e8p2.parquet')
 MERGED_OUT = os.path.join(_ROOT, 'data', 'interim', 'e7_p1_features_e8p3.parquet')
 
-E5 = '/Users/ameer/Downloads/scamradar2/data'
+E5 = os.path.join(_ROOT, 'data', 'canonical')
 
 
 def _hash(s: str) -> str:
@@ -43,10 +43,10 @@ def main():
     print('\nCollecting spamassassin_ham text hashes from source parquets...')
     sa_hashes: set = set()
     for name, path in [
-        ('train',  f'{E5}/processed/train.parquet'),
-        ('val',    f'{E5}/processed/val.parquet'),
-        ('test',   f'{E5}/processed/test.parquet'),
-        ('ext',    f'{E5}/external_benchmark/benchmark.parquet'),
+        ('train',  f'{E5}/train.parquet'),
+        ('val',    f'{E5}/val.parquet'),
+        ('test',   f'{E5}/test.parquet'),
+        ('ext',    f'{E5}/external_benchmark.parquet'),
     ]:
         s = pd.read_parquet(path, columns=['text', 'source'])
         s_sa = s[s.source == 'spamassassin_ham']

@@ -100,8 +100,7 @@ from scripts.training.train_e7_p1 import (
 # ─── Paths ───────────────────────────────────────────────────────────────────
 FEAT_PARQUET = os.path.join(_ROOT, 'data', 'interim',
                             'e7_p1_features_e8p9.parquet')
-EXT_BENCHMARK = os.path.join(_ROOT, 'data_pipeline', 'data',
-                             'external_benchmark', 'benchmark.parquet')
+EXT_BENCHMARK = os.path.join(_ROOT, 'data', 'canonical', 'external_benchmark.parquet')
 
 OUT_DIR = os.path.join(_ROOT, 'outputs', 'eval')
 OUT_JSON = os.path.join(OUT_DIR, 'e8p9_bakeoff_results.json')

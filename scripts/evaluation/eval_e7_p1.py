@@ -43,7 +43,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 BASE_A = _ROOT
-BASE_B = '/Users/ameer/Downloads/scamradar2'
+CANONICAL_BENCHMARK = os.path.join(_ROOT, 'data', 'canonical', 'external_benchmark.parquet')
 VARIANTS_DIR = os.path.join(BASE_A, 'models', 'e7_p1_variants')
 FEAT_PARQUET = os.path.join(BASE_A, 'data', 'interim', 'e7_p1_features.parquet')
 OUT_REPORT = os.path.join(BASE_A, 'outputs', 'e7_p1_report.md')
@@ -182,7 +182,7 @@ def load_eval_data():
     ext_feats = feats[feats.split == 'external'].reset_index(drop=True)
 
     # External benchmark: reload from source for category metadata
-    ext_full = pd.read_parquet(f'{BASE_B}/data/external_benchmark/benchmark.parquet')
+    ext_full = pd.read_parquet(CANONICAL_BENCHMARK)
     print(f'  external benchmark: {len(ext_full):,} rows')
 
     # Acceptance test corpus (32 real-world transactional)

@@ -29,8 +29,8 @@ outputs/
 # not shipped to production.
 old_models/
 
-# Training artefacts not loaded at inference — regenerate via
-# scripts/data_prep/build_e7_p3_faiss.py if the E7-P3 study is re-run.
+# Training artefacts not loaded at inference (E7-P3 direction was rejected;
+# the FAISS/embedding artifacts are not shipped with the deployed pipeline).
 models/embeddings.npy
 models/e7_p3_faiss/
 
@@ -48,3 +48,14 @@ Thumbs.db
 
 # Local secrets
 .env
+
+# Defense-only material — intentionally kept outside the public software repository.
+# The public repo ships only the code, the deployed model, deployment configs, and
+# software documentation (README, SOURCE_OF_TRUTH, models/README, docs/USER_GUIDE).
+# The four CRISP-DM notebooks, the thesis chapters, and the historical experiments/
+# and models/_archive/ trees are maintained externally.
+docs/thesis_*.md
+notebooks/
+scripts/notebooks/
+experiments/
+models/_archive/

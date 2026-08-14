@@ -57,29 +57,29 @@ _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parent.parent
 
 
-def _resolve_report(name: str) -> Path:
-    """Resolve an E-series report path by trying the in-repo data_pipeline
-    location first and falling back to the sibling scamradar2 directory (the
-    same pattern used by the notebook layer)."""
-    candidates = []
-    if 'SCAMRADAR2_ROOT' in os.environ:
-        candidates.append(Path(os.environ['SCAMRADAR2_ROOT']) / 'reports' / name)
-    candidates += [
-        _ROOT / 'data_pipeline' / 'reports' / name,
-        Path.home() / 'Downloads' / 'scamradar2' / 'reports' / name,
-    ]
-    for c in candidates:
-        if c.exists():
-            return c
-    raise FileNotFoundError(
-        f'Could not locate report {name!r}. Tried: '
-        + '; '.join(str(c) for c in candidates)
-    )
+def _resolve_report(name: str, required: bool = True) -> Path | None:
+    """Resolve an E-series report path from the canonical in-repo location
+    at ``data/canonical/reports/``. E2/E3 ranking artifacts were produced
+    inside the external ``scamradar2`` workspace and were not copied into
+    this repository; callers can pass ``required=False`` for those, and
+    the corresponding stage summariser will emit a stub record noting
+    the artifact is not in-repo. This keeps the summary regeneration
+    robust to the historical gap."""
+    candidate = _ROOT / 'data' / 'canonical' / 'reports' / name
+    if candidate.exists():
+        return candidate
+    if required:
+        raise FileNotFoundError(
+            f'Could not locate report {name!r} at {candidate}'
+        )
+    return None
 
 # ─── Input paths ─────────────────────────────────────────────────────────────
-E2_RANKING       = _resolve_report('e2_ranking.json')
-E3_RANKING       = _resolve_report('e3_ranking.json')
-E4_TRIALS        = _resolve_report('e4_trials.json')
+# E2/E3 rankings originated in scamradar2 and are not present in-repo; treat
+# as optional and emit stub stage records if absent.
+E2_RANKING       = _resolve_report('e2_ranking.json', required=False)
+E3_RANKING       = _resolve_report('e3_ranking.json', required=False)
+E4_TRIALS        = _resolve_report('e4_trials.json', required=False)
 E4_BEST          = _resolve_report('e4_best.json')
 E5_METADATA      = _ROOT / 'models' / 'e5_metadata.json'
 E7P1_RESULTS     = _ROOT / 'outputs' / 'eval' / 'e7_p1_results.json'
@@ -87,7 +87,7 @@ E8P1_EXTERNAL    = _ROOT / 'outputs' / 'eval' / 'e8p1_external.json'
 E8P9_BAKEOFF     = _ROOT / 'outputs' / 'eval' / 'e8p9_bakeoff_results.json'
 E8P9_PER_ITEM    = _ROOT / 'outputs' / 'eval' / 'e8p9_per_item.parquet'
 E8P9_BUNDLE      = _ROOT / 'models' / 'e7_p1_variants' / 'e7_p1_full_e8p9.joblib'
-ACQUISITION      = _ROOT / 'data_pipeline' / 'reports' / 'acquisition_manifest.json'
+ACQUISITION      = _resolve_report('acquisition_manifest.json')
 
 # ─── Output paths ────────────────────────────────────────────────────────────
 OUT_JSON     = _ROOT / 'outputs' / 'eval' / 'master_summary.json'
@@ -101,7 +101,35 @@ def _load_json(p: Path) -> dict | list:
 
 
 # ─── Stage summarisers ───────────────────────────────────────────────────────
+def _stub_stage(stage: str, role: str, note: str) -> dict:
+    """Placeholder record for stages whose primary evidence artifact was
+    produced outside this repository (scamradar2 workspace) and is not
+    physically present here. The stage still happened; only its detailed
+    ranking JSON is upstream. See E4 report + SOURCE_OF_TRUTH.md for the
+    reconstruction of the E2/E3 decisions."""
+    return {
+        'stage':               stage,
+        'role':                role,
+        'n_candidates':        None,
+        'winner':              None,
+        'primary_metric_name': None,
+        'primary_metric_value': None,
+        'tiebreak_metric_name': None,
+        'tiebreak_metric_value': None,
+        'evidence_artifact':   'not-in-repo (produced in scamradar2 workspace)',
+        'notes':               note,
+    }
+
+
 def _stage_e2() -> dict:
+    if E2_RANKING is None:
+        return _stub_stage(
+            'E2',
+            'textual representation ablation (F1-F6)',
+            ('Ranking JSON not in this repo. Decision recorded in '
+             'data/canonical/reports/e4_best.json::e3_baseline_reference '
+             'and SOURCE_OF_TRUTH.md: F3 (word + char TF-IDF) selected.'),
+        )
     d = _load_json(E2_RANKING)
     ranked = d['ranked']
     winner = ranked[0]
@@ -120,6 +148,14 @@ def _stage_e2() -> dict:
 
 
 def _stage_e3() -> dict:
+    if E3_RANKING is None:
+        return _stub_stage(
+            'E3',
+            'classifier bake-off on winning representation',
+            ('Ranking JSON not in this repo. Decision recorded in '
+             'data/canonical/reports/e4_best.json::e3_baseline_reference: '
+             'Logistic Regression on F3 selected as the classifier family.'),
+        )
     d = _load_json(E3_RANKING)
     ranked = d['ranked']
     winner = ranked[0]
@@ -139,18 +175,19 @@ def _stage_e3() -> dict:
 
 
 def _stage_e4() -> dict:
-    trials = _load_json(E4_TRIALS)
     best = _load_json(E4_BEST)
+    trials = _load_json(E4_TRIALS) if E4_TRIALS is not None else None
+    n_trials = int(best.get('n_trials_run', len(trials) if trials is not None else 20))
     return {
         'stage':               'E4',
         'role':                'hyperparameter optimisation (Optuna TPE)',
-        'n_candidates':        int(best.get('n_trials_run', len(trials))),
+        'n_candidates':        n_trials,
         'winner':              f"trial {best['best_trial']}",
         'primary_metric_name': 'validation PR-AUC (Optuna objective)',
         'primary_metric_value': round(float(best['best_val_pr_auc']), 4),
         'tiebreak_metric_name': 'improvement vs E3 val PR-AUC',
         'tiebreak_metric_value': round(float(best.get('improvement_vs_e3_val', 0.0)), 4),
-        'evidence_artifact':   f'{E4_BEST.name} + {E4_TRIALS.name}',
+        'evidence_artifact':   (E4_BEST.name + (f' + {E4_TRIALS.name}' if E4_TRIALS is not None else '')),
         'notes':               (f'Tuned C, penalty, class_weight, TF-IDF n-gram ranges, '
                                 f'min_df/max_df/max_features, sublinear_tf. Best params '
                                 f'persisted at models/e5_metadata.json / e4_best_params.'),
@@ -244,6 +281,43 @@ def _stages() -> list[dict]:
 
 
 # ─── Deployed model card ─────────────────────────────────────────────────────
+def _with_rules_headline_from_per_item() -> dict:
+    """Compute the deployed-pipeline (classifier + 19-rule engine) headline
+    directly from the E8-P9 per-item predictions on the frozen external
+    benchmark. The parquet's `pred` column already reflects the deployed
+    verdict at threshold 0.59 (rules applied); `final_prob` is the post-rule
+    probability. This replaces the earlier practice of copying the E8-P1
+    (13-rule, historical) block, which was stale after the rule engine was
+    refined to 19 rules at E8-P9."""
+    from sklearn.metrics import (confusion_matrix, precision_score, recall_score,
+                                 f1_score, accuracy_score, roc_auc_score,
+                                 average_precision_score)
+    per = pd.read_parquet(E8P9_PER_ITEM)
+    y = per['label'].astype(int).values
+    yhat = per['pred'].astype(int).values
+    p_final = per['final_prob'].astype(float).values
+    tn, fp, fn, tp = confusion_matrix(y, yhat).ravel()
+    return {
+        'accuracy':  round(float(accuracy_score(y, yhat)), 4),
+        'precision': round(float(precision_score(y, yhat)), 4),
+        'recall':    round(float(recall_score(y, yhat)), 4),
+        'f1':        round(float(f1_score(y, yhat)), 4),
+        'pr_auc':    round(float(average_precision_score(y, p_final)), 4),
+        'roc_auc':   round(float(roc_auc_score(y, p_final)), 4),
+        'confusion': {'tn': int(tn), 'fp': int(fp), 'fn': int(fn), 'tp': int(tp)},
+        'n':         int(len(per)),
+        'threshold': 0.59,
+        'rule_engine': '19 rules (9 Critical + 7 Strong + 3 Legit)',
+        'source':    str(E8P9_PER_ITEM.relative_to(_ROOT)),
+        'note':      ('Computed directly from the E8-P9 per-item predictions on '
+                      'the frozen 25,306-row external benchmark. This IS the '
+                      'current deployed configuration (LR + 19-rule engine). '
+                      'For the historical E8-P1 (13-rule) numbers see the '
+                      'E8-P1 entry in the `stages` list and its evidence '
+                      'artifact outputs/eval/e8p1_external.json.'),
+    }
+
+
 def _deployed_card() -> dict:
     import joblib
     b = joblib.load(E8P9_BUNDLE)
@@ -252,7 +326,6 @@ def _deployed_card() -> dict:
     bakeoff = _load_json(E8P9_BAKEOFF)
     lr_row = bakeoff['results'][0]
     ext = lr_row['external_at_deployed_0.59']
-    e8p1 = _load_json(E8P1_EXTERNAL)
     return {
         'artifact_path':                 str(E8P9_BUNDLE.relative_to(_ROOT)),
         'classifier_family':             'LogisticRegression',
@@ -261,17 +334,8 @@ def _deployed_card() -> dict:
         'feature_matrix_dim':            int(lr.coef_.shape[1]),
         'classifier_size_mb':            lr_row['classifier_size_mb'],
         'latency_batch1_ms_median':      lr_row['latency_batch1_ms_median'],
-        'external_headline_raw_classifier': ext,
-        'external_headline_with_rule_engine': {
-            'accuracy':  e8p1['accuracy'],
-            'precision': e8p1['precision'],
-            'recall':    e8p1['recall'],
-            'f1':        e8p1['f1'],
-            'pr_auc':    e8p1['pr_auc'],
-            'roc_auc':   e8p1['roc_auc'],
-            'confusion': e8p1['confusion'],
-            'note':      e8p1.get('note', ''),
-        },
+        'external_headline_raw_classifier':   ext,
+        'external_headline_with_rule_engine': _with_rules_headline_from_per_item(),
     }
 
 
