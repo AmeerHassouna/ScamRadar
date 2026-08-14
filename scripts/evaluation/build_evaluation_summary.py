@@ -24,12 +24,12 @@ synthesis outputs:
 Nothing is retrained, re-scored, or recomputed. Every number in the
 outputs traces back to an artifact already on disk.
 
-Inputs read:
-  data_pipeline/reports/acquisition_manifest.json
-  <SCAMRADAR2_ROOT>/reports/e2_ranking.json
-  <SCAMRADAR2_ROOT>/reports/e3_ranking.json
-  <SCAMRADAR2_ROOT>/reports/e4_trials.json
-  <SCAMRADAR2_ROOT>/reports/e4_best.json
+Inputs read (all resolve under this repository; external upstream
+`scamradar2` artifacts that were never copied in-repo — e2_ranking.json,
+e3_ranking.json, e4_trials.json — are treated as optional and emit stub
+stage records if absent):
+  data/canonical/reports/acquisition_manifest.json
+  data/canonical/reports/e4_best.json
   models/e5_metadata.json
   outputs/eval/e7_p1_results.json
   outputs/eval/e8p1_external.json

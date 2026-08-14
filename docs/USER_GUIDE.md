@@ -209,35 +209,18 @@ Full architecture and permission details are in `extension/README.md`.
 
 ## 5. Reproducing the Model and Evaluation Artifacts
 
-The deployed E8-P9 model is fully reproducible from the scripts in this repository. The following Makefile targets cover the common developer workflows:
+The deployed E8-P9 model is reproducible from the scripts in this repository, **provided the canonical training corpus and the frozen benchmark are available** (see the Reproducibility section of the main README — those parquet files are not shipped in the public repo). The following Makefile targets cover the common developer workflows:
 
 ```bash
-make train        # Train the deployed E8-P9 classifier bundle
+make train        # Train the deployed E8-P9 classifier bundle (needs data/interim/e7_p1_features_e8p9.parquet)
 make bakeoff      # Run the final classifier bake-off (LR vs LinearSVC vs SGD)
-make eval         # Re-score the external benchmark end-to-end
-make summary      # Rebuild consolidated evaluation summary (fast, aggregation only)
-make notebooks    # Execute all four CRISP-DM notebooks end-to-end
+make eval         # Re-score the external benchmark end-to-end (needs data/canonical/external_benchmark.parquet)
+make summary      # Rebuild consolidated evaluation summary (needs outputs/eval/*.json + e8p9_per_item.parquet)
 ```
 
-### 5.1 Notebook layer
+`python -m src.pipeline` prints the deployed-system fact sheet and works from a clean clone with no additional data — it reads only the shipped constants.
 
-The `notebooks/` directory contains the four CRISP-DM notebooks (Data Understanding, Data Preparation, Modeling, Evaluation). Each notebook is a presentation layer over the production scripts — it invokes a `cached_step` helper that runs the underlying script only if the required artifacts are missing on disk.
-
-Execute all four notebooks end-to-end:
-
-```bash
-make notebooks
-```
-
-Or open a single notebook in Jupyter:
-
-```bash
-jupyter notebook notebooks/evaluation.ipynb
-```
-
-Every table, plot, and metric in the notebooks is generated from persisted artifacts in `outputs/eval/` or `models/`. Nothing is retrained inside the notebooks.
-
-### 5.2 Evaluation artifacts
+### 5.1 Evaluation artifacts
 
 After `make summary` and `make bakeoff` complete, the following consolidated artifacts are written to `outputs/eval/`:
 

@@ -6,7 +6,7 @@ PY := python3
 VENV_PY := .venv/bin/python
 
 .DEFAULT_GOAL := help
-.PHONY: help setup api web train eval bakeoff summary notebooks test deploy clean
+.PHONY: help setup api web train eval bakeoff summary test deploy clean
 
 # ─── Discovery ────────────────────────────────────────────────────────────
 
@@ -23,9 +23,6 @@ help: ## Show this help message.
 	@echo '  make bakeoff     Run the final classifier bake-off (LR vs LinearSVC vs SGD)'
 	@echo '  make eval        Rerun the per-item external-benchmark scoring'
 	@echo '  make summary     Rebuild master_summary.{json,csv} + e8p9_findings.md'
-	@echo ''
-	@echo 'Notebooks:'
-	@echo '  make notebooks   Execute all four CRISP-DM notebooks end-to-end'
 	@echo ''
 	@echo 'Verification:'
 	@echo '  make test        Run the manual-acceptance-test corpus'
@@ -62,15 +59,7 @@ eval:  ## Score the external benchmark end-to-end with the deployed pipeline.
 summary:  ## Rebuild consolidated evaluation artifacts (fast, aggregation only).
 	$(PY) scripts/evaluation/build_evaluation_summary.py
 
-# ─── Notebooks + verification ─────────────────────────────────────────────
-
-notebooks:  ## Execute all four CRISP-DM notebooks end-to-end.
-	jupyter nbconvert --to notebook --execute --inplace \
-	    --ExecutePreprocessor.timeout=900 \
-	    notebooks/data_understanding.ipynb \
-	    notebooks/data_preparation.ipynb \
-	    notebooks/modeling.ipynb \
-	    notebooks/evaluation.ipynb
+# ─── Verification ─────────────────────────────────────────────────────────
 
 test:  ## Run the manual-acceptance-test corpus.
 	$(PY) tests/manual_acceptance_test.py
@@ -82,6 +71,5 @@ deploy:  ## Push the current branch — Render auto-deploys on push to main.
 
 # ─── Housekeeping ─────────────────────────────────────────────────────────
 
-clean:  ## Remove __pycache__ + notebook checkpoint dirs.
+clean:  ## Remove __pycache__ directories.
 	find . -type d -name __pycache__ -not -path './.venv/*' -not -path './node_modules/*' -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name .ipynb_checkpoints -exec rm -rf {} + 2>/dev/null || true
