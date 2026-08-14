@@ -18,7 +18,7 @@ Not every file here is loaded in production. This README says which one is.
 
 ## What is intentionally NOT in this repository
 
-Rejected E7-P1 feature-group ablations (`e7_p1_tone`, `e7_p1_url`, `e7_p1_phrase`, `e7_p1_textstats`), the pre-E8-P2 baseline `e7_p1_full.joblib`, and the v1.x-era artifacts (`scaler.pkl`, `tfidf_vectorizer.pkl`, `char_vectorizer.pkl`, `scamradar_model.pkl`, `legit_faiss.index`, `scam_faiss.index`) are excluded from the public repository. They are historical evidence for the decision journey and are maintained outside this repo.
+Earlier model variants and rejected E7-P1 ablations are intentionally not shipped — they are external evidence of the modeling decision journey. Only the artifacts listed above are needed to run the deployed pipeline.
 
 ## Where to look next
 

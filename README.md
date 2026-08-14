@@ -49,7 +49,7 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 | Where are the rule engine and inference logic? | [`src/rule_engine/`](src/rule_engine/) (19 rules) and [`src/inference.py`](src/inference.py) |
 | How do I reproduce the metrics? | `python scripts/evaluation/analyze_e8p9_errors.py` — reproduces F1 = 0.9131 with the 19-rule engine. **Requires the canonical benchmark parquet at `data/canonical/external_benchmark.parquet`, which is not shipped in this repo** — see [Reproducibility](#reproducibility) below. |
 
-The `src/` package is the single source of truth for the deployed pipeline — it does not depend on any historical experiment. `experiments/` and `models/_archive/` preserve the decision journey without polluting the canonical implementation.
+The `src/` package is the single source of truth for the deployed pipeline. Historical experiments, rejected ablations, and superseded artifacts are maintained externally as defense material and are not required to run the current system.
 
 ---
 
@@ -295,7 +295,7 @@ ScamRadar/
 
 **What is intentionally NOT in this repository.** Raw / canonical / interim / synthetic parquet data (`data/`), evaluation outputs (`outputs/`), the four CRISP-DM notebooks, the thesis chapters (`docs/thesis_*.md`), and the historical `experiments/` and `models/_archive/` trees are maintained outside the public software repository. They are defense/evidence material, not runtime dependencies. See the [Reproducibility](#reproducibility) section for what this means practically.
 
-**Model provenance.** The deployed classifier was trained on the canonical data originally produced by a separate `scamradar2` workspace (acquire → clean → audit → approve-dataset → split); the frozen outputs of that upstream workspace feed this repository's `data/canonical/` directory, but neither the upstream code nor the parquet outputs are shipped here at runtime. The API loads only `models/e7_p1_variants/e7_p1_full_e8p9.joblib` and applies the 19-rule engine under `src/rule_engine/`. Full lineage in [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
+**Model provenance.** The deployed classifier was trained on frozen canonical data (`data/canonical/`) produced by an upstream data acquisition and preparation process (acquire → clean → audit → approve-dataset → split) whose outputs were incorporated into this project. Neither the upstream code nor the raw parquet outputs are shipped here at runtime; the API loads only `models/e7_p1_variants/e7_p1_full_e8p9.joblib` and applies the 19-rule engine under `src/rule_engine/`. Full lineage in [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
 
 ---
 
@@ -452,7 +452,7 @@ Every source is publicly available and documented with a URL + license. **No Kag
 | Enron ham sample | legit | email | legacy |
 | Synthetic supplements (documented + audit-flagged) | scam | mixed | modern |
 
-The dataset audit found no license issues. The initial approved corpus (253,264 rows, `data/canonical/clean.parquet`) is 100% real-world. The final training corpus of 283,501 rows was later expanded with 33,277 targeted synthetic rows (~11.7%) added during the E8-P2 / E8-P6 / E8-P8 data-preparation iterations to close specific false-positive and modern-scam coverage gaps identified after initial modeling; every synthetic row is flagged and its generation script is under [`scripts/data_prep/`](scripts/data_prep/). The canonical acquisition and cleaning pipeline (`scamradar acquire` / `clean` / `split`) originated in a separate `scamradar2` workspace; its outputs are frozen and imported into this repository at `data/canonical/`, so the deployed lineage does not depend on that upstream project at runtime.
+The dataset audit found no license issues. The initial approved corpus (253,264 rows, `data/canonical/clean.parquet`) is 100% real-world. The final training corpus of 283,501 rows was later expanded with 33,277 targeted synthetic rows (~11.7%) added during the E8-P2 / E8-P6 / E8-P8 data-preparation iterations to close specific false-positive and modern-scam coverage gaps identified after initial modeling; every synthetic row is flagged and its generation script is under [`scripts/data_prep/`](scripts/data_prep/). The canonical corpus originated from an upstream data acquisition and preparation process (acquire → clean → audit → approve-dataset → split); its frozen outputs were subsequently incorporated into this repository at `data/canonical/`, so the deployed lineage does not depend on that upstream process at runtime.
 
 ---
 
@@ -483,7 +483,7 @@ Four generations of ML architecture led to the deployed system. Only the E8-P9 b
 - **E5 → E7-P1:** Same head and text features; added 25 numerical features (already computed elsewhere in the codebase but previously ignored by the classifier) via feature-concatenation. Small F1 movements (±0.001) but the numerical block enables the Rule Engine to reason over consistent inputs.
 - **E7-P1 → E8-P9:** Same architecture; added a modular Rule Engine and expanded the training corpus with 15,778 modern messages targeting conversational / investment / romance / threat scams that the 2008-era external benchmark doesn't measure. Deliberate tradeoff — some legacy-email precision for meaningful modern-scam recall.
 
-The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. Earlier v1.x artifacts, the pre-E8-P2 `e7_p1_full.joblib` baseline, and the four rejected E7-P1 ablation variants are not shipped in this repository — they are external evidence of the decision journey. See [`models/README.md`](models/README.md) and [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
+The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. Only the currently deployed model and the E5 fallback ship in this repository; earlier variants and rejected ablations are not part of the active pipeline. See [`models/README.md`](models/README.md) and [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
 
 ---
 

@@ -80,7 +80,7 @@ Neither URL-scanning key is required — the classifier works without them and s
 make help
 ```
 
-You should see a categorised list of developer commands (`setup`, `api`, `web`, `train`, `bakeoff`, `eval`, `summary`, `notebooks`, `test`, `deploy`, `clean`). All subsequent sections use these Makefile targets as shorthand.
+You should see a categorised list of developer commands (`setup`, `api`, `web`, `train`, `bakeoff`, `eval`, `summary`, `test`, `deploy`, `clean`). All subsequent sections use these Makefile targets as shorthand.
 
 ---
 
@@ -528,7 +528,7 @@ Yes — the hosted API is public and unauthenticated. Please respect the rate li
 See Sections 1–3 above for local setup, and Section 4 for the browser extension.
 
 **Q: How do I reproduce the model?**
-See Section 5. `make train` produces the deployed bundle; `make bakeoff` runs the classifier comparison; `make summary` rebuilds the consolidated evaluation artifacts. All four CRISP-DM notebooks execute against the produced artifacts.
+See Section 5. `make train` produces the deployed bundle; `make bakeoff` runs the classifier comparison; `make summary` rebuilds the consolidated evaluation artifacts.
 
 **Q: The result seems wrong — what should I do?**
 On the locked one-shot external benchmark (n = 25,306), the pure ML classifier scores F1 = 0.941; the full production pipeline (E8-P9, classifier + rule engine) scores F1 = 0.913. Either way, roughly 3–9% of messages will be misclassified. For borderline cases (confidence 40–75), treat the result as a prompt to investigate further rather than a definitive verdict. This tool is designed to *assist* your judgement, not replace it.

@@ -5,6 +5,8 @@
 Last verified: 2026-08-15 against the working tree.
 
 > **What ships in this public repository:** production/inference source, deployment configs, the deployed model bundle (`models/e7_p1_variants/e7_p1_full_e8p9.joblib`), the E5 fallback bundle, E8-chain and E7-P1 training/evaluation scripts, and software documentation (`README.md`, `models/README.md`, `docs/USER_GUIDE.md`, this file). **What is intentionally external:** the raw / canonical / interim / synthetic parquet data, the frozen evaluation outputs, the four CRISP-DM notebooks, the thesis chapters, and the historical `experiments/` and `models/_archive/` trees. See "What is NOT in this public repository (and why)" below.
+>
+> **Data provenance.** The canonical corpus originated from an upstream data acquisition and preparation process; its frozen outputs were subsequently incorporated into the current ScamRadar+ project. The deployed pipeline does not require that upstream process at runtime.
 
 ---
 
@@ -12,7 +14,7 @@ Last verified: 2026-08-15 against the working tree.
 
 | Question | Canonical answer | Evidence |
 |---|---|---|
-| What is the raw dataset? | scamradar2's 13-source acquisition (email/SMS/chat/job-posting) | `data/canonical/reports/acquisition_manifest.json` |
+| What is the raw dataset? | A 13-source acquisition (email/SMS/chat/job-posting) produced by the upstream data-preparation process and incorporated into `data/canonical/` | `data/canonical/reports/acquisition_manifest.json` |
 | What is the cleaned dataset? | **`data/canonical/clean.parquet`** — 253,264 rows | `data/canonical/APPROVAL.json` (dataset_hash: `f92fe4b7fb0b0080a1c04a959d236d15d297a75bafc1cee66477ac3aac322223`) |
 | What are the modelling splits? | `data/canonical/{train,val,test}.parquet` — 159,571 / 34,193 / 34,194 | Produced by cluster-aware stratified split (`scamradar split`) |
 | What is the external evaluation set? | **`data/canonical/external_benchmark.parquet`** — 25,306 rows | `data/canonical/external_benchmark_LOCK.json` (`frozen: true`, write-once) |
@@ -64,7 +66,7 @@ Both computed against the 25,306-row frozen external benchmark. Reproducible via
 
 | Value | Where it comes from | Status |
 |---|---|---|
-| F1 = 0.9368 | E8-P1 stage (13 legacy rules), `outputs/eval/e8p1_external.json` | **HISTORICAL** — must not be quoted as the current deployed result. It survives only as the E8-P1 stage entry in `outputs/eval/master_summary.json::stages[]` and in the corresponding thesis-narrative sections. The `external_headline_with_rule_engine` block of `master_summary.json` was previously copied from this E8-P1 file; that copy has been replaced by a direct computation from `outputs/eval/e8p9_per_item.parquet`, so the current-deployed headline in that block is now F1 = 0.9131 (19-rule engine). |
+| F1 = 0.9368 | E8-P1 stage (13 legacy rules), `outputs/eval/e8p1_external.json` | **HISTORICAL** — must not be quoted as the current deployed result. It survives only as the E8-P1 stage entry in `outputs/eval/master_summary.json::stages[]`. The current-deployed headline in `external_headline_with_rule_engine` is F1 = 0.9131 (19-rule engine), computed directly from `outputs/eval/e8p9_per_item.parquet`. |
 | Accuracy = 0.9776 with rules | Same E8-P1 block | HISTORICAL |
 | Confusion TN=20545 / FP=226 / FN=340 / TP=4195 | Same E8-P1 block | HISTORICAL |
 | 20 rules | Documentation stated 20; the actual runtime list is 19 (Rule A8 `BrandImpersonationWithActionRule` is defined as a class but not registered in any rule list) | Documentation drift; canonical count = 19 |
@@ -74,14 +76,14 @@ Both computed against the 25,306-row frozen external benchmark. Reproducible via
 ## Data lineage
 
 ```
-scamradar2/data/raw/ (13 sources; email + SMS + chat + job postings)
+upstream data acquisition (13 sources; email + SMS + chat + job postings)
       │
-      │  scamradar acquire  ── sample_id + exact_hash + cluster_id
+      │  acquire step  ── sample_id + exact_hash + cluster_id
       ▼
 data/canonical/canonical_raw.parquet
     (280,730 rows — POST-HOC snapshot from Aug 9; the exact source
-     snapshot that produced clean.parquet was overwritten in scamradar2
-     on Aug 9 and is not recoverable. Lineage below starts at clean.)
+     snapshot that produced clean.parquet was overwritten upstream on
+     Aug 9 and is not recoverable. Lineage below starts at clean.)
       │
       │  scamradar clean  (SHA-1 exact dedup + MinHash-LSH near-dup)
       ▼
@@ -134,7 +136,7 @@ outputs/eval/e8p9_per_item.parquet                           25,306   [FINAL PER
 outputs/eval/master_summary.json                                       [FINAL METRICS]
 ```
 
-All row counts balance to the last row (see `SOURCE_OF_TRUTH.md` history in `docs/thesis_data_preparation.md` for per-batch merge_report.json evidence).
+All row counts balance to the last row (per-batch evidence lives in the `merge_report.json` files under `data/synthetic_legit/e8p{2,6}/` and `data/synthetic_scam/e8p8/`, and in `data/interim/e8p5_cleanup_report.json`).
 
 ---
 
@@ -167,7 +169,7 @@ The following historical / rejected / defense-only material is intentionally exc
 | Rejected representation ablation | E7-P1 tone-only / url-only / phrase-only / textstats-only joblibs | All scored lower than `e7_p1_full` on external PR-AUC. |
 | Rejected feature study | E7-P3 (FAISS + proximity-to-scam feature) code and artifacts | External PR-AUC dropped vs `e7_p1_full`. Not part of the deployed pipeline. |
 | Superseded baseline | Pre-E8-P2 `e7_p1_full.joblib` (trained on 253,264 without synthetic augmentation) | Superseded by `e7_p1_full_e8p9.joblib`. |
-| Legacy generation | v1.x model artifacts (`scamradar_model.pkl`, `tfidf_vectorizer.pkl`, `char_vectorizer.pkl`, `scaler.pkl`, `legit_faiss.index`, `scam_faiss.index`) | Never loaded by the current code path. |
+| Earlier generation | Model artifacts from a prior architecture (before the E5 baseline was adopted) | Never loaded by the current code path. |
 | Aug-10 data-prep regeneration | 279,230-row raw / 251,299 clean / 25,129 benchmark regeneration | Regenerated *after* E8-P9 was trained and evaluated. Never consumed by the deployed model. |
 | E6 data-collection tiers | Reddit + web-page collectors, template collectors, tier-level dedup | Superseded by the canonical E5 corpus that seeds the 253,264 approved dataset. |
 | Notebooks | Four CRISP-DM presentation notebooks | Presentation layer only; every heavy step is in `scripts/` and `src/`. Notebooks are maintained externally as defense material. |
@@ -178,9 +180,9 @@ The following historical / rejected / defense-only material is intentionally exc
 
 ## Genuinely UNRESOLVED items
 
-None as of the last verification. The previously-flagged staleness of `outputs/eval/master_summary.json::external_headline_with_rule_engine` (which used to copy the E8-P1 13-rule numbers) has been resolved: `scripts/evaluation/build_evaluation_summary.py::_with_rules_headline_from_per_item` now computes that block directly from `outputs/eval/e8p9_per_item.parquet`, so the block reports F1 = 0.9131 (19-rule engine) with a `source` field pointing at the parquet. The historical E8-P1 numbers still exist in `master_summary.json::stages[]` under `stage="E8-P1"` — correctly labeled as a stage of the modeling journey, not as the deployed headline.
+None. The `external_headline_with_rule_engine` block of `outputs/eval/master_summary.json` is computed directly from `outputs/eval/e8p9_per_item.parquet` and matches the deployed 19-rule pipeline (F1 = 0.9131). The historical E8-P1 numbers remain only as the `stages[]::E8-P1` entry, correctly labeled as an intermediate stage.
 
-Note also: the `e2_ranking.json` and `e3_ranking.json` artifacts were produced inside the external `scamradar2` workspace and were not copied into this repository. The summary generator now records these stages as `not-in-repo (produced in scamradar2 workspace)` rather than crashing. The E2 / E3 decisions are still reconstructible from `data/canonical/reports/e4_best.json::e3_baseline_reference`.
+The `e2_ranking.json` and `e3_ranking.json` artifacts were produced by the upstream data-preparation / modeling process and are not present in this repository; `build_evaluation_summary.py` emits stub records for those two stages. The E2 / E3 decisions are still reconstructible from `data/canonical/reports/e4_best.json::e3_baseline_reference`.
 
 ---
 
