@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-08-15",
+  "purpose": "Verifiable provenance link between the original raw snapshot and the approved 253,264-row clean corpus. The referenced raw snapshot is preserved externally as defense/provenance material and is not shipped in this repository (upstream source licenses + parquet size). The clean corpus itself is also not shipped in this repository (data/ is gitignored); its SHA-256 is recorded here so any holder of the file can verify.",
+
+  "raw_snapshot": {
+    "description": "Original raw canonical.parquet used to produce the approved clean corpus.",
+    "row_count": 280728,
+    "sha256": "f0bef1515f7b02801c56cf3f215f25324c402666f727b6c7169ec1bdf90f9afd",
+    "columns": ["sample_id", "text", "label", "category", "source", "license", "is_synthetic", "era", "platform", "acquired_at"],
+    "preservation": "external defense/provenance material (not in this repository)"
+  },
+
+  "clean_corpus": {
+    "description": "Approved clean.parquet — the frozen dataset that seeds every downstream split and the E8-P9 training corpus.",
+    "row_count": 253264,
+    "sha256": "311c0ba884875e62256b6fd7674d1593cc5c337a3412f51092b37a933045137b",
+    "dataset_hash_from_APPROVAL": "f92fe4b7fb0b0080a1c04a959d236d15d297a75bafc1cee66477ac3aac322223",
+    "approved_at": "2026-08-01T00:04:40.271055+00:00",
+    "approver": "human-review-2026-08-01-v2b",
+    "preservation": "external — data/ is gitignored; SHA-256 recorded here is the ground truth"
+  },
+
+  "lineage_verification": {
+    "method": "sample_id subset verification",
+    "test": "every sample_id present in clean.parquet must also be present in the referenced raw snapshot",
+    "clean_sample_ids": 253264,
+    "clean_sample_ids_missing_from_original_raw_snapshot": 0,
+    "conclusion": "The referenced raw snapshot is a valid preimage of the approved clean corpus."
+  },
+
+  "source_count_verification": {
+    "method": "per-source row-count reconciliation against data/canonical/reports/acquisition_manifest.json",
+    "sources_checked": 14,
+    "sources_matching_manifest": 14,
+    "raw_total_matches_manifest_total": true,
+    "raw_total": 280728,
+    "manifest_total": 280728
+  },
+
+  "repository_raw_note": {
+    "file": "data/canonical/canonical_raw.parquet",
+    "row_count": 280730,
+    "status": "later re-acquisition, NOT the original raw snapshot",
+    "difference_from_original": "differs by 2 rows in the sms_spam_collection source; 546 clean sample_ids are absent from this later snapshot",
+    "purpose": "kept for source-list traceability only; not a valid preimage of clean.parquet"
+  },
+
+  "reproducibility_note": "The original acquisition/cleaning implementation is not shipped in this repository. Consequently, running the current repository will not reproduce the exact 253,264-row clean.parquet from the raw snapshot. What IS reproducible/verifiable from this repository is the downstream chain: given clean.parquet + the E8-chain scripts under scripts/data_prep/ + the merge_report.json files under data/synthetic_*/, the 283,501-row training corpus (data/interim/e7_p1_features_e8p9.parquet) is fully reconstructible. The raw → clean step relies on the externally preserved raw snapshot + the (external) acquire/clean implementation.",
+
+  "what_this_record_proves": [
+    "The original raw snapshot exists and is preserved (not overwritten / lost).",
+    "The raw snapshot's identity is fixed by SHA-256, verifiable by anyone with the file.",
+    "The clean corpus is derivable from that raw snapshot (sample_id subset test passes exactly).",
+    "The in-repo canonical_raw.parquet is a documented later re-acquisition, not a substitute.",
+    "The per-source counts in the raw snapshot match the shipped acquisition_manifest.json exactly."
+  ]
+}

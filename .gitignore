@@ -20,8 +20,19 @@ venv/
 env/
 
 # Raw training data and outputs (large, not needed to run the API)
-data/
+data/*
 outputs/
+
+# Exceptions — small documentation / provenance records that DO belong
+# in the public repo. Parquets, JSONs from the upstream E-series reports,
+# and every other large data file remain gitignored. Only the two files
+# whitelisted below are trackable.
+!data/canonical/
+data/canonical/*
+!data/canonical/DATA_MANIFEST.md
+!data/canonical/reports/
+data/canonical/reports/*
+!data/canonical/reports/raw_provenance.json
 
 # Model development artefacts (frozen baselines + intermediate candidates).
 # All historical v1.x model artifacts + backups now live under old_models/

@@ -98,16 +98,29 @@ The ~0.941 → 0.9160 gap is **not** classifier degradation — it is the same a
 ## Data lineage
 
 ```
-upstream data acquisition (13 sources; email + SMS + chat + job postings)
+upstream data acquisition (14 sources; email + SMS + chat + job postings)
       │
       │  acquire step  ── sample_id + exact_hash + cluster_id
       ▼
-data/canonical/canonical_raw.parquet
-    (280,730 rows — POST-HOC snapshot from Aug 9; the exact source
-     snapshot that produced clean.parquet was overwritten upstream on
-     Aug 9 and is not recoverable. Lineage below starts at clean.)
+original raw snapshot (280,728 rows)
+    Preserved externally as defense/provenance material.
+    SHA-256: f0bef1515f7b02801c56cf3f215f25324c402666f727b6c7169ec1bdf90f9afd
+    Verified as a valid preimage of clean.parquet (every one of the 253,264
+    clean sample_ids is present in this snapshot; per-source counts match
+    data/canonical/reports/acquisition_manifest.json exactly across all 14
+    sources). See data/canonical/reports/raw_provenance.json.
+
+    The in-repo data/canonical/canonical_raw.parquet (280,730 rows) is a
+    later re-acquisition — differs from the original by 2 rows in the
+    sms_spam_collection source; is missing 546 clean sample_ids — kept
+    only for source-list traceability, not as a valid preimage of clean.
       │
-      │  scamradar clean  (SHA-1 exact dedup + MinHash-LSH near-dup)
+      │  clean step  (SHA-1 exact dedup + MinHash-LSH near-dup)
+      │  Original acquire/clean implementation is not shipped in this
+      │  repository, so the raw → clean transformation cannot be re-run
+      │  from a clean clone. What IS verifiable from this repository is
+      │  the identity + provenance of the raw snapshot and the byte-level
+      │  integrity of clean.parquet + all downstream artifacts.
       ▼
 data/canonical/clean.parquet                                253,264
       │

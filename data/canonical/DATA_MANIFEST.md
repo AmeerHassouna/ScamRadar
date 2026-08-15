@@ -1,0 +1,72 @@
+# Canonical Data Manifest
+
+Every file in this directory is part of the deployed E8-P9 lineage. All files are read-only from the codebase's perspective — none of the production code writes here.
+
+Provenance: these files were originally produced by the project's upstream data-preparation workspace between Jul 31 and Aug 1 2026 and were subsequently incorporated into this repository under `data/canonical/`. The original acquisition / cleaning implementation is not shipped with the current repository, so the raw → clean transformation cannot be re-run from a clean clone; the identity + integrity of the raw snapshot and every downstream artifact is verifiable via the SHA-256 hashes recorded here and in `reports/raw_provenance.json`.
+
+## Files
+
+| File | Rows | Cols | Purpose | Provenance |
+|---|---:|---:|---|---|
+| `canonical_raw.parquet` | 280,730 | 10 | Union of all 14 documented sources. **See caveat below.** | Later re-acquisition (not the original raw snapshot). The **original raw snapshot** used to produce `clean.parquet` is preserved externally as defense/provenance material — 280,728 rows, SHA-256 `f0bef1515f7b02801c56cf3f215f25324c402666f727b6c7169ec1bdf90f9afd`, per-source counts matching `reports/acquisition_manifest.json` exactly across all 14 sources. The **in-repo** file (this row, 280,730) differs from that original by 2 rows in `sms_spam_collection` and is missing 546 of the 253,264 `clean.parquet` sample_ids, so it is **not** a valid preimage of `clean.parquet` — kept only for source-list traceability. Full verification metadata in `reports/raw_provenance.json`. |
+| `clean.parquet` | **253,264** | 12 | Cleaned corpus post-dedup. **This is the frozen approved dataset.** | `scamradar clean` output; hash-locked in `APPROVAL.json`. |
+| `train.parquet` | **159,571** | 12 | Training partition | `scamradar split` (cluster-aware stratified). |
+| `val.parquet` | **34,193** | 12 | Validation partition (used for threshold selection at E5) | Same as above. |
+| `test.parquet` | **34,194** | 12 | Held-out test partition | Same as above. |
+| `external_benchmark.parquet` | **25,306** | 12 | Frozen external benchmark. This is what the deployed model's headline metrics are computed against. | Same as above; write-once via `external_benchmark_LOCK.json`. |
+| `APPROVAL.json` | — | — | Signed approval gate for `clean.parquet` | Written by `scamradar approve-dataset`. Contains dataset_hash, audit_totals, class balance, accepted red flags. |
+| `external_benchmark_LOCK.json` | — | — | Write-once seal for the external benchmark | `{"frozen": true, "rows": 25306, "evaluated": true, ...}` — matches the actual benchmark row count (25,306) and every deployed metric. |
+| `reports/` | — | — | E-series stage reports from the upstream data-preparation workspace + this repository's raw-provenance record | `acquisition_manifest.json`, `dataset_audit.{json,md}`, `data_quality.json`, `e4_best.json`, `e4_e5_report.md`, `e5_final.json`, `e5_calibration.json`, `benchmark_plan.md`, `raw_provenance.json` (verifiable link from the original raw snapshot to `clean.parquet`). |
+
+## Row count guarantees
+
+`src/data.py` enforces these counts at load time (`_assert_rows`). If any of these files is mutated, load will raise `RuntimeError`. Re-verify against `APPROVAL.json::audit_totals` if that happens.
+
+| Loader | Guaranteed row count |
+|---|---:|
+| `load_clean_corpus()` | 253,264 |
+| `load_train()` | 159,571 |
+| `load_val()` | 34,193 |
+| `load_test()` | 34,194 |
+| `load_external_benchmark()` | 25,306 |
+
+## Class balance (from APPROVAL.json)
+
+- Scam: 41,905 rows (16.55%)
+- Legit: 211,359 rows (83.45%)
+
+## Accepted red flags (documented in APPROVAL.json)
+
+Three scam categories are synthetic-only (no real-world rows collected at time of approval):
+
+- `bec_ceo_fraud`: 500 rows (all synthetic)
+- `marketplace_delivery_scam`: 498 rows (all synthetic)
+- `romance_scam`: 500 rows (all synthetic)
+
+Two source distribution flags:
+
+- `multiwoz_v22` dominates legit (49.5% > 40% ceiling)
+- Modern-era scam share is 12.4% (< 30% floor)
+
+These flags were accepted at approval time on the condition of written justification (see `docs/thesis_data_preparation.md` §7). The deployed pipeline was later augmented with E8-P2/P6/P8 synthetic batches that partially compensated for the modern-scam gap.
+
+## Downstream: E8-P9 training corpus
+
+`data/interim/e7_p1_features_e8p9.parquet` (283,501 rows) is derived from these files via:
+
+```
+train + val + test + external_benchmark              253,264
+  ┈┈┈ 25 numerical features computed by train_e7_p1.py ┈┈┈
++ E8-P2 synthetic legit                                +1,978  →  255,242
+- E8-P3 SpamAssassin + other filter                    -2,238  →  253,004
+- E8-P5 mailing lists + spam-in-legit + short            -802  →  252,202
++ E8-P6 synthetic legit (−51 dedup)                   +15,521  →  267,723
++ E8-P8 synthetic scam                                +14,669  →  282,392
++ E8-P8 synthetic legit pairs                          +1,109  →  283,501
+```
+
+## Files intentionally NOT in this directory
+
+- The Aug 10 DP regeneration files (a parallel rebuild that happened *after* E8-P9 was already trained and evaluated). Archived at `data/_archive/aug10_regeneration/`.
+- The v1.7_augmentation isolated experiment. Stays at `data/v1.7_augmentation/` for now; not required by E8-P9.
+- The E8 synthetic source files. Stay at `data/synthetic_legit/e8p{2,6}/` and `data/synthetic_scam/e8p8/` alongside their generation stats + merge reports.
