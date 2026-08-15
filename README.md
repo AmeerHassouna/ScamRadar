@@ -32,11 +32,35 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 - Paste a message → get a verdict + confidence + human-readable rationale
 - Analyse a full conversation → overall risk score plus per-message breakdown
 - Stateless: no accounts, no cookies, no message retention
-- Training corpus: 283,501 real + adversarial-synthetic messages (E8-P9 build)
+- Final training corpus: 283,501 messages (approved 253,264-row baseline expanded through iterative development)
 
 ## Try it now
 
 **[scamradarplus.com](https://scamradarplus.com)** — paste any suspicious message.
+
+---
+
+## How to read this project
+
+**ScamRadar+ is one core modeling pipeline that was iteratively improved and retrained** as new data, preprocessing procedures, features, and decision-layer improvements were introduced. Each iteration addressed a specific weakness identified through evaluation or error analysis; the underlying modeling approach (word + character TF-IDF · 25 numerical features · StandardScaler · Logistic Regression · decision threshold 0.59) remained consistent across every iteration. The final iteration produced the 283,501-record corpus and achieved **F1 = 0.916 for the classifier alone / F1 = 0.913 for the deployed classifier + 19-rule engine** on the held-out 25,306-row external benchmark.
+
+At a glance:
+
+```
+Baseline ScamRadar+ pipeline (253,264-row approved corpus)
+      ↓
+Initial evaluation + error analysis
+      ↓
+Iterative data / feature / preprocessing improvements
+      ↓
+Retraining
+      ↓
+Further iterative improvements
+      ↓
+Final ScamRadar+ pipeline (283,501-row corpus + 19-rule engine)
+```
+
+The full development sequence is in the [Historical context](#historical-context--iterative-development-of-the-scamradar-pipeline) section below. The internal `E8-P*` identifiers used throughout the code and file system are preserved for reproducibility; the primary examiner-facing labels are the iteration names.
 
 ---
 
@@ -70,7 +94,7 @@ The `src/` package is the single source of truth for the deployed pipeline. Hist
 - [API](#api)
 - [Data sources](#data-sources)
 - [Limitations & responsible use](#limitations--responsible-use)
-- [Historical context (v1.x → E5 → E7 → E8-P9)](#historical-context-v1x--e5--e7--e8-p9)
+- [Historical context — iterative development of the ScamRadar+ pipeline](#historical-context--iterative-development-of-the-scamradar-pipeline)
 - [Team & acknowledgements](#team--acknowledgements)
 - [License](#license)
 
@@ -481,7 +505,7 @@ The dataset audit found no license issues. The initial approved corpus (253,264 
 
 ## Limitations & responsible use
 
-- **Decision aid, not oracle.** Even at F1 = 0.941 on external benchmark, the model misclassifies ~2% of messages. Don't rely on the verdict alone for financial, legal, or safety decisions.
+- **Decision aid, not oracle.** Even at the final deployed F1 of 0.913 (0.916 for the classifier alone) on the 25,306-row external benchmark, the model still misclassifies several percent of messages. Don't rely on the verdict alone for financial, legal, or safety decisions.
 - **English-only.** Non-English inputs are rejected (HTTP 400) by an on-request `langdetect` check.
 - **Message-level, not sender-level.** The classifier reads one message at a time. It has no knowledge of the sender's identity, history, or other messages in your inbox.
 - **Recruitment scams are the weakest class.** Recall 0.494 on external benchmark. If a recruiter message feels off — even if the model says LEGIT — verify through official company channels.
@@ -489,24 +513,28 @@ The dataset audit found no license issues. The initial approved corpus (253,264 
 
 ---
 
-## Historical context (v1.x → E5 → E7 → E8-P9)
+## Historical context — iterative development of the ScamRadar+ pipeline
 
-Four generations of ML architecture led to the deployed system. Only the E8-P9 bundle and the E5 fallback bundle ship in this repository; earlier variants and rejected ablations live in external defense material.
+The same core ScamRadar+ modeling pipeline was iteratively improved and retrained rather than being replaced by unrelated model architectures. Error analysis after each evaluation identified specific weaknesses, which informed targeted changes to data quality, features, augmentation, or the decision layer. After each meaningful change the updated pipeline was retrained and re-evaluated. The internal `E8-P*` identifiers are preserved as short repository-level references for reproducibility (they appear on filenames, parquet paths, and script names); the primary examiner-facing names are the iteration titles below.
 
-| Generation | Architecture | Training | External F1 (n = 25,306) | Ships in this repo? |
-|---|---|---|---:|---|
-| **v1.x** (2025) | Random Forest + TF-IDF + char-grams + hand-crafted numerics + FAISS proximity | ~22.5k deduplicated clusters | ≈ 0.87 (400-message benchmark, not the locked 25,306 set) | No — superseded |
-| **E5** (Aug 2026) | Logistic Regression + word 1–2 gram TF-IDF + char 3–6 gram TF-IDF (500k features) | 195,776 clusters | **0.941** | Yes — `models/e5_bundle.joblib` (fallback) |
-| **E7-P1 Full** (Aug 2026) | E5 recipe + 25 numerical features (tone · URL · phrase · text stats) | Same corpus as E5 | 0.941 (unchanged; adds explainability, not accuracy) | No — the pre-E8-P2 bundle is superseded; its ablation variants (tone/url/phrase/textstats) are kept as external evidence |
-| **E8-P9** (Aug 2026, current) | E7-P1 Full + 19-rule engine (Critical/Strong/Legit, incl. A9/A10/A11 type floors) | E5 corpus + 14,669 modern synthetic scams + 1,109 legit-pair adversarial twins → **283,501 messages total** | 0.913 on the legacy benchmark (see [Performance](#performance) for the tradeoff explanation) | **Yes — `models/e7_p1_variants/e7_p1_full_e8p9.joblib`** (deployed) |
+| Development step | Internal ID | What changed | External F1 (n = 25,306) |
+|---|---|---|---:|
+| **Baseline ScamRadar+ pipeline** | E5 → E7-P1 Full | word + char TF-IDF (500k features) · 25 numerical features · StandardScaler · Logistic Regression · threshold 0.59. Trained on the approved 253,264-row clean corpus. | 0.941 |
+| **Iteration 0 — Rule Engine (initial)** | E8-P1 | Added the first decision-layer rule engine (13 rules — Critical / Strong / Legit categories). No corpus change. | 0.9368 (13-rule composite, historical intermediate — see caveat in `SOURCE_OF_TRUTH.md`) |
+| **Iteration 1 — Targeted Legit Augmentation** | E8-P2 | +1,978 targeted modern-transactional synthetic legitimate messages (Google / Microsoft / Apple / Amazon / DHL / Stripe / etc.) to address the false-positive pattern observed on modern legit email. | — (intermediate) |
+| **Iteration 2 — SpamAssassin Removal** | E8-P3 | Dropped the entire `spamassassin_ham` source (−2,238 rows) after identifying it as a noise source that hurt generalisation on modern legit traffic. | — (intermediate) |
+| *Rejected iteration — rolled back* | E8-P4 | An attempted retraining regressed external F1 from 0.9173 → 0.8842; not adopted. Recorded for methodological honesty. | 0.8842 (rejected) |
+| **Iteration 3 — Data Quality Cleanup** | E8-P5 | −802 rows removed: 397 mailing-list mislabels, 207 spam-in-legit, 198 too-short messages. | — (intermediate) |
+| **Iteration 4 — Broad Legit Expansion** | E8-P6 | +15,521 synthetic legit rows across 21 categories × 65 brands, further tightening the modern-transactional coverage. | — (intermediate) |
+| *Diagnostic analysis* | E8-P7 | Per-category recall analysis on the corpus so far; identified weak modern-scam categories (investment/crypto, romance, emergency, refund, sextortion, threat/authority, gift-card CEO, modern phishing). Not a corpus-modifying step; motivated the next iteration. | — (diagnostic) |
+| **Iteration 5 — Contrastive Scam + Pair Augmentation** | E8-P8 | +14,669 modern synthetic scam messages targeting the categories identified above + 1,109 legit-pair adversarial twins for contrastive learning. Corpus reaches 283,501 rows. | — (intermediate) |
+| **Final ScamRadar+ pipeline** | E8-P9 | Retrained the pipeline on the 283,501-row corpus + refined the rule engine (13 → 19 rules, added A9 / A10 / A11 type-floor rules for investment / romance / threat scams). This is the shipped configuration. | **0.916 classifier / 0.913 deployed composite** |
 
-**What changed between generations, in one sentence each:**
+**Reading the table:** every row after the baseline represents a targeted update to the same core pipeline — never a replacement of the model architecture. The pipeline was retrained after each meaningful change and re-evaluated. The E-series identifiers correspond exactly to the parquets under `data/interim/`, the merge / cleanup reports under `data/synthetic_*/` and `data/interim/e8p5_cleanup_report.json`, and the scripts under `scripts/data_prep/`.
 
-- **v1.x → E5:** Full ML rewrite. New training corpus (195k clusters vs 22.5k), new architecture (LogReg over word+char TF-IDF vs RF over mixed features), new external benchmark (locked 25,306 vs ad-hoc 400). No shared code, features, or data.
-- **E5 → E7-P1:** Same head and text features; added 25 numerical features (already computed elsewhere in the codebase but previously ignored by the classifier) via feature-concatenation. Small F1 movements (±0.001) but the numerical block enables the Rule Engine to reason over consistent inputs.
-- **E7-P1 → E8-P9:** Same architecture; added a modular Rule Engine and expanded the training corpus with 15,778 modern messages targeting conversational / investment / romance / threat scams that the 2008-era external benchmark doesn't measure. Deliberate tradeoff — some legacy-email precision for meaningful modern-scam recall.
+**Where the ~0.941 → 0.916 gap comes from.** The pre-augmentation baseline was measured on a 25,306-row external benchmark dominated by 2008-era transactional and marketing emails; the final pipeline was trained on a corpus that includes ~15,000 modern synthetic scams the benchmark does not reward. This is a deliberate trade — see the [Performance](#performance) section for the FP-by-category breakdown.
 
-The E5 bundle is retained at [`models/e5_bundle.joblib`](models/e5_bundle.joblib) as a text-only fallback selectable via the `SCAMRADAR_LOCAL_MODEL` env var. Only the currently deployed model and the E5 fallback ship in this repository; earlier variants and rejected ablations are not part of the active pipeline. See [`models/README.md`](models/README.md) and [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
+**Predecessor v1.x generation (pre-2026).** A distinct earlier system (Random Forest + FAISS proximity + a small hand-authored feature set) preceded the ScamRadar+ baseline and is not part of the current pipeline. It is maintained externally for provenance; the current repository only ships the deployed model and the E5 fallback bundle. See [`models/README.md`](models/README.md) and [`SOURCE_OF_TRUTH.md`](SOURCE_OF_TRUTH.md).
 
 ---
 

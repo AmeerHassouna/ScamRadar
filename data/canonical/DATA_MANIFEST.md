@@ -61,19 +61,27 @@ Two SQLite databases share the schema at [`../../docs/database/schema.sql`](../.
 
 Neither `.db` file ships in Git (each is 200–250 MB). Both are locally reproducible via `python scripts/data_prep/build_databases.py both`. See [`docs/database/README.md`](../../docs/database/README.md) for the full description.
 
-## Downstream: E8-P9 training corpus
+## Downstream: iterative data refinement and augmentation
 
-`data/interim/e7_p1_features_e8p9.parquet` (283,501 rows) is derived from these files via:
+The 283,501-row final training corpus at `data/interim/e7_p1_features_e8p9.parquet` is the accumulated result of iteratively refining and augmenting the approved 253,264-row baseline. The same core ScamRadar+ modeling pipeline (word + character TF-IDF · 25 numerical features · StandardScaler · Logistic Regression · threshold 0.59) was retrained after each iteration. Internal `E8-P*` identifiers are the repository-level references for the individual iterations; the primary interpretation is the iteration name.
 
 ```
 train + val + test + external_benchmark              253,264   [initial baseline DB]
   ┈┈┈ 25 numerical features computed by train_e7_p1.py ┈┈┈
-+ E8-P2 synthetic legit                                +1,978  →  255,242
-- E8-P3 SpamAssassin dropped entirely                  -2,238  →  253,004
-- E8-P5 mailing lists + spam-in-legit + short            -802  →  252,202
-+ E8-P6 synthetic legit (−51 dedup)                   +15,521  →  267,723
-+ E8-P8 synthetic scam                                +14,669  →  282,392
-+ E8-P8 synthetic legit pairs                          +1,109  →  283,501   [final E8-P9 DB]
++ Iteration 1 — Targeted Legit Augmentation                     E8-P2
+    +1,978 synthetic modern-transactional legit    →  255,242
+- Iteration 2 — SpamAssassin Removal                            E8-P3
+    -2,238 legacy noise source dropped entirely    →  253,004
+                (Rejected iteration — rolled back; see          E8-P4)
+- Iteration 3 — Data Quality Cleanup                            E8-P5
+    -802 (397 mailing-list + 207 spam-in-legit + 198 short)
+                                                    →  252,202
++ Iteration 4 — Broad Legit Expansion                           E8-P6
+    +15,521 net synthetic modern-brand legit       →  267,723
+                (Diagnostic analysis — per-category recall;     E8-P7)
++ Iteration 5 — Contrastive Scam + Pair Augmentation            E8-P8
+    +14,669 modern synthetic scam                  →  282,392
+    +1,109 legit-pair adversarial twins            →  283,501   [final E8-P9 DB]
 ```
 
 **Split composition inside the E8-P9 corpus** (differs from the base splits because the E8-P3/P5 cleanup filters touched all four partitions cross-cluster):

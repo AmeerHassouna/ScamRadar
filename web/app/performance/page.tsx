@@ -65,13 +65,16 @@ const legitCategoryData = [
 // e3_ranking.json, e4_best.json + e5_metadata.json (baseline classifier),
 // outputs/eval/e7_p1_results.json (25-feature fusion), and
 // outputs/eval/e8p9_bakeoff_results.json (E8-P9 raw classifier).
+// User-facing labels present the story as iterations of one core pipeline.
+// The internal E-series IDs (E2, E3, ..., E8-P9) are preserved in the data
+// files and repository comments for reproducibility.
 const eSeriesData = [
-  { phase: "E2\nAblation",   pr_auc: 0.979, f1: 0.932, label: "F3 feature set" },
-  { phase: "E3\nBake-off",   pr_auc: 0.979, f1: 0.932, label: "logreg wins" },
-  { phase: "E4\nHPO",        pr_auc: 0.984, f1: 0.939, label: "20 Optuna trials" },
-  { phase: "E5\nFinal",      pr_auc: 0.984, f1: 0.941, label: "no calibration + t=0.59" },
-  { phase: "E7-P1\nFusion",  pr_auc: 0.982, f1: 0.941, label: "+ 25 numerical features" },
-  { phase: "E8-P9\nDeployed",pr_auc: 0.969, f1: 0.916, label: "+ modern corpus + rule engine" },
+  { phase: "Rep.\nBaseline",       pr_auc: 0.979, f1: 0.932, label: "word + char TF-IDF chosen" },
+  { phase: "Classifier\nBaseline", pr_auc: 0.979, f1: 0.932, label: "Logistic Regression chosen" },
+  { phase: "HPO",                  pr_auc: 0.984, f1: 0.939, label: "20 Optuna trials" },
+  { phase: "Calibration\n+ threshold", pr_auc: 0.984, f1: 0.941, label: "no calibration · t=0.59" },
+  { phase: "+ 25 num.\nfeatures",  pr_auc: 0.982, f1: 0.941, label: "feature fusion" },
+  { phase: "Final\nScamRadar+",    pr_auc: 0.969, f1: 0.916, label: "+ modern corpus + rule engine" },
 ];
 
 // Dataset composition — E5 training corpus (before dedup).
@@ -227,7 +230,7 @@ export default function PerformancePage() {
         {/* ── 1. Top-line metrics ────────────────────────────────────────── */}
         <section>
           <SectionHeader
-            label="Deployed Model · E8-P9"
+            label="Deployed ScamRadar+ Pipeline"
             title="PERFORMANCE"
             sub="Logistic Regression on 500,000 word + character TF-IDF features + 25 engineered numerical features + modular Rule Engine · trained on 195,776 deduplicated message clusters · decision threshold 0.59"
           />
@@ -238,11 +241,13 @@ export default function PerformancePage() {
               About these numbers
             </p>
             <p className="text-white/60 text-xs leading-relaxed" style={MONO}>
-              Headline metrics below are for the <span className="text-white">deployed E8-P9 pipeline</span>
+              Headline metrics below are for the <span className="text-white">deployed ScamRadar+ pipeline</span>
               {' '}(classifier + Rule Engine) on a <span className="text-white">locked one-shot benchmark of
               25,306 messages</span> held out from all model selection, hyperparameter search, calibration,
-              and threshold tuning. The pure classifier baseline (no Rule Engine) scores F1 = 0.941 on the
-              same benchmark — that number is preserved as a reference in the API's <span className="text-white">/stats</span> endpoint.
+              and threshold tuning. The pre-augmentation baseline of the same pipeline (before the modern-scam
+              corpus expansion) scored F1 = 0.941 on this benchmark — that reference number is preserved in
+              the API's <span className="text-white">/stats</span> endpoint. The current deployed pipeline
+              scores F1 = 0.916 for the classifier alone and F1 = 0.913 for the deployed composite.
               Every scoring event on the benchmark is recorded in the research repository.
             </p>
           </div>
@@ -527,14 +532,14 @@ export default function PerformancePage() {
           </ChartCard>
         </section>
 
-        {/* ── 6. E-series development journey ───────────────────────────── */}
+        {/* ── 6. Iterative development journey ──────────────────────────── */}
         <section>
           <SectionHeader
-            label="Research Journey · E2 → E8-P9"
+            label="One Pipeline · Iteratively Improved"
             title="MODEL DEVELOPMENT"
-            sub="External benchmark PR-AUC and F1 across every stage that led to the deployed E8-P9 pipeline"
+            sub="External benchmark PR-AUC and F1 across every iteration of the same core ScamRadar+ pipeline"
           />
-          <ChartCard title="E-Series Progression" sub="Each stage builds on the previous under strict cluster-grouped evaluation">
+          <ChartCard title="Iterative Development Progression" sub="Each iteration builds on the previous under strict cluster-grouped evaluation">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={eSeriesData} margin={{ top: 10, right: 20, left: -5, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
@@ -559,28 +564,28 @@ export default function PerformancePage() {
             </ResponsiveContainer>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 text-xs" style={MONO}>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E2 · Feature ablation</div>
-                <div className="text-white/50 leading-snug">F1–F6 tested. F3 (word + char TF-IDF) wins on external PR-AUC.</div>
+                <div className="text-green-400 font-bold mb-1">Representation baseline</div>
+                <div className="text-white/50 leading-snug">Feature sets F1–F6 tested. F3 (word + char TF-IDF) wins on external PR-AUC. Fixes the text representation for every subsequent iteration.</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E3 · Model bake-off</div>
-                <div className="text-white/50 leading-snug">Logistic Regression, LinearSVC, Random Forest tested on F3. LogReg wins.</div>
+                <div className="text-green-400 font-bold mb-1">Classifier baseline</div>
+                <div className="text-white/50 leading-snug">Logistic Regression, LinearSVC, Random Forest tested on F3. Logistic Regression wins and becomes the ScamRadar+ classifier for every iteration below.</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E4 · Hyperparameter search</div>
-                <div className="text-white/50 leading-snug">20-trial Optuna HPO. Best PR-AUC improvement +0.005.</div>
+                <div className="text-green-400 font-bold mb-1">Hyperparameter search</div>
+                <div className="text-white/50 leading-snug">20-trial Optuna HPO. Best PR-AUC improvement +0.005. Hyperparameters frozen for the rest of the project.</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E5 · Threshold selection</div>
+                <div className="text-green-400 font-bold mb-1">Calibration + threshold</div>
                 <div className="text-white/50 leading-snug">No calibration needed (uncalibrated ECE 0.011 vs Platt 0.076). Threshold set at 0.59 (F1-max on validation).</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E7-P1 · Feature fusion</div>
+                <div className="text-green-400 font-bold mb-1">+ 25 numerical features</div>
                 <div className="text-white/50 leading-snug">25 engineered numerical features (tone · URL · phrase · text stats) fused with TF-IDF. Each family reduces FP rate.</div>
               </div>
               <div className="border-l-2 border-green-400/40 pl-3">
-                <div className="text-green-400 font-bold mb-1">E8-P9 · Deployed</div>
-                <div className="text-white/50 leading-snug">Corpus expanded with modern synthetic scams + rule engine (Critical / Strong / Legit). Confirmed via final bake-off vs LinearSVC + SGD.</div>
+                <div className="text-green-400 font-bold mb-1">Final ScamRadar+ pipeline</div>
+                <div className="text-white/50 leading-snug">Same pipeline retrained after iterative corpus expansion (modern synthetic scams) + 19-rule engine. Confirmed via final bake-off vs LinearSVC + SGD.</div>
               </div>
             </div>
           </ChartCard>

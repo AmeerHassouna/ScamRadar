@@ -1,5 +1,7 @@
 # Model Artifacts
 
+The deployed ScamRadar+ model represents the final state of a single core modeling pipeline (word + character TF-IDF · 25 numerical features · StandardScaler · Logistic Regression · threshold 0.59) that was iteratively improved and retrained through successive data-quality, feature, augmentation, and decision-layer improvements. The internal `e7_p1_full_e8p9` identifier is the repository-level reference for the final iteration; see [`../SOURCE_OF_TRUTH.md::Development journey`](../SOURCE_OF_TRUTH.md) for the full sequence.
+
 Not every file here is loaded in production. This README says which one is.
 
 ## Deployed

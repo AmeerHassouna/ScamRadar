@@ -2,40 +2,47 @@
 
 The project uses a small three-table relational schema (SQLite) to
 persist the corpus that feeds the ML pipeline. There are **two databases**
-representing the two ends of the CRISP-DM data-preparation iteration:
+representing the two ends of the iterative development of the same
+core ScamRadar+ modeling pipeline:
 
 | # | Database | Path | Rows | Role |
 |---|---|---|---:|---|
-| 1 | **Initial baseline** | `data/initial_db/scamradar_initial_253264.db` | **253,264** | The approved corpus after cleaning + splitting. Represents the state used for the initial modeling round. Contains 14 sources (13 real-world + the `synthetic_v1` seed), including `spamassassin_ham`. `MessageFeatures` is empty at this stage — the 25 engineered numerical features had not yet been computed (they were added at E7-P1). |
-| 2 | **Final E8-P9** | `data/final_db/scamradar_e8p9.db` | **283,501** | The corpus that the deployed E8-P9 classifier was trained on. Contains 17 sources: the 12 real-world sources that survived the E8-P3 removal of `spamassassin_ham`, a catch-all `e5_base_corpus` for legacy rows without a specific source label, and 4 new synthetic sources produced by E8-P2 / E8-P6 / E8-P8. `MessageFeatures` is fully populated (283,501 rows, 25 numerical features per row). |
+| 1 | **Initial baseline** | `data/initial_db/scamradar_initial_253264.db` | **253,264** | The approved clean corpus after cleaning and splitting. Represents the state used for the initial modeling round of the ScamRadar+ pipeline. Contains 14 sources (13 real-world + the `synthetic_v1` seed), including `spamassassin_ham`. `MessageFeatures` is empty at this stage — the 25 engineered numerical features were introduced later as part of the iterative development. |
+| 2 | **Final ScamRadar+ pipeline** (internal ID `E8-P9`) | `data/final_db/scamradar_e8p9.db` | **283,501** | The corpus that the deployed final ScamRadar+ classifier was trained on. Contains 17 sources: the 12 real-world sources that remained after the SpamAssassin removal iteration, a catch-all `e5_base_corpus` for legacy rows without a specific source label, and 4 new synthetic sources produced by the augmentation iterations. `MessageFeatures` is fully populated (283,501 rows, 25 numerical features per row). |
 
 Both databases share the same schema — see [`schema.sql`](schema.sql) —
 and the ERD is in [`erd.svg`](erd.svg).
 
 ## Why two databases?
 
-The two-database story is a direct reflection of the CRISP-DM data-prep
-iteration recorded in `SOURCE_OF_TRUTH.md::Experiment journey`:
+The two-database story reflects the iterative-development narrative
+recorded in `SOURCE_OF_TRUTH.md::Development journey`. The same core
+ScamRadar+ modeling pipeline was iteratively improved and retrained
+as new data, preprocessing, features, and decision-layer improvements
+were introduced:
 
 ```
-Initial 253,264 clean baseline
+Initial 253,264-row approved clean corpus
       ↓
-(materialized into the initial DB)
+(materialized into the initial baseline database)
       ↓
-Initial modeling round + error analysis
+Initial ScamRadar+ pipeline round + error analysis
       ↓
-Return to Data Preparation
+Iterative data / feature / preprocessing improvements
       ↓
-E8-P2 (+1,978) → E8-P3 (−2,238) → E8-P5 (−802) → E8-P6 (+15,521) → E8-P8 (+15,778)
+Retraining after each meaningful update
       ↓
-Final 283,501 corpus
+Further iterative improvements
       ↓
-(materialized into the final DB)
+Final 283,501-row corpus
+      ↓
+(materialized into the final ScamRadar+ database)
 ```
 
-Keeping both artifacts makes the "before/after" of the data-prep
-iteration inspectable side-by-side without requiring the notebooks or
-the upstream workspace that originally produced them.
+Keeping both artifacts makes the "before/after" of the iterative-development
+process inspectable side-by-side. Neither database is a different model
+architecture — both are snapshots of the same schema populated at different
+stages of the ScamRadar+ pipeline's iterative development.
 
 ## Why aren't the `.db` files committed?
 

@@ -33,7 +33,7 @@ Last verified: 2026-08-15 against the working tree.
 | How are the three OTP mechanisms distinguished? | Two are inside the 19-rule engine and count toward the 19: **A3 `OtpTheftRule`** (Category-A, force-scam on OTP theft requests) at `src/rule_engine/critical.py::OtpTheftRule` and **C3 `OtpNotificationRule`** (Category-C, dampen on pure OTP notifications) at `src/rule_engine/legit.py::OtpNotificationRule`. A third mechanism, the legacy pre-rule-engine hardcoded detector **`_is_pure_otp`** in `src/e5_inference.py`, is **outside the 19-rule engine**, is env-gated by `SCAMRADAR_OTP_RULE_ON` (default OFF), and was explicitly disabled during the reported F1 = 0.9131 evaluation via `scripts/evaluation/analyze_e8p9_errors.py:26`. | `src/rule_engine/critical.py`, `src/rule_engine/legit.py`, `src/e5_inference.py` |
 | What is the deployed model artifact? | **`models/e7_p1_variants/e7_p1_full_e8p9.joblib`** (3.6 MB) | `src/canonical.DEPLOYED_MODEL_PATH`; loaded by `api/main.py` via `src/inference.py` |
 | Where is the canonical E8-P9 implementation? | **`src/`** — start with **`src/pipeline.py`** | Not a notebook. Every stage is a Python module. |
-| Which experiment produced the deployed configuration? | **E8-P9** | Full lineage in "Experiment Journey" below |
+| Which iteration produced the deployed configuration? | **Final ScamRadar+ pipeline** (internal ID `E8-P9`) — retrained on the 283,501-row corpus + 19-rule engine | Full lineage in "Development journey — iterations of the same core pipeline" below |
 
 ---
 
@@ -204,25 +204,27 @@ The classifier fits only on `split=='train'` from the interim file (191,140 rows
 
 ---
 
-## Experiment journey (how we arrived at E8-P9)
+## Development journey — iterations of the same core pipeline
 
-| Stage | Question | Decision | Evidence |
-|---|---|---|---|
-| E2 | Which text representation? | F3 = word + char TF-IDF | `data/canonical/reports/e2_ranking.json` |
-| E3 | Which classifier on F3? | Logistic Regression | `data/canonical/reports/e3_ranking.json` |
-| E4 | HPO on LR | C=5.9684, l2, balanced, sublinear_tf | `data/canonical/reports/e4_best.json`; `models/e5_metadata.json` |
-| E5 | Calibration + threshold | Calibration NONE; threshold 0.59 (F1-max on val) | `data/canonical/reports/e5_final.json`; `models/e5_metadata.json` |
-| E7-P1 | Which engineered features? | All 25 (tone + URL + phrase + textstats) | `outputs/eval/e7_p1_results.json` |
-| E7-P3 | Proximity-to-scam feature (FAISS + MiniLM) | **REJECTED** — external PR-AUC gained +0.0011 but F1 dropped −0.0114 with a +166 FP jump | not shipped in this repo (rejected direction) |
-| E8-P1 | Add rule engine (13 rules) | Layer works but overshoots on brand rules | `outputs/eval/e8p1_external.json` (F1=0.9368 — HISTORICAL, not current) |
-| E8-P2 | Synthetic legit v1 | +1,978 rows adopted | `data/synthetic_legit/e8p2/` |
-| E8-P3 | Drop spamassassin_ham | Adopted | `data/interim/e7_p1_features_e8p3.parquet` |
-| E8-P4 | Retraining iteration on the E8-P3 corpus | **REJECTED / rolled back** — external F1 regressed 0.9173 → 0.8842 (precision 0.8503, recall 0.9208). Not adopted; no `e7_p1_features_e8p4.parquet` in the current chain. | `e8p4_per_item.parquet` no longer in current tree; numbers preserved in git history |
-| E8-P5 | Cleanup mailing lists + spam-in-legit + short | Adopted | `data/interim/e8p5_cleanup_report.json` |
-| E8-P6 | Synthetic legit v2 | +15,572 rows adopted | `data/synthetic_legit/e8p6/` |
-| E8-P7 | **Diagnostic evaluation** on the E8-P6 corpus — measured per-category recall and identified weak-recall modern-scam categories (investment/crypto, romance, emergency, refund, sextortion, threat/authority, gift-card CEO, modern phishing). Not a corpus-modifying stage. | Findings motivated E8-P8. | Enumerated in `scripts/data_prep/gen_e8p8_synthetic_scam.py` docstring |
-| E8-P8 | Synthetic scam + legit pairs (targeting E8-P7's weakness categories) | +14,669 + 1,109 rows adopted | `data/synthetic_scam/e8p8/` |
-| E8-P9 | Retrain + refine rule set (13→19) | **DEPLOYED** — F1=0.9131 external | `models/e7_p1_variants/e7_p1_full_e8p9.joblib` |
+**Reading this section.** ScamRadar+ was developed as a single core modeling pipeline (word + character TF-IDF · 25 numerical features · StandardScaler · Logistic Regression · threshold 0.59) that was iteratively improved and retrained. Each row below is either (a) a foundational decision that fixed the core pipeline itself, (b) a targeted data-quality / feature / augmentation change followed by retraining, (c) a rejected iteration preserved for methodological honesty, or (d) a diagnostic pass that motivated the next iteration. The E-series identifiers are retained as internal repository references — filenames, parquet paths, and script names continue to use them — but the examiner-facing labels are the iteration titles in the first column.
+
+| Development step | Internal ID | Question / change | Decision | Evidence |
+|---|---|---|---|---|
+| Baseline pipeline decision — text representation | E2 | Which text representation? | F3 = word + char TF-IDF | `data/canonical/reports/e2_ranking.json` (not in this repo — upstream artifact) |
+| Baseline pipeline decision — classifier family | E3 | Which classifier on F3? | Logistic Regression | `data/canonical/reports/e3_ranking.json` (not in this repo — upstream artifact) |
+| Baseline pipeline decision — hyperparameters | E4 | Hyperparameter optimisation on LR | C=5.9684, l2, balanced, sublinear_tf (frozen after E4; reused unchanged from here on) | `data/canonical/reports/e4_best.json`; `models/e5_metadata.json` |
+| Baseline pipeline decision — calibration + threshold | E5 | Calibration + operating threshold | Calibration NONE; threshold 0.59 (F1-max on validation) | `data/canonical/reports/e5_final.json`; `models/e5_metadata.json` |
+| Baseline pipeline decision — engineered features | E7-P1 | Which engineered numerical features? | All 25 (tone + URL + phrase + text-stats) | `outputs/eval/e7_p1_results.json` |
+| *Rejected feature study* | E7-P3 | Proximity-to-scam feature (FAISS + MiniLM) | **REJECTED** — external PR-AUC +0.0011 but F1 −0.0114 with +166 FPs | not shipped (rejected direction) |
+| **Iteration 0 — Rule Engine (initial 13 rules)** | E8-P1 | Add a decision-layer rule engine | 13-rule layer added; some brand rules overshoot on modern legit email (motivates later iterations) | `outputs/eval/e8p1_external.json` (F1 = 0.9368 with 13 rules — HISTORICAL intermediate, not the final deployed value) |
+| **Iteration 1 — Targeted Legit Augmentation** | E8-P2 | Address false-positive pattern on modern-transactional legit | +1,978 synthetic legit rows adopted; retrained | `data/synthetic_legit/e8p2/` |
+| **Iteration 2 — SpamAssassin Removal** | E8-P3 | Remove noise source hurting generalisation | −2,238 rows dropped (entire `spamassassin_ham` source); retrained | `data/interim/e7_p1_features_e8p3.parquet` |
+| *Rejected iteration — rolled back* | E8-P4 | Attempted change on the E8-P3 corpus | **REJECTED / rolled back** — external F1 regressed 0.9173 → 0.8842 (precision 0.8503, recall 0.9208). Not adopted; no `e7_p1_features_e8p4.parquet` in the current chain. | `e8p4_per_item.parquet` no longer in current tree; numbers preserved in git history |
+| **Iteration 3 — Data Quality Cleanup** | E8-P5 | Remove mailing-list mislabels + spam-in-legit + too-short | −802 rows: 397 mailing-list + 207 spam-in-legit + 198 too-short; retrained | `data/interim/e8p5_cleanup_report.json` |
+| **Iteration 4 — Broad Legit Expansion** | E8-P6 | Broader modern-brand legit coverage | +15,521 net synthetic legit rows adopted; retrained | `data/synthetic_legit/e8p6/` |
+| *Diagnostic analysis* | E8-P7 | Per-category recall analysis on the corpus so far | Identified weak modern-scam categories (investment/crypto, romance, emergency, refund, sextortion, threat/authority, gift-card CEO, modern phishing). Not a corpus-modifying step; motivated the next iteration. | Enumerated in `scripts/data_prep/gen_e8p8_synthetic_scam.py` docstring |
+| **Iteration 5 — Contrastive Scam + Pair Augmentation** | E8-P8 | Target the weakness categories identified above | +14,669 modern synthetic scams + 1,109 legit-pair adversarial twins; retrained | `data/synthetic_scam/e8p8/` |
+| **Final ScamRadar+ pipeline** | E8-P9 | Retrain on the 283,501-row corpus + refine the rule engine (13 → 19) | **DEPLOYED** — F1 = 0.916 classifier / 0.913 deployed composite on the 25,306-row external benchmark | `models/e7_p1_variants/e7_p1_full_e8p9.joblib` |
 
 ---
 
