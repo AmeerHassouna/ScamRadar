@@ -85,16 +85,28 @@ NUMERICAL_FEATURE_COLS = [
     'readability_score', 'unique_word_ratio',
 ]
 
-# Cluster-id conventions from the E8-P{2,6,8} merge scripts. Any row whose
-# cluster_id sits inside one of these ranges is attributable to that
-# synthetic batch by construction (see
-# scripts/data_prep/merge_e8p2_into_training.py and siblings).
+# Cluster-id conventions used by the E8-P{2,6,8} merge scripts. Each batch
+# starts at a distinct negative BASE and decreases by 1 per row, so every
+# batch row lies in the half-open interval  [BASE - MAX_N, BASE + 1)
+# — i.e., `cid > (BASE - MAX_N) and cid <= BASE`. The four bases are widely
+# spaced (100K apart at minimum) so adjacent batches never collide even at
+# max plausible batch size.
+#
+# Bases (from the merge scripts):
+#   merge_e8p2_into_training.py:  base = -8_000_000  (~1,978 rows)
+#   merge_e8p6_into_training.py:  base = -9_000_000  (~15,521 rows)
+#   merge_e8p8_into_training.py:  base = -9_500_000  scam  (~14,669 rows)
+#   merge_e8p8_into_training.py:  base = -9_600_000  pair  (~1,109 rows)
+#
+# The ranges below capture 100K rows of headroom per batch (~6× the largest
+# actual batch), so a future batch that grows without changing its base
+# would still resolve correctly.
 SYNTHETIC_CLUSTER_RULES = [
-    # (source_name, min_cluster_id_inclusive, max_cluster_id_exclusive)
-    ('synthetic_e8p2_legit', -8_002_000, -8_000_000),      # ~1,978 rows
-    ('synthetic_e8p6_legit', -8_020_000, -8_002_000),      # ~15,521 rows
-    ('synthetic_e8p8_scam',  -8_040_000, -8_020_000),      # ~14,669 rows
-    ('synthetic_e8p8_pair',  -8_050_000, -8_040_000),      # ~1,109 rows
+    # (source_name, lo_inclusive, hi_exclusive) — matches `lo <= cid < hi`
+    ('synthetic_e8p2_legit', -8_100_000, -7_999_999),   # base -8_000_000
+    ('synthetic_e8p6_legit', -9_100_000, -8_999_999),   # base -9_000_000
+    ('synthetic_e8p8_scam',  -9_580_000, -9_499_999),   # base -9_500_000
+    ('synthetic_e8p8_pair',  -9_700_000, -9_599_999),   # base -9_600_000
 ]
 
 
@@ -160,10 +172,19 @@ def build_initial() -> None:
     # MessageFeatures is empty for the initial DB. Features were added at E7-P1).
     corpus['source_id'] = corpus['source'].map(source_id_of)
     corpus['label'] = corpus['label'].astype(int)
-    corpus['cluster_id'] = corpus['cluster_id'].astype('Int64')
 
-    rows = list(corpus[['text', 'label', 'split', 'cluster_id',
-                        'source_id']].itertuples(index=False, name=None))
+    # Serialise cluster_id as native Python int (or None for NA). Passing a
+    # pandas nullable Int64 or a numpy int64 through the sqlite3 driver
+    # stores it as an 8-byte BLOB instead of an INTEGER — silently making
+    # every downstream SQL that uses cluster_id break.
+    def _cid(v):
+        return None if pd.isna(v) else int(v)
+    rows = [
+        (t, int(l), s, _cid(c), int(sid))
+        for t, l, s, c, sid in corpus[
+            ['text', 'label', 'split', 'cluster_id', 'source_id']
+        ].itertuples(index=False, name=None)
+    ]
     con.executemany(
         'INSERT INTO Message (text, label, split, cluster_id, source_id) '
         'VALUES (?, ?, ?, ?, ?)',
@@ -244,11 +265,20 @@ def build_final() -> None:
 
     df['source_id'] = df['source'].map(source_id_of)
     df['label']      = df['label'].astype(int)
-    df['cluster_id'] = df['cluster_id'].astype('Int64')
 
     print(f'  inserting {len(df):,} Message rows...')
-    message_rows = list(df[['text', 'label', 'split', 'cluster_id',
-                            'source_id']].itertuples(index=False, name=None))
+    # Serialise cluster_id as native Python int (or None for NA). Passing a
+    # pandas nullable Int64 or a numpy int64 through the sqlite3 driver
+    # stores it as an 8-byte BLOB instead of an INTEGER — silently making
+    # every downstream SQL that uses cluster_id break.
+    def _cid(v):
+        return None if pd.isna(v) else int(v)
+    message_rows = [
+        (t, int(l), s, _cid(c), int(sid))
+        for t, l, s, c, sid in df[
+            ['text', 'label', 'split', 'cluster_id', 'source_id']
+        ].itertuples(index=False, name=None)
+    ]
     con.executemany(
         'INSERT INTO Message (text, label, split, cluster_id, source_id) '
         'VALUES (?, ?, ?, ?, ?)',
@@ -260,7 +290,18 @@ def build_final() -> None:
     first_id = last_id - len(df) + 1
     df['_message_id'] = range(first_id, last_id + 1)
     feat_cols = ['_message_id'] + NUMERICAL_FEATURE_COLS
-    feat_rows = list(df[feat_cols].itertuples(index=False, name=None))
+    # Coerce every value to a plain Python scalar so nothing is stored as BLOB.
+    def _val(v):
+        if pd.isna(v): return None
+        if isinstance(v, (int, float, str, bool)) or v is None:
+            return v
+        # numpy scalars, pandas Int/Float: fall back through Python conversion
+        try:
+            return v.item()
+        except AttributeError:
+            return v
+    feat_rows = [tuple(_val(v) for v in row)
+                 for row in df[feat_cols].itertuples(index=False, name=None)]
     placeholders = ','.join(['?'] * len(feat_cols))
     con.executemany(
         f'INSERT INTO MessageFeatures ({",".join(["message_id"] + NUMERICAL_FEATURE_COLS)}) '
