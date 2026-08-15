@@ -24,10 +24,10 @@ synthesis outputs:
 Nothing is retrained, re-scored, or recomputed. Every number in the
 outputs traces back to an artifact already on disk.
 
-Inputs read (all resolve under this repository; external upstream
-`scamradar2` artifacts that were never copied in-repo — e2_ranking.json,
-e3_ranking.json, e4_trials.json — are treated as optional and emit stub
-stage records if absent):
+Inputs read (all resolve under this repository; upstream artifacts that
+were never copied in-repo — e2_ranking.json, e3_ranking.json,
+e4_trials.json — are treated as optional and emit stub stage records
+if absent):
   data/canonical/reports/acquisition_manifest.json
   data/canonical/reports/e4_best.json
   models/e5_metadata.json
@@ -60,7 +60,7 @@ _ROOT = _HERE.parent.parent
 def _resolve_report(name: str, required: bool = True) -> Path | None:
     """Resolve an E-series report path from the canonical in-repo location
     at ``data/canonical/reports/``. E2/E3 ranking artifacts were produced
-    inside the external ``scamradar2`` workspace and were not copied into
+    by the upstream data-preparation workspace and were not copied into
     this repository; callers can pass ``required=False`` for those, and
     the corresponding stage summariser will emit a stub record noting
     the artifact is not in-repo. This keeps the summary regeneration
@@ -75,8 +75,8 @@ def _resolve_report(name: str, required: bool = True) -> Path | None:
     return None
 
 # ─── Input paths ─────────────────────────────────────────────────────────────
-# E2/E3 rankings originated in scamradar2 and are not present in-repo; treat
-# as optional and emit stub stage records if absent.
+# E2/E3 rankings originated in the upstream workspace and are not present
+# in-repo; treat as optional and emit stub stage records if absent.
 E2_RANKING       = _resolve_report('e2_ranking.json', required=False)
 E3_RANKING       = _resolve_report('e3_ranking.json', required=False)
 E4_TRIALS        = _resolve_report('e4_trials.json', required=False)
@@ -103,7 +103,7 @@ def _load_json(p: Path) -> dict | list:
 # ─── Stage summarisers ───────────────────────────────────────────────────────
 def _stub_stage(stage: str, role: str, note: str) -> dict:
     """Placeholder record for stages whose primary evidence artifact was
-    produced outside this repository (scamradar2 workspace) and is not
+    produced by the upstream data-preparation workspace and is not
     physically present here. The stage still happened; only its detailed
     ranking JSON is upstream. See E4 report + SOURCE_OF_TRUTH.md for the
     reconstruction of the E2/E3 decisions."""
@@ -116,7 +116,7 @@ def _stub_stage(stage: str, role: str, note: str) -> dict:
         'primary_metric_value': None,
         'tiebreak_metric_name': None,
         'tiebreak_metric_value': None,
-        'evidence_artifact':   'not-in-repo (produced in scamradar2 workspace)',
+        'evidence_artifact':   'not-in-repo (produced by upstream workspace)',
         'notes':               note,
     }
 

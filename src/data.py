@@ -2,7 +2,8 @@
 Canonical data loaders for the ScamRadar+ E8-P9 pipeline.
 
 All data used by the deployed model comes from `data/canonical/` (imported
-from the scamradar2 workspace where the E5 baseline was originally built).
+from the upstream data-preparation workspace where the E5 baseline was
+originally built).
 This module exposes a small, typed API over those files so downstream code
 never needs to remember the exact filenames.
 
