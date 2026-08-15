@@ -791,32 +791,17 @@ def add_features(df) -> "pd.DataFrame":
 
 # ── MAIN ──────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
-    import pandas as pd
-    import sqlite3
-    DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'db 4.db')
-    conn = sqlite3.connect(DB_PATH)
-    query = """
-        SELECT m.message_id, m.raw_text, m.label, c.type AS channel,
-               ds.name AS source, mf.text_length, mf.word_count, mf.has_url,
-               mf.url_count, mf.exclamation_count, mf.uppercase_ratio,
-               mf.digit_ratio, mf.urgency_score
-        FROM Message m
-        JOIN Channel c ON m.channel_id = c.channel_id
-        JOIN DataSource ds ON m.source_id = ds.source_id
-        JOIN MessageFeatures mf ON m.message_id = mf.message_id
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    df = add_features(df)
-    print('\nNegation test:')
-    test_cases = [
-        ('You are free to leave anytime.',          0),
-        ('GET YOUR FREE GIFT NOW — CLAIM TODAY!',   1),
-        ('No prize has been awarded.',              0),
-        ('You have won a prize! Claim now!',        1),
-        ('I won\'t verify my account for scammers.',0),
-    ]
-    for txt, expected_label in test_cases:
+    # Small self-check: exercise a handful of tone-feature edge cases so
+    # `python -m src.features` runs deterministically without requiring any
+    # data files. Not a test suite — for that, see `tests/`.
+    print('Negation / tone spot check:')
+    for txt in [
+        'You are free to leave anytime.',
+        'GET YOUR FREE GIFT NOW — CLAIM TODAY!',
+        'No prize has been awarded.',
+        'You have won a prize! Claim now!',
+        'I won\'t verify my account for scammers.',
+    ]:
         _, _, reward, _ = compute_tone_features(txt)
-        print(f'  reward={reward:2d} (expected~{expected_label}) | {txt[:60]}')
-    print('\nFeature engineering complete!')
+        print(f'  reward={reward:2d}  | {txt[:60]}')
+    print('Feature engineering module loaded successfully.')

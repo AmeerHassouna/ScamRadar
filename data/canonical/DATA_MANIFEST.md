@@ -48,22 +48,42 @@ Two source distribution flags:
 - `multiwoz_v22` dominates legit (49.5% > 40% ceiling)
 - Modern-era scam share is 12.4% (< 30% floor)
 
-These flags were accepted at approval time on the condition of written justification (see `docs/thesis_data_preparation.md` §7). The deployed pipeline was later augmented with E8-P2/P6/P8 synthetic batches that partially compensated for the modern-scam gap.
+These flags were accepted at approval time on the condition of written justification. The deployed pipeline was later augmented with E8-P2/P6/P8 synthetic batches that partially compensated for the modern-scam gap.
+
+## Relational databases (materialised from the parquets)
+
+Two SQLite databases share the schema at [`../../docs/database/schema.sql`](../../docs/database/schema.sql) and the ERD at [`../../docs/database/erd.svg`](../../docs/database/erd.svg):
+
+| # | Database | Rows | Purpose |
+|---|---|---:|---|
+| 1 | `data/initial_db/scamradar_initial_253264.db` | **253,264** | Initial baseline DB — the approved clean corpus BEFORE any E8 augmentation. 14 sources (13 real-world + `synthetic_v1` seed), including `spamassassin_ham`. Represents the state used for the initial modeling round. |
+| 2 | `data/final_db/scamradar_e8p9.db` | **283,501** | Final E8-P9 DB — the corpus that the deployed classifier was trained on. 17 sources: the 12 real-world sources that survived the E8-P3 removal of `spamassassin_ham`, a catch-all `e5_base_corpus` for legacy rows, and 4 new synthetic sources from E8-P2 / E8-P6 / E8-P8. |
+
+Neither `.db` file ships in Git (each is 200–250 MB). Both are locally reproducible via `python scripts/data_prep/build_databases.py both`. See [`docs/database/README.md`](../../docs/database/README.md) for the full description.
 
 ## Downstream: E8-P9 training corpus
 
 `data/interim/e7_p1_features_e8p9.parquet` (283,501 rows) is derived from these files via:
 
 ```
-train + val + test + external_benchmark              253,264
+train + val + test + external_benchmark              253,264   [initial baseline DB]
   ┈┈┈ 25 numerical features computed by train_e7_p1.py ┈┈┈
 + E8-P2 synthetic legit                                +1,978  →  255,242
-- E8-P3 SpamAssassin + other filter                    -2,238  →  253,004
+- E8-P3 SpamAssassin dropped entirely                  -2,238  →  253,004
 - E8-P5 mailing lists + spam-in-legit + short            -802  →  252,202
 + E8-P6 synthetic legit (−51 dedup)                   +15,521  →  267,723
 + E8-P8 synthetic scam                                +14,669  →  282,392
-+ E8-P8 synthetic legit pairs                          +1,109  →  283,501
++ E8-P8 synthetic legit pairs                          +1,109  →  283,501   [final E8-P9 DB]
 ```
+
+**Split composition inside the E8-P9 corpus** (differs from the base splits because the E8-P3/P5 cleanup filters touched all four partitions cross-cluster):
+
+- train: 191,140 (159,571 base + 33,277 synthetic − 1,708 cleaned)
+- val: 33,790 (34,193 base − 403 cleaned)
+- test: 33,730 (34,194 base − 464 cleaned)
+- external: 24,841 (25,306 base − 465 cleaned)
+
+The classifier fits on `split=='train'` from the interim file (191,140 rows). **Final evaluation uses the untouched standalone `data/canonical/external_benchmark.parquet` (25,306 rows)**, not the 24,841-row external subset inside the interim file.
 
 ## Files intentionally NOT in this directory
 

@@ -17,7 +17,8 @@ No account. No message storage. No tracking.
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-f7931e?style=flat-square&logo=scikitlearn)](https://scikit-learn.org/)
 [![Model](https://img.shields.io/badge/model-E8--P9%20%C2%B7%20LogReg%20%2B%20Rule%20Engine-6366f1?style=flat-square)](models/e7_p1_variants)
-[![Baseline F1](https://img.shields.io/badge/F1%20baseline%20(E5%2C%20n%3D25%2C306)-0.941-brightgreen?style=flat-square)](outputs/eval/e7_p1_results.json)
+[![F1 classifier](https://img.shields.io/badge/F1%20classifier%20(E8--P9%2C%20n%3D25%2C306)-0.916-brightgreen?style=flat-square)](#performance)
+[![F1 deployed](https://img.shields.io/badge/F1%20deployed%20(%2B19--rule%20engine)-0.913-brightgreen?style=flat-square)](#performance)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](#license)
 
 </div>
@@ -47,6 +48,7 @@ ScamRadar+ classifies a single message — email, SMS, chat, or job posting — 
 | Where is the final code? | [`src/pipeline.py`](src/pipeline.py) — narrative map of the whole E8-P9 pipeline; run `python -m src.pipeline` to print the fact sheet (works from a clean clone) |
 | Where is the canonical model? | [`models/e7_p1_variants/e7_p1_full_e8p9.joblib`](models/e7_p1_variants/e7_p1_full_e8p9.joblib) — the deployed bundle. See [`models/README.md`](models/README.md) |
 | Where are the rule engine and inference logic? | [`src/rule_engine/`](src/rule_engine/) (19 rules) and [`src/inference.py`](src/inference.py) |
+| Where is the relational database + ERD? | [`docs/database/`](docs/database/) — `schema.sql`, `erd.svg`, `README.md`, and `scripts/data_prep/build_databases.py`. There are **two** SQLite databases (initial baseline 253,264 rows and final E8-P9 283,501 rows); the `.db` files themselves are locally reproducible but too large to ship in Git. |
 | How do I reproduce the metrics? | `python scripts/evaluation/analyze_e8p9_errors.py` — reproduces F1 = 0.9131 with the 19-rule engine. **Requires the canonical benchmark parquet at `data/canonical/external_benchmark.parquet`, which is not shipped in this repo** — see [Reproducibility](#reproducibility) below. |
 
 The `src/` package is the single source of truth for the deployed pipeline. Historical experiments, rejected ablations, and superseded artifacts are maintained externally as defense material and are not required to run the current system.
@@ -87,7 +89,8 @@ The production build is codename **E8-P9** — the E7-P1 Full classifier (E5 rec
 | **URL safety net (E7-P2)** | Optional post-processing layer that caps scam probability at 0.50 when a message contains URLs and every URL resolves to a trusted domain. **OFF by default** — activated only if `SCAMRADAR_SAFETY_NET_ON=true`. Explicitly disabled during the reported 0.913 evaluation (see `scripts/evaluation/analyze_e8p9_errors.py:27`). | [`config.py`](config.py) `E7_P2_SAFETY_NET_*` |
 | **Decision threshold** | **0.59** (F1-max on validation — inherited from E5, unchanged) | bundle `threshold` · [`config.py`](config.py) `E5_THRESHOLD` |
 | **Training corpus** | 283,501 messages · E8-P6 base (267,723) + 14,669 modern synthetic scams (conversational / investment / romance / threat) + 1,109 paired-legit adversarial twins | [`scripts/data_prep/merge_e8p8_into_training.py`](scripts/data_prep/merge_e8p8_into_training.py) |
-| **Data sources** | 13 real-world public corpora with URLs + licenses, plus an in-house synthetic seed used for targeted augmentation. No Kaggle. Every synthetic row is flagged in the audit. | [Data sources](#data-sources) |
+| **Data sources** | 14 documented acquisition entries (13 real-world public corpora with URLs + licenses + 1 in-house `synthetic_v1` seed). After the E8-P3 cleanup dropped `spamassassin_ham`, **12 real-world sources** remain in the final E8-P9 corpus alongside 4 new E8 synthetic-source rows. No Kaggle. Every synthetic row is flagged. | [Data sources](#data-sources) |
+| **Relational database + ERD** | Two SQLite databases share the same schema: initial baseline (253,264 rows) and final E8-P9 (283,501 rows). `.db` files not shipped in Git (200–250 MB each); build them locally via `python scripts/data_prep/build_databases.py both`. | [`docs/database/`](docs/database/) — [schema.sql](docs/database/schema.sql), [erd.svg](docs/database/erd.svg), [README](docs/database/README.md) |
 | **Bundle size** | 22.6 MB (single joblib, same as E5) | model artifact |
 | **Inference latency** | Sub-millisecond on the classifier itself; ~1–3 ms including rule-engine evaluation | measured |
 

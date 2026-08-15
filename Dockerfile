@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps: gcc for native extensions, libgomp1 for FAISS
+# System deps: gcc/g++ for native extensions (sklearn / scipy wheels
+# on some slim base images). No FAISS in requirements.txt.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ libgomp1 \
+    gcc g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies

@@ -46,13 +46,6 @@ VIRUSTOTAL_API_KEY          = os.environ.get('VIRUSTOTAL_API_KEY', '')
 GOOGLE_SAFEBROWSING_API_KEY = os.environ.get('GOOGLE_SAFEBROWSING_API_KEY', '')
 
 
-# ─── FAISS proximity search ──────────────────────────────────────────────
-# Used by src/inference.py:predict_message() to compute the
-# `proximity_scam_score` numerical feature at inference time. K is the
-# number of nearest neighbours retrieved from the scam FAISS index.
-FAISS_K_SCAM = 10
-
-
 # ─── E7-P2 safety-net layer ──────────────────────────────────────────────
 # POST-classification cap on scam probability, applied only when
 # every URL in the message resolves to a domain in TRUSTED_DOMAINS and
@@ -276,6 +269,10 @@ URL_SHORTENERS = ['bit.ly', 'tinyurl.com', 't.co', 'ow.ly', 'goo.gl',
 # Consumed by src/inference.py:predict_message() when assembling the
 # feature vector for the classifier. Order matters — it mirrors the
 # training-time feature-fusion order in scripts/training/train_e7_p1.py.
+# `src/canonical.NUMERICAL_FEATURES` is the authoritative deployed list;
+# this list here matches it (25 entries). The rejected E7-P3
+# `proximity_scam_score` feature is intentionally absent — see
+# `src/canonical.py` header comment.
 NUMERICAL_FEATURES = [
     # Original DB-derived features
     'text_length', 'word_count', 'has_url', 'url_count',
@@ -290,8 +287,10 @@ NUMERICAL_FEATURES = [
     'avg_word_length', 'capitalized_word_count',
     'punctuation_density', 'question_mark_count', 'currency_symbol_count',
     'readability_score', 'unique_word_ratio',
-    # FAISS proximity signal (scaled ×0.5 at feature-matrix construction time)
-    'proximity_scam_score',
     # Legitimate-signal counter-feature
     'legit_phrase_score',
 ]
+assert len(NUMERICAL_FEATURES) == 25, (
+    f'config.NUMERICAL_FEATURES must have 25 entries (deployed size); '
+    f'got {len(NUMERICAL_FEATURES)}'
+)

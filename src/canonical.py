@@ -34,11 +34,12 @@ if _ROOT not in sys.path:
 
 from config import E5_THRESHOLD
 
-# Note: `config.NUMERICAL_FEATURES` contains 26 entries (including the
-# never-consumed `proximity_scam_score`), whereas the deployed bundle
-# actually uses 25. We keep the definitive list here rather than
-# importing the misleading superset — verified against
-# `models/e7_p1_variants/e7_p1_full_e8p9.joblib::feature_cols`.
+# Note: `config.NUMERICAL_FEATURES` contains the same 25 features (order
+# differs; that list preserves the historical training-time order used by
+# scripts/training/train_e7_p1.py). This module holds the authoritative
+# deployed order, verified against
+# `models/e7_p1_variants/e7_p1_full_e8p9.joblib::feature_cols`. Do not
+# import from config.NUMERICAL_FEATURES for inference; use this module.
 
 
 # ─── Canonical data paths ────────────────────────────────────────────────

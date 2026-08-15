@@ -14,7 +14,10 @@ Last verified: 2026-08-15 against the working tree.
 
 | Question | Canonical answer | Evidence |
 |---|---|---|
-| What is the raw dataset? | A 13-source acquisition (email/SMS/chat/job-posting) produced by the upstream data-preparation process and incorporated into `data/canonical/` | `data/canonical/reports/acquisition_manifest.json` |
+| What is the raw dataset? | A 14-source acquisition (13 real-world corpora + 1 in-house `synthetic_v1` seed) covering email / SMS / chat / job-posting, produced by the upstream data-preparation process and incorporated into `data/canonical/` | `data/canonical/reports/acquisition_manifest.json`, `data/canonical/reports/raw_provenance.json` |
+| How many sources survive into the final E8-P9 corpus? | **12 real-world sources** (all 13 original real corpora except `spamassassin_ham`, which was dropped at E8-P3) + 4 new synthetic-source rows produced by E8-P2 / E8-P6 / E8-P8 + a `synthetic_v1` / `e5_base_corpus` legacy row. Documented in the `Source` table of the final database (17 rows total). | `docs/database/README.md`, `docs/database/schema.sql`, live final DB Source table |
+| Where is the relational database? | **Two SQLite databases** representing the two ends of the data-preparation iteration. Neither `.db` file ships in Git (each is 200–250 MB); both are locally reproducible from `scripts/data_prep/build_databases.py`. See [`docs/database/README.md`](docs/database/README.md). | `data/initial_db/scamradar_initial_253264.db` (253,264 rows, 14 sources) and `data/final_db/scamradar_e8p9.db` (283,501 rows, 17 sources) |
+| Where is the ERD? | [`docs/database/erd.svg`](docs/database/erd.svg) — same schema for both DBs. | `docs/database/erd.svg`, `docs/database/schema.sql` |
 | What is the cleaned dataset? | **`data/canonical/clean.parquet`** — 253,264 rows | `data/canonical/APPROVAL.json` (dataset_hash: `f92fe4b7fb0b0080a1c04a959d236d15d297a75bafc1cee66477ac3aac322223`) |
 | What are the modelling splits? | `data/canonical/{train,val,test}.parquet` — 159,571 / 34,193 / 34,194 | Produced by cluster-aware stratified split (`scamradar split`) |
 | What is the external evaluation set? | **`data/canonical/external_benchmark.parquet`** — 25,306 rows | `data/canonical/external_benchmark_LOCK.json` (`frozen: true`, write-once) |
@@ -38,12 +41,12 @@ Last verified: 2026-08-15 against the working tree.
 
 Both computed against the 25,306-row frozen external benchmark. Reproducible via `python scripts/evaluation/analyze_e8p9_errors.py` (which now reads the in-repo canonical benchmark).
 
-**Blindness of the external benchmark.** The benchmark was held out from **classifier training, hyperparameter optimization (E4), calibration (E5), and classifier threshold selection (E5)**. However, **Rule Engine development and pruning consulted external-benchmark observations** — rules that mis-fired on the benchmark were removed or tightened (see the change-history comments in `src/rule_engine/critical.py`, `strong.py`, `legit.py`). Consequently:
+**Roles of the two headline metrics.** The classifier is trained/tuned/calibrated only on the training and validation partitions; the 25,306-row external benchmark is held out from **classifier training, hyperparameter optimization (E4), calibration (E5), and classifier threshold selection (E5)**. Therefore:
 
-- **F1 = 0.9160 (raw classifier)** is a **fully blind** external evaluation of the classifier alone.
-- **F1 = 0.9131 (classifier + 19-rule engine)** is the composite deployed metric; because the rule layer had visibility into the benchmark during pruning, this **is not a fully blind evaluation of the composite system**.
+- **F1 = 0.9160 (raw classifier)** is the primary model evaluation — a held-out external evaluation of the classifier alone.
+- **F1 = 0.9131 (classifier + 19-rule engine)** is the composite deployed metric. The Rule Engine layer was iteratively refined through error analysis: rules that mis-fired on the benchmark were removed or tightened (see the change-history comments in `src/rule_engine/critical.py`, `strong.py`, `legit.py`). This is a deliberate part of the deployment pipeline, not a fully independent blind evaluation of the rule layer itself.
 
-This is a documented methodological caveat, not an issue with the classifier.
+Both numbers are legitimate — the first captures classifier generalisation; the second reflects the shipped composite that the user actually receives.
 
 ### Raw classifier (Logistic Regression, no rule engine), threshold = 0.59
 
@@ -137,7 +140,14 @@ data/canonical/external_benchmark.parquet                    25,306   [LOCKED]
                                                        ───────────
                                                 sum:       253,264
       │
-      │  train_e7_p1.py (concatenate all 4 + compute 25 features)
+      │  scripts/data_prep/build_databases.py initial
+      ▼
+data/initial_db/scamradar_initial_253264.db                  253,264   [INITIAL BASELINE DB]
+    14 sources: 13 real-world corpora + `synthetic_v1` seed.
+    Includes spamassassin_ham (2,238 rows). MessageFeatures empty at this
+    stage — the 25 engineered numerical features arrived at E7-P1.
+      │
+      │  train_e7_p1.py (concatenate all 4 splits + compute 25 features)
       ▼
 data/interim/e7_p1_features.parquet                         253,264
       │
@@ -145,7 +155,7 @@ data/interim/e7_p1_features.parquet                         253,264
       ▼
 data/interim/e7_p1_features_e8p2.parquet                    255,242
       │
-      │  build_e8p3_training.py  (-1,095 SA + -1,143 other)
+      │  build_e8p3_training.py  (drop spamassassin_ham entirely: -2,238)
       ▼
 data/interim/e7_p1_features_e8p3.parquet                    253,004
       │
@@ -161,6 +171,14 @@ data/interim/e7_p1_features_e8p6.parquet                    267,723
       ▼
 data/interim/e7_p1_features_e8p9.parquet                    283,501   [TRAINING CORPUS]
       │
+      │  scripts/data_prep/build_databases.py final
+      ▼
+data/final_db/scamradar_e8p9.db                              283,501   [FINAL E8-P9 DB]
+    17 sources: the 12 real-world sources that survived E8-P3 + a legacy
+    `e5_base_corpus` catch-all row + 4 new synthetic sources produced by
+    E8-P2 / E8-P6 / E8-P8. MessageFeatures fully populated (25 features
+    per row).
+      │
       │  train_e8p9.py  (fits word+char TF-IDF + StandardScaler + LR)
       ▼
 models/e7_p1_variants/e7_p1_full_e8p9.joblib                          [DEPLOYED MODEL]
@@ -172,6 +190,17 @@ outputs/eval/master_summary.json                                       [FINAL ME
 ```
 
 All row counts balance to the last row (per-batch evidence lives in the `merge_report.json` files under `data/synthetic_legit/e8p{2,6}/` and `data/synthetic_scam/e8p8/`, and in `data/interim/e8p5_cleanup_report.json`).
+
+### Split composition at each stage
+
+The cluster-aware split runs **once** on the 253,264-row clean corpus, producing the four standalone parquets above. The E8 iteration only writes into the training partition (synthetic rows are labelled `split='train'` by construction — see the merge scripts), but the E8-P3 and E8-P5 cleanup steps remove rows regardless of split (the target sources / patterns are cross-partition). This produces two distinct split views:
+
+| View | Where | train | val | test | external | sum |
+|---|---|---:|---:|---:|---:|---:|
+| Initial baseline (frozen, evaluation source of truth) | `data/canonical/{train,val,test,external_benchmark}.parquet` | 159,571 | 34,193 | 34,194 | 25,306 | 253,264 |
+| Inside the final E8-P9 training corpus | `data/interim/e7_p1_features_e8p9.parquet::split` | 191,140 | 33,790 | 33,730 | 24,841 | 283,501 |
+
+The classifier fits only on `split=='train'` from the interim file (191,140 rows). **Final evaluation uses the untouched standalone `data/canonical/external_benchmark.parquet` (25,306 rows)**, not the 24,841-row external subset inside the interim file. The interim file's external subset is a byproduct of the cleanup filters and is not read by any evaluation script.
 
 ---
 

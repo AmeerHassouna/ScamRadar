@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 560" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <style>
+    .box       { fill: #ffffff; stroke: #1f2937; stroke-width: 1.5; rx: 6; ry: 6; }
+    .box-title { fill: #1f2937; }
+    .title     { fill: #ffffff; font-size: 15px; font-weight: 700; }
+    .col       { fill: #111827; font-size: 12px; }
+    .col-mono  { fill: #111827; font-size: 12px; font-family: 'SFMono-Regular', Menlo, Consolas, monospace; }
+    .pk        { fill: #b91c1c; font-size: 11px; font-weight: 700; font-family: 'SFMono-Regular', Menlo, Consolas, monospace; }
+    .fk        { fill: #1d4ed8; font-size: 11px; font-weight: 700; font-family: 'SFMono-Regular', Menlo, Consolas, monospace; }
+    .sep       { stroke: #e5e7eb; stroke-width: 1; }
+    .rel       { stroke: #4b5563; stroke-width: 1.5; fill: none; }
+    .card      { fill: #4b5563; font-size: 12px; font-weight: 700; font-family: 'SFMono-Regular', Menlo, Consolas, monospace; }
+    .caption   { fill: #374151; font-size: 13px; }
+    .subtle    { fill: #6b7280; font-size: 11px; }
+  </style>
+
+  <!-- Header -->
+  <text x="460" y="30" text-anchor="middle" fill="#111827" font-size="18" font-weight="700">ScamRadar+ — Relational Data Model</text>
+  <text x="460" y="50" text-anchor="middle" class="caption">Same schema for both the initial 253,264-row baseline DB and the final 283,501-row E8-P9 DB. PK in red · FK in blue.</text>
+
+  <!-- Source -->
+  <g transform="translate(60, 90)">
+    <rect class="box" width="240" height="180"/>
+    <rect class="box-title" x="0" y="0" width="240" height="30" rx="6" ry="6"/>
+    <rect class="box-title" x="0" y="20" width="240" height="10"/>
+    <text x="120" y="20" text-anchor="middle" class="title">Source</text>
+    <line class="sep" x1="10" y1="42" x2="230" y2="42"/>
+
+    <text x="14" y="60"  class="pk">PK</text>
+    <text x="46" y="60"  class="col-mono">source_id</text>
+    <text x="230" y="60" text-anchor="end" class="subtle">INTEGER</text>
+
+    <text x="14" y="80"  class="col-mono">source_name</text>
+    <text x="230" y="80" text-anchor="end" class="subtle">TEXT UNIQUE</text>
+
+    <text x="14" y="100" class="col-mono">source_type</text>
+    <text x="230" y="100" text-anchor="end" class="subtle">real | synthetic</text>
+
+    <text x="14" y="120" class="col-mono">era</text>
+    <text x="230" y="120" text-anchor="end" class="subtle">TEXT</text>
+
+    <text x="14" y="140" class="col-mono">license</text>
+    <text x="230" y="140" text-anchor="end" class="subtle">TEXT</text>
+
+    <text x="14" y="167" class="subtle">Initial DB: 14 rows · Final DB: 17 rows</text>
+  </g>
+
+  <!-- Message -->
+  <g transform="translate(340, 90)">
+    <rect class="box" width="240" height="230"/>
+    <rect class="box-title" x="0" y="0" width="240" height="30" rx="6" ry="6"/>
+    <rect class="box-title" x="0" y="20" width="240" height="10"/>
+    <text x="120" y="20" text-anchor="middle" class="title">Message</text>
+    <line class="sep" x1="10" y1="42" x2="230" y2="42"/>
+
+    <text x="14" y="60"  class="pk">PK</text>
+    <text x="46" y="60"  class="col-mono">message_id</text>
+    <text x="230" y="60" text-anchor="end" class="subtle">INTEGER (auto)</text>
+
+    <text x="14" y="80"  class="col-mono">text</text>
+    <text x="230" y="80" text-anchor="end" class="subtle">TEXT</text>
+
+    <text x="14" y="100" class="col-mono">label</text>
+    <text x="230" y="100" text-anchor="end" class="subtle">0 | 1</text>
+
+    <text x="14" y="120" class="col-mono">split</text>
+    <text x="230" y="120" text-anchor="end" class="subtle">train | val | test | external</text>
+
+    <text x="14" y="140" class="col-mono">cluster_id</text>
+    <text x="230" y="140" text-anchor="end" class="subtle">INTEGER</text>
+
+    <text x="14" y="160" class="fk">FK</text>
+    <text x="46" y="160" class="col-mono">source_id</text>
+    <text x="230" y="160" text-anchor="end" class="subtle">→ Source.source_id</text>
+
+    <line class="sep" x1="10" y1="178" x2="230" y2="178"/>
+    <text x="14" y="196" class="subtle">idx: label · source_id · split</text>
+    <text x="14" y="214" class="subtle">Initial DB: 253,264 · Final DB: 283,501</text>
+  </g>
+
+  <!-- MessageFeatures -->
+  <g transform="translate(620, 90)">
+    <rect class="box" width="240" height="380"/>
+    <rect class="box-title" x="0" y="0" width="240" height="30" rx="6" ry="6"/>
+    <rect class="box-title" x="0" y="20" width="240" height="10"/>
+    <text x="120" y="20" text-anchor="middle" class="title">MessageFeatures</text>
+    <line class="sep" x1="10" y1="42" x2="230" y2="42"/>
+
+    <text x="14" y="60"  class="pk">PK</text>
+    <text x="30" y="60"  class="fk">/FK</text>
+    <text x="60" y="60"  class="col-mono">message_id</text>
+    <text x="230" y="60" text-anchor="end" class="subtle">→ Message</text>
+
+    <text x="14" y="82"  class="subtle">— tone (4) —</text>
+    <text x="14" y="98"  class="col-mono">tone_urgency, tone_fear,</text>
+    <text x="14" y="112" class="col-mono">tone_reward, tone_threat</text>
+
+    <text x="14" y="132" class="subtle">— URL (5) —</text>
+    <text x="14" y="148" class="col-mono">has_url, url_count,</text>
+    <text x="14" y="162" class="col-mono">url_suspicious_tld,</text>
+    <text x="14" y="176" class="col-mono">url_suspicious_keyword,</text>
+    <text x="14" y="190" class="col-mono">url_has_ip</text>
+
+    <text x="14" y="210" class="subtle">— phrase (3) —</text>
+    <text x="14" y="226" class="col-mono">scam_phrase_score,</text>
+    <text x="14" y="240" class="col-mono">sender_impersonation_score,</text>
+    <text x="14" y="254" class="col-mono">legit_phrase_score</text>
+
+    <text x="14" y="274" class="subtle">— text stats (13) —</text>
+    <text x="14" y="290" class="col-mono">text_length, word_count,</text>
+    <text x="14" y="304" class="col-mono">exclamation_count,</text>
+    <text x="14" y="318" class="col-mono">uppercase_ratio, digit_ratio,</text>
+    <text x="14" y="332" class="col-mono">urgency_score, avg_word_length,</text>
+    <text x="14" y="346" class="col-mono">capitalized_word_count, …</text>
+
+    <text x="14" y="368" class="subtle">Initial DB: empty · Final DB: 283,501</text>
+  </g>
+
+  <!-- Source → Message relation (1..N) -->
+  <line class="rel" x1="300" y1="180" x2="340" y2="180"/>
+  <text x="311" y="172" class="card">1</text>
+  <text x="323" y="172" class="card">N</text>
+
+  <!-- Message → MessageFeatures (1..1) -->
+  <line class="rel" x1="580" y1="180" x2="620" y2="180"/>
+  <text x="590" y="172" class="card">1</text>
+  <text x="606" y="172" class="card">1</text>
+
+  <!-- Footer -->
+  <text x="60" y="510" class="caption">Schema:  docs/database/schema.sql</text>
+  <text x="60" y="528" class="caption">Build:   scripts/data_prep/build_databases.py {initial|final|both|verify}</text>
+  <text x="60" y="546" class="subtle">Neither .db file is committed to Git (each ~200-250 MB); both are locally reproducible from the shipped parquet inputs.</text>
+</svg>
