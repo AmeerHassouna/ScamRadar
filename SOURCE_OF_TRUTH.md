@@ -27,6 +27,7 @@ Last verified: 2026-08-15 against the working tree.
 | Calibration | **None** (rejected at E5) | `src/canonical.CALIBRATION`; uncalibrated LR dominated on PR-AUC, ROC-AUC, ECE (0.0125), Brier |
 | Operating threshold | **0.59** (F1-max on validation) | `src/canonical.OPERATING_THRESHOLD` = `config.E5_THRESHOLD` |
 | How many rules in the deployed Rule Engine? | **19** (9 Category-A critical + 7 Category-B strong + 3 Category-C legit) | `src/rule_engine/critical.py::CRITICAL_RULES`, `strong.py::STRONG_RULES`, `legit.py::LEGIT_RULES` |
+| How are the three OTP mechanisms distinguished? | Two are inside the 19-rule engine and count toward the 19: **A3 `OtpTheftRule`** (Category-A, force-scam on OTP theft requests) at `src/rule_engine/critical.py::OtpTheftRule` and **C3 `OtpNotificationRule`** (Category-C, dampen on pure OTP notifications) at `src/rule_engine/legit.py::OtpNotificationRule`. A third mechanism, the legacy pre-rule-engine hardcoded detector **`_is_pure_otp`** in `src/e5_inference.py`, is **outside the 19-rule engine**, is env-gated by `SCAMRADAR_OTP_RULE_ON` (default OFF), and was explicitly disabled during the reported F1 = 0.9131 evaluation via `scripts/evaluation/analyze_e8p9_errors.py:26`. | `src/rule_engine/critical.py`, `src/rule_engine/legit.py`, `src/e5_inference.py` |
 | What is the deployed model artifact? | **`models/e7_p1_variants/e7_p1_full_e8p9.joblib`** (3.6 MB) | `src/canonical.DEPLOYED_MODEL_PATH`; loaded by `api/main.py` via `src/inference.py` |
 | Where is the canonical E8-P9 implementation? | **`src/`** — start with **`src/pipeline.py`** | Not a notebook. Every stage is a Python module. |
 | Which experiment produced the deployed configuration? | **E8-P9** | Full lineage in "Experiment Journey" below |
@@ -37,7 +38,16 @@ Last verified: 2026-08-15 against the working tree.
 
 Both computed against the 25,306-row frozen external benchmark. Reproducible via `python scripts/evaluation/analyze_e8p9_errors.py` (which now reads the in-repo canonical benchmark).
 
+**Blindness of the external benchmark.** The benchmark was held out from **classifier training, hyperparameter optimization (E4), calibration (E5), and classifier threshold selection (E5)**. However, **Rule Engine development and pruning consulted external-benchmark observations** — rules that mis-fired on the benchmark were removed or tightened (see the change-history comments in `src/rule_engine/critical.py`, `strong.py`, `legit.py`). Consequently:
+
+- **F1 = 0.9160 (raw classifier)** is a **fully blind** external evaluation of the classifier alone.
+- **F1 = 0.9131 (classifier + 19-rule engine)** is the composite deployed metric; because the rule layer had visibility into the benchmark during pruning, this **is not a fully blind evaluation of the composite system**.
+
+This is a documented methodological caveat, not an issue with the classifier.
+
 ### Raw classifier (Logistic Regression, no rule engine), threshold = 0.59
+
+**Model:** E8-P9 raw classifier — retrained on the *post-augmentation* **283,501-row** training corpus.
 
 | Metric | Value |
 |---|---:|
@@ -53,6 +63,8 @@ Both computed against the 25,306-row frozen external benchmark. Reproducible via
 
 ### Deployed pipeline (classifier + 19-rule engine), threshold = 0.59
 
+**Model:** same E8-P9 classifier as above (trained on the 283,501-row corpus) + the 19-rule engine applied at inference.
+
 | Metric | Value |
 |---|---:|
 | Accuracy | **0.9687** (96.87%) |
@@ -61,6 +73,16 @@ Both computed against the 25,306-row frozen external benchmark. Reproducible via
 | F1 | **0.9131** (91.31%) |
 | Confusion (TN / FP / FN / TP) | **20,361 / 410 / 381 / 4,154** |
 | n | 25,306 |
+
+### How the three headline F1 numbers relate
+
+| F1 | Classifier trained on | Rule Engine? | Reads as |
+|---:|---|---|---|
+| **~0.941** (0.9414 / 0.9412) | **Pre-augmentation 253,264-row corpus** (E5 baseline / E7-P1-Full baseline) | No | Historical baseline — the pure classifier on the original approved corpus. |
+| **0.9160** | **Post-augmentation 283,501-row corpus** (E8-P9 classifier) | No | The E8-P9 classifier alone, measured on the same 25,306-row benchmark. |
+| **0.9131** | Same 283,501-row corpus | **Yes (19 rules)** | The full deployed pipeline. |
+
+The ~0.941 → 0.9160 gap is **not** classifier degradation — it is the same architecture retrained on a deliberately expanded corpus that includes modern-scam categories the 2008-era external benchmark does not reward. See `README.md::Performance` for the explicit tradeoff explanation. The 0.9160 → 0.9131 gap is the small F1 cost of adding the 19-rule engine on top of the same classifier.
 
 ### Values that are NOT the current final result
 
@@ -153,9 +175,11 @@ All row counts balance to the last row (per-batch evidence lives in the `merge_r
 | E8-P1 | Add rule engine (13 rules) | Layer works but overshoots on brand rules | `outputs/eval/e8p1_external.json` (F1=0.9368 — HISTORICAL, not current) |
 | E8-P2 | Synthetic legit v1 | +1,978 rows adopted | `data/synthetic_legit/e8p2/` |
 | E8-P3 | Drop spamassassin_ham | Adopted | `data/interim/e7_p1_features_e8p3.parquet` |
+| E8-P4 | Retraining iteration on the E8-P3 corpus | **REJECTED / rolled back** — external F1 regressed 0.9173 → 0.8842 (precision 0.8503, recall 0.9208). Not adopted; no `e7_p1_features_e8p4.parquet` in the current chain. | `e8p4_per_item.parquet` no longer in current tree; numbers preserved in git history |
 | E8-P5 | Cleanup mailing lists + spam-in-legit + short | Adopted | `data/interim/e8p5_cleanup_report.json` |
 | E8-P6 | Synthetic legit v2 | +15,572 rows adopted | `data/synthetic_legit/e8p6/` |
-| E8-P8 | Synthetic scam + legit pairs | +14,669 + 1,109 rows adopted | `data/synthetic_scam/e8p8/` |
+| E8-P7 | **Diagnostic evaluation** on the E8-P6 corpus — measured per-category recall and identified weak-recall modern-scam categories (investment/crypto, romance, emergency, refund, sextortion, threat/authority, gift-card CEO, modern phishing). Not a corpus-modifying stage. | Findings motivated E8-P8. | Enumerated in `scripts/data_prep/gen_e8p8_synthetic_scam.py` docstring |
+| E8-P8 | Synthetic scam + legit pairs (targeting E8-P7's weakness categories) | +14,669 + 1,109 rows adopted | `data/synthetic_scam/e8p8/` |
 | E8-P9 | Retrain + refine rule set (13→19) | **DEPLOYED** — F1=0.9131 external | `models/e7_p1_variants/e7_p1_full_e8p9.joblib` |
 
 ---

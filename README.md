@@ -84,7 +84,7 @@ The production build is codename **E8-P9** — the E7-P1 Full classifier (E5 rec
 | **Text features** | word 1–2 grams (200,000) · character 3–6 grams (300,000) · sublinear TF · L2 normalisation | bundle `word_vec` / `char_vec` |
 | **Numerical features** | 25 hand-engineered signals: tone (urgency · fear · reward · threat), URL structure, phrase scores (scam / legit / brand-impersonation), 13 text statistics | bundle `feature_cols` · [`src/features.py`](src/features.py) |
 | **Post-processing** | Modular **Rule Engine** — Critical (force-scam) · Strong (evidence boost) · Legit (evidence dampen) categories. Type-floor rules (A9 investment · A10 romance · A11 threat) keep recall high on modern conversational scams the classifier alone misses. | [`src/rule_engine/`](src/rule_engine) |
-| **URL safety net (E7-P2)** | Caps scam probability at 0.50 when a message contains URLs and every URL resolves to a trusted domain. Prevents legit brand emails being force-flagged by aggressive rules. | [`config.py`](config.py) `E7_P2_SAFETY_NET_*` |
+| **URL safety net (E7-P2)** | Optional post-processing layer that caps scam probability at 0.50 when a message contains URLs and every URL resolves to a trusted domain. **OFF by default** — activated only if `SCAMRADAR_SAFETY_NET_ON=true`. Explicitly disabled during the reported 0.913 evaluation (see `scripts/evaluation/analyze_e8p9_errors.py:27`). | [`config.py`](config.py) `E7_P2_SAFETY_NET_*` |
 | **Decision threshold** | **0.59** (F1-max on validation — inherited from E5, unchanged) | bundle `threshold` · [`config.py`](config.py) `E5_THRESHOLD` |
 | **Training corpus** | 283,501 messages · E8-P6 base (267,723) + 14,669 modern synthetic scams (conversational / investment / romance / threat) + 1,109 paired-legit adversarial twins | [`scripts/data_prep/merge_e8p8_into_training.py`](scripts/data_prep/merge_e8p8_into_training.py) |
 | **Data sources** | 13 real-world public corpora with URLs + licenses, plus an in-house synthetic seed used for targeted augmentation. No Kaggle. Every synthetic row is flagged in the audit. | [Data sources](#data-sources) |
@@ -104,9 +104,11 @@ Two figures matter and are reported separately below:
 
 Both are computed from real artifacts checked into this repository — no historical or estimated numbers.
 
-### Baseline — pure E5 classifier (n = 25,306)
+### Baseline — pure E5 classifier trained on the pre-augmentation 253,264-row corpus (n = 25,306)
 
 A **locked, write-once** benchmark of 25,306 rows. Held out from **classifier training, hyperparameter search, calibration, and classifier threshold selection.** It was nevertheless consulted during **Rule Engine development and pruning** — rules that mis-fired on the benchmark were removed or tightened (see `src/rule_engine/critical.py` change-history comments), so the deployed pipeline's headline is not a fully blind evaluation on this set. This is a documented evaluation caveat. The canonical file is [`data/canonical/external_benchmark.parquet`](data/canonical/external_benchmark.parquet) with its write-once seal at [`data/canonical/external_benchmark_LOCK.json`](data/canonical/external_benchmark_LOCK.json).
+
+This baseline uses the **E5 / E7-P1-Full classifier trained on the original approved 253,264-row corpus** (before any synthetic augmentation), raw output at threshold 0.59, no Rule Engine:
 
 | Metric | Value |
 |---|---:|
@@ -120,9 +122,24 @@ A **locked, write-once** benchmark of 25,306 rows. Held out from **classifier tr
 
 Source: [`outputs/eval/e7_p1_results.json`](outputs/eval/e7_p1_results.json) → `results.e5.external.primary_threshold_0.59`.
 
-### Production — E8-P9 build (n = 25,306, same benchmark)
+### Production — E8-P9 build trained on the post-augmentation 283,501-row corpus (n = 25,306, same benchmark)
 
-Same locked benchmark scored end-to-end (classifier → rule engine → final verdict).
+Same locked benchmark scored two ways: (a) the retrained classifier alone, and (b) the classifier plus the 19-rule engine (the shipped configuration).
+
+**(a) E8-P9 raw classifier only — no Rule Engine — trained on the 283,501-row corpus:**
+
+| Metric | Value |
+|---|---:|
+| Accuracy | **0.970** |
+| Precision | **0.915** |
+| Recall | **0.917** |
+| **F1** | **0.916** |
+| ROC-AUC | 0.991 |
+| PR-AUC | 0.969 |
+
+Source: [`outputs/eval/e8p9_bakeoff_results.json`](outputs/eval/e8p9_bakeoff_results.json) → `results[0].external_at_deployed_0.59`.
+
+**(b) Deployed pipeline (same E8-P9 classifier + 19-rule engine):**
 
 | Metric | Value | vs. E5 baseline |
 |---|---:|---:|
@@ -133,7 +150,9 @@ Same locked benchmark scored end-to-end (classifier → rule engine → final ve
 
 Confusion matrix: TN = 20,361 · FP = 410 · FN = 381 · TP = 4,154. Source: [`outputs/eval/e8p9_per_item.parquet`](outputs/eval/e8p9_per_item.parquet).
 
-**Why is F1 lower than the pure classifier?** Deliberate tradeoff. The external benchmark is dominated by 2008-era transactional and marketing emails (Nazario, CEAS 2008, Nigerian fraud). E8-P9 was retrained on ~15,000 modern synthetic scams (conversational SMS, investment DMs, romance, threats) that don't appear in this benchmark, and the Rule Engine's type-floor rules (A9 investment / A10 romance / A11 threat) fire on some benchmark items that superficially resemble those modern archetypes. The net effect: **slightly more FPs on legacy legit email in exchange for meaningfully better coverage of modern conversational scams** — the categories users actually get today.
+**The three headline numbers in one line.** F1 = 0.941 is the pure classifier trained on the **253,264-row pre-augmentation** corpus. F1 = 0.916 is the pure classifier retrained on the **283,501-row post-augmentation** corpus. F1 = 0.913 is that same retrained classifier composed with the 19-rule engine. The 0.941 → 0.916 gap is **not** classifier degradation — it is the same architecture retrained on a deliberately expanded corpus (see next paragraph). The 0.916 → 0.913 gap is the small F1 cost of the rule engine layer.
+
+**Why is F1 lower than the pure-classifier baseline?** Deliberate tradeoff. The external benchmark is dominated by 2008-era transactional and marketing emails (Nazario, CEAS 2008, Nigerian fraud). E8-P9 was retrained on ~15,000 modern synthetic scams (conversational SMS, investment DMs, romance, threats) that don't appear in this benchmark, and the Rule Engine's type-floor rules (A9 investment / A10 romance / A11 threat) fire on some benchmark items that superficially resemble those modern archetypes. The net effect: **slightly more FPs on legacy legit email in exchange for meaningfully better coverage of modern conversational scams** — the categories users actually get today.
 
 ### Per-category recall & false-positive rate (E8-P9, external benchmark)
 
@@ -215,7 +234,8 @@ Full sweep in [`models/e5_threshold_sweep.json`](models/e5_threshold_sweep.json)
 │  │            ↓                                               │  │
 │  │  final_probability + triggered_rules[]                     │  │
 │  │            ↓                                               │  │
-│  │  E7-P2 URL safety net (cap at 0.50 if all URLs trusted)    │  │
+│  │  E7-P2 URL safety net (opt-in; OFF by default; disabled    │  │
+│  │  during the reported F1 = 0.913 evaluation)                │  │
 │  │            ↓                                               │  │
 │  │  threshold 0.59 → verdict SCAM / SUSPICIOUS / LEGIT        │  │
 │  └────────────────────────────────────────────────────────────┘  │
